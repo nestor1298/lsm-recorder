@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
-  { href: "/catalog", label: "Sign Catalog" },
+  { href: "/catalog", label: "Catalog" },
   { href: "/record", label: "Record" },
+  { href: "/annotate", label: "Annotate" },
 ];
 
 export default function Header() {
