@@ -14,6 +14,8 @@ import type {
   MouthShape,
   HeadMovement,
 } from "@/lib/types";
+import { UB_LOCATIONS } from "@/lib/ub_inventory";
+import BodySilhouette from "./BodySilhouette";
 
 interface AnnotationFormProps {
   segment: PSHRSegment;
@@ -61,8 +63,6 @@ const MOVEMENT_PLANES: MovementPlane[] = ["HORIZONTAL", "VERTICAL", "SAGITTAL", 
 const PALM_FACINGS: PalmFacing[] = ["UP", "DOWN", "FORWARD", "BACK", "LEFT", "RIGHT", "NEUTRAL"];
 const FINGER_POINTINGS: FingerPointing[] = ["UP", "DOWN", "FORWARD", "BACK", "LEFT", "RIGHT", "NEUTRAL"];
 const BODY_REGIONS: BodyRegion[] = ["HEAD", "FACE", "NECK", "TRUNK", "ARM", "FOREARM", "HAND", "NEUTRAL_SPACE"];
-const CONTACT_TYPES: ContactType[] = ["TOUCHING", "GRASPED", "NEAR", "MEDIAL", "DISTANT", "BRUSHING"];
-const LATERALITIES: Laterality[] = ["IPSILATERAL", "CONTRALATERAL", "MIDLINE"];
 const EYEBROW_POSITIONS: EyebrowPosition[] = ["NEUTRAL", "RAISED", "FURROWED"];
 const MOUTH_SHAPES: MouthShape[] = ["NEUTRAL", "OPEN", "CLOSED", "ROUNDED", "STRETCHED"];
 const HEAD_MOVEMENTS: HeadMovement[] = ["NONE", "NOD", "SHAKE", "TILT_LEFT", "TILT_RIGHT", "TILT_BACK", "TILT_DOWN"];
@@ -73,31 +73,26 @@ export default function AnnotationForm({ segment, onUpdate }: AnnotationFormProp
 
   return (
     <div className="space-y-4">
-      {/* Location */}
+      {/* Location (UB) — Interactive Body Silhouette */}
       <div>
         <h4 className="mb-2 text-xs font-semibold text-gray-700">
           Location (UB)
         </h4>
-        <div className="grid grid-cols-3 gap-2">
-          <SelectField
-            label="Body Region"
-            value={segment.body_region}
-            options={BODY_REGIONS}
-            onChange={(v) => onUpdate({ body_region: v })}
-          />
-          <SelectField
-            label="Contact"
-            value={segment.contact}
-            options={CONTACT_TYPES}
-            onChange={(v) => onUpdate({ contact: v })}
-          />
-          <SelectField
-            label="Laterality"
-            value={segment.laterality}
-            options={LATERALITIES}
-            onChange={(v) => onUpdate({ laterality: v })}
-          />
-        </div>
+        <BodySilhouette
+          selectedCode={segment.location_code}
+          contact={segment.contact}
+          laterality={segment.laterality}
+          onSelect={(code) => {
+            const loc = code ? UB_LOCATIONS.find((l) => l.code === code) : undefined;
+            onUpdate({
+              location_code: code,
+              location: loc?.name,
+              body_region: loc?.region as BodyRegion | undefined,
+            });
+          }}
+          onContactChange={(v) => onUpdate({ contact: v })}
+          onLateralityChange={(v) => onUpdate({ laterality: v })}
+        />
       </div>
 
       {/* Movement (only for STROKE segments) */}

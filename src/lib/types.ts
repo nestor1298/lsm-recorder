@@ -75,6 +75,7 @@ export interface PSHRSegment {
   end_ms: number;
   // Segment-level annotation
   cm_id?: number;
+  location_code?: string; // Cruz Aldrete UB code (e.g., "Fr", "Pe", "Car")
   location?: string;
   body_region?: BodyRegion;
   contact?: ContactType;
