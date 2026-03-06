@@ -1,31 +1,25 @@
 "use client";
 
-import { Suspense, useRef, useEffect } from "react";
+import { Suspense, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 
 /**
- * Traverses the loaded GLTF scene and replaces the default white material
- * with a realistic skin-toned PBR material.
+ * Apply a realistic skin-toned PBR material to every mesh in the scene.
  */
-function applyHandMaterial(scene: THREE.Object3D) {
-  const skinMaterial = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color("#d4a574"),          // warm skin tone
-    roughness: 0.65,
+function applyHandMaterial(obj: THREE.Object3D) {
+  const skinMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#c8956c"),
+    roughness: 0.6,
     metalness: 0.0,
-    clearcoat: 0.15,                            // subtle sheen (skin-like)
-    clearcoatRoughness: 0.4,
-    sheen: 0.3,                                 // soft velvet-like diffuse
-    sheenColor: new THREE.Color("#e8c4a0"),
-    sheenRoughness: 0.5,
     side: THREE.DoubleSide,
   });
 
-  scene.traverse((child) => {
+  obj.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) {
       const mesh = child as THREE.Mesh;
-      mesh.material = skinMaterial;
+      mesh.material = skinMat;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
     }
@@ -36,22 +30,37 @@ function HandModel({ autoRotate = true }: { autoRotate?: boolean }) {
   const { scene } = useGLTF("/models/hand.glb");
   const ref = useRef<THREE.Group>(null);
 
-  // Clone the scene once and apply the skin material
-  const clonedScene = useRef<THREE.Object3D | null>(null);
-  if (!clonedScene.current) {
-    clonedScene.current = scene.clone();
-    applyHandMaterial(clonedScene.current);
-  }
+  // Clone, centre, scale, and apply material — once
+  const prepared = useMemo(() => {
+    const clone = scene.clone(true);
+
+    // Compute the world-space bounding box of the entire model
+    const box = new THREE.Box3().setFromObject(clone);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+
+    // Normalise so the longest side ≈ 2 world units
+    const targetSize = 2;
+    const s = targetSize / maxDim;
+    clone.scale.setScalar(s);
+
+    // Shift so the model is centred at the origin
+    clone.position.set(-center.x * s, -center.y * s, -center.z * s);
+
+    applyHandMaterial(clone);
+    return clone;
+  }, [scene]);
 
   useFrame((_, delta) => {
     if (ref.current && autoRotate) {
-      ref.current.rotation.y += delta * 0.3;
+      ref.current.rotation.y += delta * 0.4;
     }
   });
 
   return (
-    <group ref={ref} scale={2.5} position={[0, -0.5, 0]}>
-      <primitive object={clonedScene.current} />
+    <group ref={ref}>
+      <primitive object={prepared} />
     </group>
   );
 }
@@ -79,57 +88,35 @@ export default function HandModelViewer({
   return (
     <div className={`relative overflow-hidden rounded-2xl ${className}`} style={{ height }}>
       <Canvas
-        camera={{ position: [0, 1, 4], fov: 40 }}
+        camera={{ position: [0, 0.5, 3.5], fov: 35 }}
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
         shadows
       >
-        {/* Key light — warm, from upper right */}
-        <directionalLight
-          position={[4, 6, 4]}
-          intensity={1.5}
-          color="#fff5e6"
-          castShadow
-        />
-        {/* Fill light — cool, from left */}
-        <directionalLight
-          position={[-4, 3, -2]}
-          intensity={0.5}
-          color="#c4d4ff"
-        />
-        {/* Rim light — accent from behind */}
-        <directionalLight
-          position={[0, 2, -5]}
-          intensity={0.6}
-          color="#a78bfa"
-        />
-        {/* Ambient base */}
-        <ambientLight intensity={0.3} color="#e8e0f0" />
+        {/* 3-point lighting rig */}
+        <directionalLight position={[4, 5, 4]} intensity={1.8} color="#fff5e6" castShadow />
+        <directionalLight position={[-3, 3, -2]} intensity={0.6} color="#c8d8ff" />
+        <directionalLight position={[0, 2, -5]} intensity={0.5} color="#a78bfa" />
+        <ambientLight intensity={0.35} color="#f0e8f8" />
 
         <Suspense fallback={<LoadingFallback />}>
           <HandModel autoRotate={autoRotate} />
-          <ContactShadows
-            position={[0, -1.5, 0]}
-            opacity={0.3}
-            scale={8}
-            blur={2}
-          />
-          <Environment preset="studio" environmentIntensity={0.4} />
+          <ContactShadows position={[0, -1.2, 0]} opacity={0.25} scale={6} blur={2.5} />
+          <Environment preset="studio" />
         </Suspense>
+
         <OrbitControls
           enablePan={false}
           enableZoom={true}
-          minDistance={2}
+          minDistance={1.5}
           maxDistance={8}
-          autoRotate={false}
         />
       </Canvas>
 
-      {/* Gradient overlay at bottom */}
+      {/* Bottom gradient */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
     </div>
   );
 }
 
-// Preload the model
 useGLTF.preload("/models/hand.glb");
