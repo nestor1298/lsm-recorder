@@ -29,15 +29,18 @@ export const THUMB_BONES = ["rThumb1", "rThumb2", "rThumb3"] as const;
 export type FingerName = keyof typeof FINGER_BONES;
 
 // ── Flexion angle mapping (degrees → radians) ──────────────────
-// Source: HandVisualization.tsx lines 11-16
+// Calibrated from rigget_V16.glb baked animations:
+//   "S" (fist): PIP≈-85°, DIP≈-70°, MCP≈-28°  → total ≈ 183°
+//   "A" (fist): PIP≈-70°, DIP≈-70°, MCP≈-28°  → total ≈ 168°
+// The model's bones require larger angles than the 2D SVG visualization.
 
 const DEG2RAD = Math.PI / 180;
 
 const FLEXION_RAD: Record<FlexionLevel, number> = {
   EXTENDED: 0,
-  CURVED:  25 * DEG2RAD,   // 0.436 rad
-  BENT:    55 * DEG2RAD,   // 0.960 rad
-  CLOSED:  80 * DEG2RAD,   // 1.396 rad
+  CURVED:  60 * DEG2RAD,    // mild curl
+  BENT:    120 * DEG2RAD,   // firm curl
+  CLOSED:  180 * DEG2RAD,   // full fist
 };
 
 // ── Types ───────────────────────────────────────────────────────
@@ -78,12 +81,14 @@ export interface HandPose {
 // ── Conversion logic ────────────────────────────────────────────
 
 /**
- * Distribute a flexion angle across MCP (40%), PIP (35%), DIP (25%).
+ * Distribute a flexion angle across MCP, PIP, DIP.
+ * Based on rigget_V16.glb animation data:
+ *   MCP ≈ 15%, PIP ≈ 47%, DIP ≈ 38% (from "S" fist pose)
  * Returns [mcpFlex, pipFlex, dipFlex] in radians.
  */
 function distributeCurl(flexion: FlexionLevel): [number, number, number] {
   const total = FLEXION_RAD[flexion];
-  return [total * 0.4, total * 0.35, total * 0.25];
+  return [total * 0.15, total * 0.47, total * 0.38];
 }
 
 /** Spread angles per finger (radians), applied to carpal bone Y-axis */
@@ -120,7 +125,10 @@ function buildFingerPose(
 
 /**
  * Build a ThumbPose from opposition and flexion.
- * Reference: HandVisualization.tsx line 78: -140° opposed vs -110° parallel.
+ * Calibrated from rigget_V16.glb animations:
+ *   "S" (opposed fist): rThumb1 dX=-41° dY=-8° dZ=11°
+ *   "L" (extended): rThumb1 dX=4° dY=-24° dZ=7°
+ *   "1" (tucked): rThumb1 dX=-25° dY=-11° dZ=11°
  */
 function buildThumbPose(
   opposition: ThumbOpposition,
@@ -130,25 +138,26 @@ function buildThumbPose(
   const totalCurl = FLEXION_RAD[flexion];
 
   // Opposition: how much the thumb rotates to face the fingers
+  // From GLB data, opposition is primarily X-rotation + Y-rotation on rThumb1
   let cmcOpposition = 0;
   let cmcRotation = 0;
 
   if (opposition === "OPPOSED") {
-    cmcOpposition = 0.6;   // Z-axis abduction
-    cmcRotation = -0.5;    // Y-axis rotation toward fingers
+    cmcOpposition = -40 * DEG2RAD;  // X-rotation (curl toward palm)
+    cmcRotation = -8 * DEG2RAD;     // Y-rotation
   } else if (opposition === "CROSSED") {
-    cmcOpposition = 0.4;
-    cmcRotation = -0.8;
+    cmcOpposition = -50 * DEG2RAD;
+    cmcRotation = -20 * DEG2RAD;
   }
   // PARALLEL: both stay 0 (thumb alongside palm)
 
-  // Distribute curl: MCP 55%, IP 45% (thumb has 2 phalanges)
-  let mcpFlex = totalCurl * 0.55;
-  let ipFlex = totalCurl * 0.45;
+  // Distribute curl: MCP 40%, IP 60% (from animation data)
+  let mcpFlex = totalCurl * 0.40;
+  let ipFlex = totalCurl * 0.60;
 
   // Thumb contact: bring tip closer
   if (thumbContact) {
-    ipFlex += 0.3;
+    ipFlex += 15 * DEG2RAD;
   }
 
   return { cmcOpposition, cmcRotation, mcpFlex, ipFlex };

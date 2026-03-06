@@ -214,9 +214,9 @@ export default function RiggedHand({ cm, autoRotate = false }: RiggedHandProps) 
       const bind = bindPoses.fingers[name];
 
       applyPose(refs.carpal, bind.carpal, 0, s.carpalSpread, 0);
-      applyPose(refs.bones[0], bind.bones[0], s.mcpFlex, 0, 0);
-      applyPose(refs.bones[1], bind.bones[1], s.pipFlex, 0, 0);
-      applyPose(refs.bones[2], bind.bones[2], s.dipFlex, 0, 0);
+      applyPose(refs.bones[0], bind.bones[0], -s.mcpFlex, 0, 0);
+      applyPose(refs.bones[1], bind.bones[1], -s.pipFlex, 0, 0);
+      applyPose(refs.bones[2], bind.bones[2], -s.dipFlex, 0, 0);
     }
 
     // Lerp thumb pose
@@ -227,9 +227,9 @@ export default function RiggedHand({ cm, autoRotate = false }: RiggedHandProps) 
     ts.mcpFlex += (tt.mcpFlex - ts.mcpFlex) * factor;
     ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
-    applyPose(boneRefs.thumb[0], bindPoses.thumb[0], 0, ts.cmcRotation, ts.cmcOpposition);
-    applyPose(boneRefs.thumb[1], bindPoses.thumb[1], ts.mcpFlex, 0, 0);
-    applyPose(boneRefs.thumb[2], bindPoses.thumb[2], ts.ipFlex, 0, 0);
+    applyPose(boneRefs.thumb[0], bindPoses.thumb[0], ts.cmcOpposition, ts.cmcRotation, 0);
+    applyPose(boneRefs.thumb[1], bindPoses.thumb[1], -ts.mcpFlex, 0, 0);
+    applyPose(boneRefs.thumb[2], bindPoses.thumb[2], -ts.ipFlex, 0, 0);
 
     // Auto-rotate the whole group
     if (groupRef.current && autoRotate && !cm) {
