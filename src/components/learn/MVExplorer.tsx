@@ -18,59 +18,59 @@ const CONTOUR_MOVEMENTS: MovementPath[] = [
   {
     type: "STRAIGHT",
     label: "Recto",
-    spanish: "Movimiento en l\u00ednea recta",
+    spanish: "Movimiento en línea recta",
     path: "M 30,100 L 170,100",
-    description: "A direct path from point A to B, the most common contour in LSM signs.",
+    description: "Trayectoria directa del punto A al B, el contorno más común en las señas de la LSM.",
   },
   {
     type: "ARC",
     label: "Arco",
     spanish: "Movimiento en arco",
     path: "M 30,120 Q 100,30 170,120",
-    description: "A curved arc path, often seen in signs that trace over body regions.",
+    description: "Trayectoria curva en arco, frecuente en señas que trazan sobre regiones del cuerpo.",
   },
   {
     type: "CIRCLE",
-    label: "C\u00edrculo",
+    label: "Círculo",
     spanish: "Movimiento circular",
     path: "M 100,40 A 50,50 0 1,1 100,39.9",
-    description: "A circular or elliptical path, common in signs meaning repetition or continuity.",
+    description: "Trayectoria circular o elíptica, común en señas que significan repetición o continuidad.",
   },
   {
     type: "ZIGZAG",
     label: "Zigzag",
     spanish: "Movimiento en zigzag",
     path: "M 30,100 L 60,50 L 100,120 L 140,50 L 170,100",
-    description: "An angular alternating path, used in signs depicting irregular or chaotic motion.",
+    description: "Trayectoria angular alternante, usada en señas que representan movimiento irregular o caótico.",
   },
   {
     type: "SEVEN",
     label: "Siete",
     spanish: "Movimiento en forma de 7",
     path: "M 40,50 L 160,50 L 100,140",
-    description: "A path shaped like the number 7 \u2014 horizontal then diagonal descent.",
+    description: "Trayectoria en forma del número 7 — horizontal seguido de descenso diagonal.",
   },
 ];
 
 const LOCAL_MOVEMENTS: { type: LocalType; label: string; icon: string; description: string }[] = [
-  { type: "WIGGLE", label: "Meneo", icon: "\u223c", description: "Rapid finger alternation" },
-  { type: "CIRCULAR", label: "Circular", icon: "\u27f3", description: "Wrist circular motion" },
-  { type: "TWIST", label: "Giro", icon: "\u21bb", description: "Forearm pronation/supination" },
-  { type: "SCRATCH", label: "Raspar", icon: "\u2261", description: "Fingertips scratching" },
-  { type: "NOD", label: "Flexionar", icon: "\u2935", description: "Wrist flexion/extension" },
-  { type: "OSCILLATE", label: "Oscilar", icon: "\u21c4", description: "Side-to-side oscillation" },
-  { type: "RELEASE", label: "Soltar", icon: "\u2197", description: "Fingers open from closed" },
-  { type: "FLATTEN", label: "Aplanar", icon: "\u25ad", description: "Fingers flatten together" },
-  { type: "PROGRESSIVE", label: "Progresivo", icon: "\u2026", description: "Sequential finger closing" },
-  { type: "VIBRATE", label: "Vibrar", icon: "\u2248", description: "High-frequency tremor" },
-  { type: "RUB", label: "Frotar", icon: "\u21c6", description: "Rubbing contact motion" },
+  { type: "WIGGLE", label: "Meneo", icon: "\u223c", description: "Alternancia rápida de dedos" },
+  { type: "CIRCULAR", label: "Circular", icon: "\u27f3", description: "Movimiento circular de muñeca" },
+  { type: "TWIST", label: "Giro", icon: "\u21bb", description: "Pronación/supinación del antebrazo" },
+  { type: "SCRATCH", label: "Raspar", icon: "\u2261", description: "Rascado con las yemas de los dedos" },
+  { type: "NOD", label: "Flexionar", icon: "\u2935", description: "Flexión/extensión de muñeca" },
+  { type: "OSCILLATE", label: "Oscilar", icon: "\u21c4", description: "Oscilación de lado a lado" },
+  { type: "RELEASE", label: "Soltar", icon: "\u2197", description: "Los dedos se abren desde posición cerrada" },
+  { type: "FLATTEN", label: "Aplanar", icon: "\u25ad", description: "Los dedos se aplanan juntos" },
+  { type: "PROGRESSIVE", label: "Progresivo", icon: "\u2026", description: "Cierre secuencial de dedos" },
+  { type: "VIBRATE", label: "Vibrar", icon: "\u2248", description: "Temblor de alta frecuencia" },
+  { type: "RUB", label: "Frotar", icon: "\u21c6", description: "Movimiento de frotamiento por contacto" },
 ];
 
 const PLANES: { type: PlaneType; label: string; color: string; description: string }[] = [
-  { type: "HORIZONTAL", label: "Horizontal", color: "#3b82f6", description: "Movement parallel to the ground (table plane)" },
-  { type: "VERTICAL", label: "Vertical", color: "#8b5cf6", description: "Movement parallel to the signer\u2019s front (wall plane)" },
-  { type: "SAGITTAL", label: "Sagittal", color: "#10b981", description: "Movement perpendicular to the signer (depth plane)" },
-  { type: "OBLIQUE", label: "Oblique", color: "#f59e0b", description: "Movement in a diagonal plane combining two axes" },
+  { type: "HORIZONTAL", label: "Horizontal", color: "#3b82f6", description: "Movimiento paralelo al suelo (plano de mesa)" },
+  { type: "VERTICAL", label: "Vertical", color: "#8b5cf6", description: "Movimiento paralelo al frente del señante (plano de pared)" },
+  { type: "SAGITTAL", label: "Sagital", color: "#10b981", description: "Movimiento perpendicular al señante (plano de profundidad)" },
+  { type: "OBLIQUE", label: "Oblicuo", color: "#f59e0b", description: "Movimiento en un plano diagonal que combina dos ejes" },
 ];
 
 export default function MVExplorer() {
@@ -86,9 +86,9 @@ export default function MVExplorer() {
       {/* Info */}
       <div className="rounded-xl bg-sky-50 p-3">
         <p className="text-xs leading-relaxed text-sky-700">
-          Movement (MV) describes <b>how the hand travels</b> through signing space.
-          It has three sub-parameters: <b>contour</b> (path shape), <b>local movement</b> (internal motion),
-          and <b>plane</b> (spatial dimension).
+          El movimiento (MV) describe <b>cómo se desplaza la mano</b> a través del espacio de señado.
+          Tiene tres sub-parámetros: <b>contorno</b> (forma de la trayectoria), <b>movimiento local</b> (movimiento interno),
+          y <b>plano</b> (dimensión espacial).
         </p>
       </div>
 
@@ -96,8 +96,8 @@ export default function MVExplorer() {
       <div>
         <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
           <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">1</span>
-          Contour Movements
-          <span className="text-xs font-normal text-gray-400">(5 types)</span>
+          Movimientos de Contorno
+          <span className="text-xs font-normal text-gray-400">(5 tipos)</span>
         </h4>
 
         <div className="grid gap-3 md:grid-cols-[1fr,200px]">
@@ -154,8 +154,8 @@ export default function MVExplorer() {
       <div>
         <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
           <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">2</span>
-          Local Movements
-          <span className="text-xs font-normal text-gray-400">(11 types)</span>
+          Movimientos Locales
+          <span className="text-xs font-normal text-gray-400">(11 tipos)</span>
         </h4>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
           {LOCAL_MOVEMENTS.map((lm) => (
@@ -185,8 +185,8 @@ export default function MVExplorer() {
       <div>
         <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
           <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-700">3</span>
-          Movement Planes
-          <span className="text-xs font-normal text-gray-400">(4 types)</span>
+          Planos de Movimiento
+          <span className="text-xs font-normal text-gray-400">(4 tipos)</span>
         </h4>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
           {PLANES.map((p) => (
@@ -212,10 +212,10 @@ export default function MVExplorer() {
       {/* Notation output */}
       <div className="rounded-xl bg-gray-900 p-3">
         <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
-          LSM-PN Notation
+          Notación LSM-PN
         </p>
         <p className="font-mono text-sm text-emerald-400">
-          MV: contour={activeContour.toLowerCase()}, plane={activePlane.toLowerCase()}
+          MV: contorno={activeContour.toLowerCase()}, plano={activePlane.toLowerCase()}
           {activeLocal ? `, local=${activeLocal.toLowerCase()}` : ""}
         </p>
       </div>

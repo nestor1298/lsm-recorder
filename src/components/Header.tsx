@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard" },
-  { href: "/learn", label: "Learn" },
-  { href: "/catalog", label: "Catalog" },
-  { href: "/record", label: "Record" },
-  { href: "/annotate", label: "Annotate" },
+  { href: "/", label: "Inicio" },
+  { href: "/learn", label: "Aprender" },
+  { href: "/catalog", label: "Catálogo" },
+  { href: "/record", label: "Grabar" },
+  { href: "/annotate", label: "Anotar" },
 ];
 
 export default function Header() {

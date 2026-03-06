@@ -27,11 +27,11 @@ const ZONE_REGIONS: Record<BodyZone, string[]> = {
 };
 
 const ZONE_LABELS: Record<BodyZone, string> = {
-  full: "Full Body",
-  head: "Head & Face",
-  trunk: "Trunk",
-  arm: "Arms",
-  hand: "Hands",
+  full: "Cuerpo Completo",
+  head: "Cabeza y Cara",
+  trunk: "Tronco",
+  arm: "Brazos",
+  hand: "Manos",
 };
 
 export default function UBExplorer() {
@@ -63,15 +63,15 @@ export default function UBExplorer() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="rounded-lg bg-emerald-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-emerald-600">80</span>
-          <span className="ml-1.5 text-xs text-emerald-600/70">locations</span>
+          <span className="ml-1.5 text-xs text-emerald-600/70">ubicaciones</span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">8</span>
-          <span className="ml-1.5 text-xs text-gray-500">body regions</span>
+          <span className="ml-1.5 text-xs text-gray-500">regiones corporales</span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">20</span>
-          <span className="ml-1.5 text-xs text-gray-500">high-frequency</span>
+          <span className="ml-1.5 text-xs text-gray-500">alta frecuencia</span>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ export default function UBExplorer() {
           {/* Region breakdown */}
           <div className="rounded-xl bg-gray-50 p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-              Regions
+              Regiones
             </p>
             <div className="space-y-1.5">
               {Object.entries(REGION_COLORS).map(([region, color]) => (
@@ -208,7 +208,7 @@ export default function UBExplorer() {
                 <span className="text-sm text-gray-600">{displayLoc.name}</span>
               </div>
               {displayLoc.latin && (
-                <p className="mt-1 text-xs italic text-gray-400">Latin: {displayLoc.latin}</p>
+                <p className="mt-1 text-xs italic text-gray-400">Latín: {displayLoc.latin}</p>
               )}
               <div className="mt-2 flex gap-2">
                 <span className="rounded bg-white/80 px-2 py-0.5 text-[10px] font-medium text-gray-500">
@@ -216,12 +216,12 @@ export default function UBExplorer() {
                 </span>
                 {displayLoc.frequent && (
                   <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                    High Frequency
+                    Alta Frecuencia
                   </span>
                 )}
               </div>
               <div className="mt-2 text-[10px] text-gray-400">
-                Coordinates: ({displayLoc.x}, {displayLoc.y})
+                Coordenadas: ({displayLoc.x}, {displayLoc.y})
               </div>
             </div>
           )}
@@ -229,12 +229,12 @@ export default function UBExplorer() {
           {/* Notation guide */}
           <div className="rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-              Cruz Aldrete Notation
+              Notación Cruz Aldrete
             </p>
             <p className="text-[11px] leading-relaxed text-gray-500">
-              Each location is coded with a 2-4 letter abbreviation derived from its Latin anatomical name.
-              Prefix modifiers: <b className="text-gray-700">Ipsi</b> (same side as dominant hand),
-              <b className="text-gray-700"> X</b> (opposite side),
+              Cada ubicación se codifica con una abreviatura de 2-4 letras derivada de su nombre anatómico en latín.
+              Modificadores de prefijo: <b className="text-gray-700">Ipsi</b> (mismo lado de la mano dominante),
+              <b className="text-gray-700"> X</b> (lado opuesto),
               <b className="text-gray-700"> Int</b> (interior),
               <b className="text-gray-700"> Ext</b> (exterior),
               <b className="text-gray-700"> Inf</b> (inferior).

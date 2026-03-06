@@ -11,6 +11,20 @@ const FLEXION_COLOR: Record<FlexionLevel, string> = {
   CLOSED: "#ef4444",
 };
 
+const FLEXION_LABEL_ES: Record<FlexionLevel, string> = {
+  EXTENDED: "extendido",
+  CURVED: "curvado",
+  BENT: "doblado",
+  CLOSED: "cerrado",
+};
+
+const TIER_LABELS_ES: Record<number, string> = {
+  1: "Alta Frecuencia",
+  2: "Media Frecuencia",
+  3: "Baja Frecuencia",
+  4: "Raro",
+};
+
 /** Mini hand visualization — compact version */
 function MiniHand({ cm, size = 64 }: { cm: CMEntry; size?: number }) {
   const fingerStates: FlexionLevel[] = [cm.index, cm.middle, cm.ring, cm.pinky];
@@ -89,22 +103,22 @@ export default function CMExplorer() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="rounded-lg bg-indigo-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-indigo-600">101</span>
-          <span className="ml-1.5 text-xs text-indigo-600/70">handshapes</span>
+          <span className="ml-1.5 text-xs text-indigo-600/70">configuraciones</span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">4</span>
-          <span className="ml-1.5 text-xs text-gray-500">frequency tiers</span>
+          <span className="ml-1.5 text-xs text-gray-500">niveles de frecuencia</span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">5</span>
-          <span className="ml-1.5 text-xs text-gray-500">finger groups</span>
+          <span className="ml-1.5 text-xs text-gray-500">grupos de dedos</span>
         </div>
       </div>
 
       {/* Flexion legend */}
       <div className="rounded-xl bg-gray-50 p-3">
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-          Finger Flexion Levels
+          Niveles de Flexión de Dedos
         </p>
         <div className="flex items-center gap-4">
           {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map((level) => (
@@ -119,7 +133,7 @@ export default function CMExplorer() {
                   }}
                 />
               </div>
-              <span className="text-xs text-gray-600">{level.toLowerCase()}</span>
+              <span className="text-xs text-gray-600">{FLEXION_LABEL_ES[level]}</span>
             </div>
           ))}
         </div>
@@ -133,7 +147,7 @@ export default function CMExplorer() {
             selectedTier === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          All Tiers
+          Todos los Niveles
         </button>
         {[1, 2, 3, 4].map((tier) => (
           <button
@@ -145,7 +159,7 @@ export default function CMExplorer() {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Tier {tier}: {TIER_LABELS[tier]}
+            Nivel {tier}: {TIER_LABELS_ES[tier]}
           </button>
         ))}
       </div>
@@ -158,7 +172,7 @@ export default function CMExplorer() {
             selectedGroup === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          All Groups
+          Todos los Grupos
         </button>
         {FINGER_GROUPS.map((group) => (
           <button
@@ -203,7 +217,7 @@ export default function CMExplorer() {
               <div className="flex items-center gap-2">
                 <h4 className="text-lg font-bold text-gray-900">CM #{hoveredCM.cm_id}</h4>
                 <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${TIER_COLORS[hoveredCM.frequency_tier]}`}>
-                  {TIER_LABELS[hoveredCM.frequency_tier]}
+                  {TIER_LABELS_ES[hoveredCM.frequency_tier]}
                 </span>
               </div>
               {hoveredCM.cruz_aldrete_notation && (
@@ -213,24 +227,24 @@ export default function CMExplorer() {
               )}
               {hoveredCM.example_sign && (
                 <p className="mt-1 text-sm text-gray-500">
-                  Example: <span className="font-medium text-gray-700">{hoveredCM.example_sign}</span>
+                  Ejemplo: <span className="font-medium text-gray-700">{hoveredCM.example_sign}</span>
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Index: <b style={{ color: FLEXION_COLOR[hoveredCM.index] }}>{hoveredCM.index.toLowerCase()}</b>
+                  Índice: <b style={{ color: FLEXION_COLOR[hoveredCM.index] }}>{FLEXION_LABEL_ES[hoveredCM.index]}</b>
                 </span>
                 <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Middle: <b style={{ color: FLEXION_COLOR[hoveredCM.middle] }}>{hoveredCM.middle.toLowerCase()}</b>
+                  Medio: <b style={{ color: FLEXION_COLOR[hoveredCM.middle] }}>{FLEXION_LABEL_ES[hoveredCM.middle]}</b>
                 </span>
                 <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Ring: <b style={{ color: FLEXION_COLOR[hoveredCM.ring] }}>{hoveredCM.ring.toLowerCase()}</b>
+                  Anular: <b style={{ color: FLEXION_COLOR[hoveredCM.ring] }}>{FLEXION_LABEL_ES[hoveredCM.ring]}</b>
                 </span>
                 <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Pinky: <b style={{ color: FLEXION_COLOR[hoveredCM.pinky] }}>{hoveredCM.pinky.toLowerCase()}</b>
+                  Meñique: <b style={{ color: FLEXION_COLOR[hoveredCM.pinky] }}>{FLEXION_LABEL_ES[hoveredCM.pinky]}</b>
                 </span>
                 <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Thumb: <b>{hoveredCM.thumb_opposition.toLowerCase()}</b> / <b style={{ color: FLEXION_COLOR[hoveredCM.thumb_flexion] }}>{hoveredCM.thumb_flexion.toLowerCase()}</b>
+                  Pulgar: <b>{hoveredCM.thumb_opposition === "OPPOSED" ? "opuesto" : hoveredCM.thumb_opposition === "PARALLEL" ? "paralelo" : "cruzado"}</b> / <b style={{ color: FLEXION_COLOR[hoveredCM.thumb_flexion] }}>{FLEXION_LABEL_ES[hoveredCM.thumb_flexion]}</b>
                 </span>
               </div>
             </div>
@@ -240,8 +254,8 @@ export default function CMExplorer() {
 
       {/* Showing count */}
       <p className="text-center text-xs text-gray-400">
-        Showing {filtered.length} of 101 handshapes
-        {selectedTier ? ` (Tier ${selectedTier})` : ""}
+        Mostrando {filtered.length} de 101 configuraciones
+        {selectedTier ? ` (Nivel ${selectedTier})` : ""}
         {selectedGroup ? ` (${selectedGroup})` : ""}
       </p>
     </div>

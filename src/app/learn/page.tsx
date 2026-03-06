@@ -16,7 +16,7 @@ const HandModelViewer = dynamic(() => import("@/components/HandModelViewer"), {
     <div className="flex h-[400px] items-center justify-center rounded-2xl bg-gradient-to-b from-indigo-950 to-slate-900">
       <div className="text-center">
         <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-        <p className="text-sm text-indigo-300">Loading 3D model...</p>
+        <p className="text-sm text-indigo-300">Cargando modelo 3D...</p>
       </div>
     </div>
   ),
@@ -27,11 +27,10 @@ const CHANNELS = [
   {
     id: "cm",
     label: "CM",
-    fullName: "Handshape",
-    spanishName: "Configuraci\u00f3n Manual",
-    color: "#4f46e5",
+    fullName: "Configuración Manual",
     description:
-      "The handshape channel encodes which fingers are selected, their flexion level (extended, curved, bent, or closed), thumb position, finger spread, and inter-finger interactions. Cruz Aldrete (2008) documented 101 distinct handshape configurations in Mexican Sign Language, organized into 4 frequency tiers and 5 finger groups. Each handshape is given a unique numeric code (CM #1 \u2013 #101) and a descriptive phonological notation.",
+      "El canal de configuración manual codifica qué dedos están seleccionados, su nivel de flexión (extendido, curvado, doblado o cerrado), la posición del pulgar, la separación entre dedos y las interacciones entre ellos. Cruz Aldrete (2008) documentó 101 configuraciones manuales distintas en la Lengua de Señas Mexicana, organizadas en 4 niveles de frecuencia y 5 grupos de dedos. Cada configuración recibe un código numérico único (CM #1 – #101) y una notación fonológica descriptiva.",
+    color: "#4f46e5",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M12 22V8M12 8l-3-6M12 8l3-6M7 16l-4-3M17 16l4-3" />
@@ -41,11 +40,10 @@ const CHANNELS = [
   {
     id: "ub",
     label: "UB",
-    fullName: "Location",
-    spanishName: "Ubicaci\u00f3n",
-    color: "#059669",
+    fullName: "Ubicación",
     description:
-      "The location channel specifies where on or near the body a sign is articulated. The 80 documented locations span 8 body regions \u2014 head, face, neck, trunk, arm, forearm, hand, and neutral space. Each point is coded with a Latin-derived abbreviation (e.g., \u2018Fr\u2019 = frons/forehead, \u2018Pe\u2019 = pectus/chest). Modifiers like \u2018Ipsi\u2019 (same side as dominant hand) and \u2018X\u2019 (contralateral) add spatial precision.",
+      "El canal de ubicación especifica en qué parte del cuerpo o cerca de él se articula una seña. Las 80 ubicaciones documentadas abarcan 8 regiones corporales: cabeza, cara, cuello, tronco, brazo, antebrazo, mano y espacio neutro. Cada punto se codifica con una abreviatura de origen latino (ej., «Fr» = frons/frente, «Pe» = pectus/pecho). Modificadores como «Ipsi» (mismo lado de la mano dominante) y «X» (contralateral) añaden precisión espacial.",
+    color: "#059669",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <circle cx="12" cy="5" r="3" />
@@ -59,11 +57,10 @@ const CHANNELS = [
   {
     id: "or",
     label: "OR",
-    fullName: "Orientation",
-    spanishName: "Orientaci\u00f3n",
-    color: "#7c3aed",
+    fullName: "Orientación",
     description:
-      "Orientation describes the spatial posture of the hand through two independent parameters: palm facing (the direction the palm surface points \u2014 up, down, forward, back, left, or right) and finger pointing (the direction the extended fingers aim). Together, they define 36 possible hand orientations in 3D space relative to the signer\u2019s body.",
+      "La orientación describe la postura espacial de la mano a través de dos parámetros independientes: la dirección de la palma (hacia dónde apunta la superficie palmar — arriba, abajo, al frente, atrás, izquierda o derecha) y la dirección de los dedos (hacia dónde apuntan los dedos extendidos). Juntos, definen 36 orientaciones posibles de la mano en el espacio 3D relativo al cuerpo del señante.",
+    color: "#7c3aed",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M12 2v4m0 12v4M2 12h4m12 0h4M6.34 6.34l2.83 2.83m5.66 5.66l2.83 2.83M17.66 6.34l-2.83 2.83M8.17 14.83l-2.83 2.83" />
@@ -73,11 +70,10 @@ const CHANNELS = [
   {
     id: "mv",
     label: "MV",
-    fullName: "Movement",
-    spanishName: "Movimiento",
-    color: "#0284c7",
+    fullName: "Movimiento",
     description:
-      "Movement is the dynamic channel that captures how the hand travels through signing space. It decomposes into three sub-parameters: contour (the geometric path \u2014 straight, arc, circle, zigzag, or seven-shape), local movements (internal motions like wiggling, twisting, or vibrating), and the movement plane (horizontal, vertical, sagittal, or oblique). Movement can also carry phonological diacritics for speed, repetition, and direction.",
+      "El movimiento es el canal dinámico que captura cómo se desplaza la mano a través del espacio de señas. Se descompone en tres sub-parámetros: contorno (la trayectoria geométrica — recto, arco, círculo, zigzag o forma de siete), movimientos locales (movimientos internos como meneo, giro o vibración) y el plano del movimiento (horizontal, vertical, sagital u oblicuo). El movimiento también puede llevar diacríticos fonológicos de velocidad, repetición y dirección.",
+    color: "#0284c7",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M5 12h14M12 5l7 7-7 7" />
@@ -87,11 +83,10 @@ const CHANNELS = [
   {
     id: "rnm",
     label: "RNM",
-    fullName: "Non-Manual Markers",
-    spanishName: "Rasgos No Manuales",
-    color: "#e11d48",
+    fullName: "Rasgos No Manuales",
     description:
-      "Non-manual markers are the facial expressions, head movements, and body postures that function as grammatical morphemes in sign language. Raised eyebrows signal yes/no questions, furrowed eyebrows mark WH-questions, and head tilts add conditional or topicalized meaning. These markers operate simultaneously with manual signs and are essential for grammatical completeness. In LSM, a manual sign without its correct non-manual component can change meaning entirely.",
+      "Los rasgos no manuales son las expresiones faciales, movimientos de cabeza y posturas corporales que funcionan como morfemas gramaticales en la lengua de señas. Las cejas levantadas señalan preguntas de sí/no, las cejas fruncidas marcan preguntas QU-, y las inclinaciones de cabeza añaden significado condicional o topicalizado. Estos rasgos operan simultáneamente con las señas manuales y son esenciales para la completitud gramatical. En LSM, una seña manual sin su componente no manual correcto puede cambiar completamente de significado.",
+    color: "#e11d48",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <circle cx="12" cy="10" r="7" />
@@ -119,19 +114,19 @@ export default function LearnPage() {
           <div className="relative z-10 p-8 lg:p-12">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-medium text-indigo-200">Interactive Reference</span>
+              <span className="text-xs font-medium text-indigo-200">Referencia Interactiva</span>
             </div>
             <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
-              Phonological<br />
+              Representación<br />
               <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                Representation
+                Fonológica
               </span>
               <br />
-              of LSM
+              de la LSM
             </h1>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-indigo-200/80">
-              An interactive guide to the 5-channel phonological notation system for
-              Mexican Sign Language (LSM-PN), based on the foundational work of
+              Una guía interactiva del sistema de notación fonológica de 5 canales para
+              la Lengua de Señas Mexicana (LSM-PN), basada en el trabajo fundacional de
               <b className="text-indigo-100"> Cruz Aldrete (2008)</b>.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -168,12 +163,12 @@ export default function LearnPage() {
       <section>
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-gray-900">
-            The 5 Channels of LSM-PN
+            Los 5 Canales de LSM-PN
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-sm text-gray-500">
-            Every sign in Mexican Sign Language can be decomposed into 5 simultaneous phonological
-            channels. Together, they form a complete articulatory description that is both
-            human-readable and machine-processable.
+            Cada seña en la Lengua de Señas Mexicana se puede descomponer en 5 canales fonológicos
+            simultáneos. Juntos, forman una descripción articulatoria completa que es tanto
+            legible por humanos como procesable por máquinas.
           </p>
         </div>
 
@@ -183,7 +178,7 @@ export default function LearnPage() {
             {/* Center label */}
             <div className="mb-6 text-center">
               <span className="rounded-full bg-gray-900 px-4 py-1.5 text-xs font-bold text-white">
-                SIGN = CM + UB + OR + MV + RNM
+                SEÑA = CM + UB + OR + MV + RNM
               </span>
             </div>
 
@@ -203,7 +198,6 @@ export default function LearnPage() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-800">{ch.fullName}</p>
-                      <p className="text-[10px] italic text-gray-400">{ch.spanishName}</p>
                     </div>
                   </div>
                   {i < CHANNELS.length - 1 && (
@@ -218,15 +212,15 @@ export default function LearnPage() {
               <div className="flex items-center justify-center gap-2">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent to-gray-300" />
                 <span className="text-[10px] font-medium uppercase tracking-widest text-gray-400">
-                  simultaneous articulation on a temporal axis
+                  articulación simultánea en un eje temporal
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-l from-transparent to-gray-300" />
               </div>
               <div className="mt-3 flex items-center gap-1">
-                <div className="h-2 flex-1 rounded-l-full bg-blue-200" title="Preparation" />
-                <div className="h-3 flex-[2] bg-indigo-400" title="Stroke" />
-                <div className="h-2 flex-1 bg-violet-200" title="Hold" />
-                <div className="h-2 flex-1 rounded-r-full bg-gray-200" title="Retraction" />
+                <div className="h-2 flex-1 rounded-l-full bg-blue-200" title="Preparación" />
+                <div className="h-3 flex-[2] bg-indigo-400" title="Golpe" />
+                <div className="h-2 flex-1 bg-violet-200" title="Detención" />
+                <div className="h-2 flex-1 rounded-r-full bg-gray-200" title="Retracción" />
               </div>
               <div className="mt-1 flex text-[9px] text-gray-400">
                 <span className="flex-1 text-center">P</span>
@@ -243,10 +237,10 @@ export default function LearnPage() {
       <section>
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900">
-            Explore Each Channel
+            Explora Cada Canal
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Click on a channel to expand its interactive explorer
+            Haz clic en un canal para expandir su explorador interactivo
           </p>
         </div>
 
@@ -257,7 +251,7 @@ export default function LearnPage() {
                 id={ch.id}
                 label={ch.label}
                 fullName={ch.fullName}
-                spanishName={ch.spanishName}
+                spanishName={ch.fullName}
                 description={ch.description}
                 color={ch.color}
                 icon={ch.icon}
@@ -277,33 +271,34 @@ export default function LearnPage() {
 
       {/* Reference section */}
       <section className="rounded-2xl bg-gradient-to-br from-gray-50 to-slate-50 p-8">
-        <h2 className="mb-4 text-xl font-bold text-gray-900">About This Notation</h2>
+        <h2 className="mb-4 text-xl font-bold text-gray-900">Acerca de Esta Notación</h2>
         <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Primary Source</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Fuente Primaria</h3>
             <p className="text-sm leading-relaxed text-gray-600">
               Cruz Aldrete, M. (2008). <i>Gramática de la Lengua de Señas Mexicana</i>.
-              Doctoral thesis, El Colegio de México. Chapter 4: Phonological representation
-              of manual signs.
+              Tesis doctoral, El Colegio de México. Capítulo 4: Representación fonológica
+              de las señas manuales.
             </p>
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">LSM-PN Format</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Formato LSM-PN</h3>
             <p className="text-sm leading-relaxed text-gray-600">
-              LSM-PN (LSM Phonological Notation) is a machine-readable extension of Cruz Aldrete&apos;s
-              framework, designed for computational processing while maintaining linguistic precision.
-              Each sign is a JSON object with typed fields for all 5 channels.
+              LSM-PN (Notación Fonológica de LSM) es una extensión legible por máquinas del
+              marco de Cruz Aldrete, diseñada para procesamiento computacional manteniendo
+              la precisión lingüística. Cada seña es un objeto JSON con campos tipados para
+              los 5 canales.
             </p>
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Coverage</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Cobertura</h3>
             <div className="flex flex-wrap gap-3">
               {[
-                { n: "101", label: "Handshapes" },
-                { n: "80", label: "Body locations" },
-                { n: "36", label: "Orientations" },
-                { n: "5+11", label: "Movement types" },
-                { n: "3", label: "NM channels" },
+                { n: "101", label: "Configuraciones" },
+                { n: "80", label: "Ubicaciones" },
+                { n: "36", label: "Orientaciones" },
+                { n: "5+11", label: "Tipos de mov." },
+                { n: "3", label: "Canales NM" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-lg bg-white px-3 py-2 shadow-sm">
                   <span className="text-lg font-bold text-indigo-600">{stat.n}</span>
@@ -313,11 +308,12 @@ export default function LearnPage() {
             </div>
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">Project</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">Proyecto</h3>
             <p className="text-sm leading-relaxed text-gray-600">
-              SignaLab is building the first computational pipeline for LSM phonological analysis.
-              This interactive reference helps researchers, educators, and the Deaf community
-              understand the notation system used to document and animate Mexican Sign Language.
+              SignaLab está construyendo el primer pipeline computacional para el análisis
+              fonológico de la LSM. Esta referencia interactiva ayuda a investigadores,
+              educadores y a la comunidad Sorda a comprender el sistema de notación utilizado
+              para documentar y animar la Lengua de Señas Mexicana.
             </p>
           </div>
         </div>

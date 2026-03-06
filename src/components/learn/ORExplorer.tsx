@@ -10,27 +10,26 @@ interface OrientationState {
   fingers: FingerPointing;
 }
 
-const PALM_DIRECTIONS: { value: PalmFacing; label: string; rotation: string; icon: string }[] = [
-  { value: "UP", label: "Arriba", rotation: "rotate-0", icon: "\u2191" },
-  { value: "DOWN", label: "Abajo", rotation: "rotate-180", icon: "\u2193" },
-  { value: "FORWARD", label: "Frente", rotation: "rotate-0", icon: "\u2192" },
-  { value: "BACK", label: "Atr\u00e1s", rotation: "rotate-180", icon: "\u2190" },
-  { value: "LEFT", label: "Izquierda", rotation: "-rotate-90", icon: "\u2190" },
-  { value: "RIGHT", label: "Derecha", rotation: "rotate-90", icon: "\u2192" },
+const PALM_DIRECTIONS: { value: PalmFacing; label: string; icon: string }[] = [
+  { value: "UP", label: "Arriba", icon: "\u2191" },
+  { value: "DOWN", label: "Abajo", icon: "\u2193" },
+  { value: "FORWARD", label: "Frente", icon: "\u2192" },
+  { value: "BACK", label: "Atrás", icon: "\u2190" },
+  { value: "LEFT", label: "Izquierda", icon: "\u2190" },
+  { value: "RIGHT", label: "Derecha", icon: "\u2192" },
 ];
 
 const FINGER_DIRECTIONS: { value: FingerPointing; label: string; icon: string }[] = [
   { value: "UP", label: "Arriba", icon: "\u2191" },
   { value: "DOWN", label: "Abajo", icon: "\u2193" },
   { value: "FORWARD", label: "Frente", icon: "\u2197" },
-  { value: "BACK", label: "Atr\u00e1s", icon: "\u2199" },
+  { value: "BACK", label: "Atrás", icon: "\u2199" },
   { value: "LEFT", label: "Izquierda", icon: "\u2190" },
   { value: "RIGHT", label: "Derecha", icon: "\u2192" },
 ];
 
 /** Simple 3D-ish hand orientation visualization */
 function OrientationDiagram({ palm, fingers }: OrientationState) {
-  // Map palm direction to visual transform
   const palmTransforms: Record<PalmFacing, { rx: number; ry: number }> = {
     UP: { rx: -60, ry: 0 },
     DOWN: { rx: 60, ry: 0 },
@@ -41,12 +40,7 @@ function OrientationDiagram({ palm, fingers }: OrientationState) {
   };
 
   const fingerRotations: Record<FingerPointing, number> = {
-    UP: 0,
-    DOWN: 180,
-    FORWARD: -30,
-    BACK: 150,
-    LEFT: -90,
-    RIGHT: 90,
+    UP: 0, DOWN: 180, FORWARD: -30, BACK: 150, LEFT: -90, RIGHT: 90,
   };
 
   const t = palmTransforms[palm];
@@ -55,36 +49,23 @@ function OrientationDiagram({ palm, fingers }: OrientationState) {
   return (
     <div className="flex items-center justify-center py-4">
       <div className="relative h-48 w-48">
-        {/* Reference axes */}
         <svg viewBox="0 0 200 200" className="absolute inset-0">
-          {/* Grid */}
           <line x1="100" y1="20" x2="100" y2="180" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
           <line x1="20" y1="100" x2="180" y2="100" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
 
-          {/* Labels */}
           <text x="100" y="14" textAnchor="middle" fontSize="9" fill="#9ca3af">arriba</text>
           <text x="100" y="194" textAnchor="middle" fontSize="9" fill="#9ca3af">abajo</text>
           <text x="12" y="103" textAnchor="start" fontSize="9" fill="#9ca3af">izq</text>
           <text x="188" y="103" textAnchor="end" fontSize="9" fill="#9ca3af">der</text>
 
-          {/* Hand representation */}
           <g transform={`translate(100,100) rotate(${fingerAngle})`}>
-            {/* Palm */}
             <ellipse
-              cx="0"
-              cy="10"
-              rx="28"
-              ry="32"
+              cx="0" cy="10" rx="28" ry="32"
               fill={palm === "FORWARD" ? "#c7d2fe" : "#fde8d0"}
               stroke={palm === "FORWARD" ? "#818cf8" : "#d4a574"}
               strokeWidth="2"
-              style={{
-                transform: `perspective(200px) rotateX(${t.rx}deg) rotateY(${t.ry}deg)`,
-                transformOrigin: "center",
-              }}
+              style={{ transform: `perspective(200px) rotateX(${t.rx}deg) rotateY(${t.ry}deg)`, transformOrigin: "center" }}
             />
-
-            {/* Fingers */}
             {[-16, -8, 0, 8, 14].map((offset, i) => (
               <rect
                 key={i}
@@ -98,8 +79,6 @@ function OrientationDiagram({ palm, fingers }: OrientationState) {
                 strokeWidth="1.5"
               />
             ))}
-
-            {/* Direction arrow */}
             <line x1="0" y1="-55" x2="0" y2="-70" stroke="#4f46e5" strokeWidth="2.5" markerEnd="url(#arrow)" />
           </g>
 
@@ -125,8 +104,8 @@ export default function ORExplorer() {
       {/* Info */}
       <div className="rounded-xl bg-violet-50 p-3">
         <p className="text-xs leading-relaxed text-violet-700">
-          Orientation describes <b>where the palm faces</b> and <b>where the fingers point</b>.
-          These two parameters define the hand&apos;s spatial orientation in 3D space relative to the signer&apos;s body.
+          La orientación describe <b>hacia dónde mira la palma</b> y <b>hacia dónde apuntan los dedos</b>.
+          Estos dos parámetros definen la orientación espacial de la mano en 3D relativa al cuerpo del señante.
         </p>
       </div>
 
@@ -136,9 +115,9 @@ export default function ORExplorer() {
           <OrientationDiagram {...orientation} />
           <div className="border-t border-gray-100 px-4 py-2 text-center">
             <span className="text-xs text-gray-400">
-              Palm: <b className="text-violet-600">{orientation.palm.toLowerCase()}</b>
+              Palma: <b className="text-violet-600">{PALM_DIRECTIONS.find(d => d.value === orientation.palm)?.label.toLowerCase()}</b>
               {" | "}
-              Fingers: <b className="text-violet-600">{orientation.fingers.toLowerCase()}</b>
+              Dedos: <b className="text-violet-600">{FINGER_DIRECTIONS.find(d => d.value === orientation.fingers)?.label.toLowerCase()}</b>
             </span>
           </div>
         </div>
@@ -148,7 +127,7 @@ export default function ORExplorer() {
           {/* Palm facing */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Palm Facing
+              Dirección de la Palma
             </label>
             <div className="grid grid-cols-3 gap-1.5">
               {PALM_DIRECTIONS.map((dir) => (
@@ -172,7 +151,7 @@ export default function ORExplorer() {
           {/* Finger pointing */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Fingers Pointing
+              Dirección de los Dedos
             </label>
             <div className="grid grid-cols-3 gap-1.5">
               {FINGER_DIRECTIONS.map((dir) => (
@@ -196,10 +175,10 @@ export default function ORExplorer() {
           {/* Notation output */}
           <div className="rounded-xl bg-gray-900 p-3">
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
-              LSM-PN Notation
+              Notación LSM-PN
             </p>
             <p className="font-mono text-sm text-emerald-400">
-              OR: palm={orientation.palm.toLowerCase()}, fingers={orientation.fingers.toLowerCase()}
+              OR: palma={orientation.palm.toLowerCase()}, dedos={orientation.fingers.toLowerCase()}
             </p>
           </div>
         </div>

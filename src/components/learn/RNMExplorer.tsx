@@ -38,6 +38,16 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
     TILT_DOWN: 8,
   };
 
+  const headLabels: Record<HeadMov, string> = {
+    NONE: "",
+    NOD: "\u2195 Asentir",
+    SHAKE: "\u2194 Negar",
+    TILT_LEFT: "Inclinar izq.",
+    TILT_RIGHT: "Inclinar der.",
+    TILT_BACK: "Inclinar atrás",
+    TILT_DOWN: "Inclinar abajo",
+  };
+
   return (
     <svg viewBox="0 0 200 200" className="w-full" style={{ maxHeight: 280 }}>
       <g transform={`rotate(${headRotation[head]}, 100, 100)`}>
@@ -107,7 +117,7 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
       {head !== "NONE" && (
         <g>
           <text x="100" y="190" textAnchor="middle" fontSize="10" fill="#6366f1" fontWeight="600">
-            {head === "NOD" ? "\u2195 Nod" : head === "SHAKE" ? "\u2194 Shake" : `Tilt ${head.replace("TILT_", "").toLowerCase()}`}
+            {headLabels[head]}
           </text>
         </g>
       )}
@@ -115,28 +125,28 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
   );
 }
 
-const EYEBROW_OPTIONS: { value: EyebrowPos; label: string; spanish: string }[] = [
-  { value: "NEUTRAL", label: "Neutral", spanish: "Normal" },
-  { value: "RAISED", label: "Raised", spanish: "Levantadas" },
-  { value: "FURROWED", label: "Furrowed", spanish: "Frun\u0327idas" },
+const EYEBROW_OPTIONS: { value: EyebrowPos; label: string }[] = [
+  { value: "NEUTRAL", label: "Normal" },
+  { value: "RAISED", label: "Levantadas" },
+  { value: "FURROWED", label: "Fruncidas" },
 ];
 
-const MOUTH_OPTIONS: { value: MouthShape; label: string; spanish: string }[] = [
-  { value: "NEUTRAL", label: "Neutral", spanish: "Normal" },
-  { value: "OPEN", label: "Open", spanish: "Abierta" },
-  { value: "CLOSED", label: "Closed", spanish: "Cerrada" },
-  { value: "ROUNDED", label: "Rounded", spanish: "Redondeada" },
-  { value: "STRETCHED", label: "Stretched", spanish: "Estirada" },
+const MOUTH_OPTIONS: { value: MouthShape; label: string }[] = [
+  { value: "NEUTRAL", label: "Normal" },
+  { value: "OPEN", label: "Abierta" },
+  { value: "CLOSED", label: "Cerrada" },
+  { value: "ROUNDED", label: "Redondeada" },
+  { value: "STRETCHED", label: "Estirada" },
 ];
 
-const HEAD_OPTIONS: { value: HeadMov; label: string; spanish: string }[] = [
-  { value: "NONE", label: "None", spanish: "Sin movimiento" },
-  { value: "NOD", label: "Nod", spanish: "Asentir" },
-  { value: "SHAKE", label: "Shake", spanish: "Negar" },
-  { value: "TILT_LEFT", label: "Tilt Left", spanish: "Inclinaci\u00f3n izq." },
-  { value: "TILT_RIGHT", label: "Tilt Right", spanish: "Inclinaci\u00f3n der." },
-  { value: "TILT_BACK", label: "Tilt Back", spanish: "Inclinaci\u00f3n atr\u00e1s" },
-  { value: "TILT_DOWN", label: "Tilt Down", spanish: "Inclinaci\u00f3n abajo" },
+const HEAD_OPTIONS: { value: HeadMov; label: string }[] = [
+  { value: "NONE", label: "Sin movimiento" },
+  { value: "NOD", label: "Asentir" },
+  { value: "SHAKE", label: "Negar" },
+  { value: "TILT_LEFT", label: "Inclinar izq." },
+  { value: "TILT_RIGHT", label: "Inclinar der." },
+  { value: "TILT_BACK", label: "Inclinar atrás" },
+  { value: "TILT_DOWN", label: "Inclinar abajo" },
 ];
 
 export default function RNMExplorer() {
@@ -151,9 +161,9 @@ export default function RNMExplorer() {
       {/* Info */}
       <div className="rounded-xl bg-rose-50 p-3">
         <p className="text-xs leading-relaxed text-rose-700">
-          Non-manual markers (RNM) are facial expressions, head movements, and body postures that carry
-          grammatical meaning in sign language. They can indicate <b>questions</b>, <b>negation</b>,
-          <b>emphasis</b>, and <b>emotional tone</b>.
+          Los rasgos no manuales (RNM) son expresiones faciales, movimientos de cabeza y posturas corporales que
+          portan significado gramatical en la lengua de señas. Pueden indicar <b>preguntas</b>, <b>negación</b>,
+          <b>énfasis</b> y <b>tono emocional</b>.
         </p>
       </div>
 
@@ -168,7 +178,7 @@ export default function RNMExplorer() {
           {/* Eyebrows */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Eyebrows / Cejas
+              Cejas
             </label>
             <div className="flex gap-1.5">
               {EYEBROW_OPTIONS.map((opt) => (
@@ -181,7 +191,7 @@ export default function RNMExplorer() {
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  {opt.spanish}
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -190,7 +200,7 @@ export default function RNMExplorer() {
           {/* Mouth */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Mouth / Boca
+              Boca
             </label>
             <div className="flex flex-wrap gap-1.5">
               {MOUTH_OPTIONS.map((opt) => (
@@ -203,7 +213,7 @@ export default function RNMExplorer() {
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  {opt.spanish}
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -212,7 +222,7 @@ export default function RNMExplorer() {
           {/* Head movement */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Head Movement / Movimiento de cabeza
+              Movimiento de Cabeza
             </label>
             <div className="flex flex-wrap gap-1.5">
               {HEAD_OPTIONS.map((opt) => (
@@ -225,7 +235,7 @@ export default function RNMExplorer() {
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  {opt.spanish}
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -234,11 +244,11 @@ export default function RNMExplorer() {
           {/* Notation output */}
           <div className="rounded-xl bg-gray-900 p-3">
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
-              LSM-PN Notation
+              Notación LSM-PN
             </p>
             <p className="font-mono text-sm text-emerald-400">
-              RNM: eyebrows={face.eyebrows.toLowerCase()}, mouth={face.mouth.toLowerCase()}
-              {face.head !== "NONE" ? `, head=${face.head.toLowerCase()}` : ""}
+              RNM: cejas={face.eyebrows.toLowerCase()}, boca={face.mouth.toLowerCase()}
+              {face.head !== "NONE" ? `, cabeza=${face.head.toLowerCase()}` : ""}
             </p>
           </div>
         </div>
