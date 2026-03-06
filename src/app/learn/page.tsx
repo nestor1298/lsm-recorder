@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
+import { CM_INVENTORY } from "@/lib/data";
+import type { CMEntry } from "@/lib/types";
 import ChannelCard from "@/components/learn/ChannelCard";
 import CMExplorer from "@/components/learn/CMExplorer";
 import UBExplorer from "@/components/learn/UBExplorer";
@@ -10,10 +12,10 @@ import MVExplorer from "@/components/learn/MVExplorer";
 import RNMExplorer from "@/components/learn/RNMExplorer";
 
 // Dynamic import for 3D component (no SSR)
-const HandModelViewer = dynamic(() => import("@/components/HandModelViewer"), {
+const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[400px] items-center justify-center rounded-2xl bg-gradient-to-b from-indigo-950 to-slate-900">
+    <div className="flex h-[420px] items-center justify-center rounded-2xl bg-gradient-to-b from-indigo-950 to-slate-900">
       <div className="text-center">
         <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
         <p className="text-sm text-indigo-300">Cargando modelo 3D...</p>
@@ -21,6 +23,27 @@ const HandModelViewer = dynamic(() => import("@/components/HandModelViewer"), {
     </div>
   ),
 });
+
+// Showcase CMs for hero cycling: open hand, O-shape, point, pinky, peace
+const SHOWCASE_CM_IDS = [1, 8, 63, 80, 36];
+const SHOWCASE_CMS = SHOWCASE_CM_IDS.map(
+  (id) => CM_INVENTORY.find((cm) => cm.cm_id === id)!
+).filter(Boolean);
+
+/** Hook: cycle through showcase CMs every interval */
+function useShowcaseCycle(intervalMs = 3000) {
+  const [index, setIndex] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setIndex((prev) => (prev + 1) % SHOWCASE_CMS.length);
+    }, intervalMs);
+    return () => clearInterval(timerRef.current);
+  }, [intervalMs]);
+
+  return SHOWCASE_CMS[index] ?? null;
+}
 
 // Channel configuration
 const CHANNELS = [
@@ -100,6 +123,7 @@ const CHANNELS = [
 
 export default function LearnPage() {
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
+  const showcaseCM = useShowcaseCycle(3000);
 
   const toggleChannel = (id: string) => {
     setActiveChannel(activeChannel === id ? null : id);
@@ -146,9 +170,15 @@ export default function LearnPage() {
             </div>
           </div>
 
-          {/* 3D Model */}
+          {/* 3D Model — cycling through showcase poses */}
           <div className="relative">
-            <HandModelViewer height="420px" autoRotate />
+            <Hand3DViewer cm={showcaseCM} height="420px" autoRotate={false} />
+            {/* CM label overlay */}
+            {showcaseCM && (
+              <div className="pointer-events-none absolute bottom-4 right-4 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur-sm">
+                <span className="text-xs font-bold text-white/80">CM #{showcaseCM.cm_id}</span>
+              </div>
+            )}
             {/* Decorative glow */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-indigo-950/80 lg:block hidden" />
           </div>
