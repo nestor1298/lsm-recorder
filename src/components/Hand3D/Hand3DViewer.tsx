@@ -20,6 +20,7 @@ interface Hand3DViewerProps {
   className?: string;
   height?: string;
   autoRotate?: boolean;
+  orientation?: { palm: string; fingers: string };
 }
 
 export default function Hand3DViewer({
@@ -27,6 +28,7 @@ export default function Hand3DViewer({
   className = "",
   height = "400px",
   autoRotate = true,
+  orientation,
 }: Hand3DViewerProps) {
   return (
     <div className={`relative overflow-hidden rounded-2xl ${className}`} style={{ height }}>
@@ -43,7 +45,7 @@ export default function Hand3DViewer({
         <ambientLight intensity={0.35} color="#f0e8f8" />
 
         <Suspense fallback={<LoadingFallback />}>
-          <RiggedHand cm={cm} autoRotate={autoRotate} />
+          <RiggedHand cm={cm} autoRotate={autoRotate} orientation={orientation} />
           <ContactShadows position={[0, -1.2, 0]} opacity={0.25} scale={6} blur={2.5} />
           <Environment preset="studio" />
         </Suspense>

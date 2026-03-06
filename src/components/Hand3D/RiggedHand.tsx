@@ -86,12 +86,65 @@ function applyPose(
 
 // ── Main component ──────────────────────────────────────────────
 
+// ── Orientation → Quaternion mapping ─────────────────────────────
+
+const DEG = Math.PI / 180;
+
+/**
+ * Palm direction → base rotation (which way the palm surface faces).
+ * Euler angles in degrees: [rx, ry, rz].
+ */
+const PALM_EULER: Record<string, [number, number, number]> = {
+  FORWARD: [0, 0, 0],
+  BACK:    [0, 180, 0],
+  UP:      [-90, 0, 0],
+  DOWN:    [90, 0, 0],
+  LEFT:    [0, -90, 0],
+  RIGHT:   [0, 90, 0],
+};
+
+/**
+ * Finger direction → Z-axis roll on top of palm rotation (degrees).
+ */
+const FINGER_ROLL: Record<string, number> = {
+  UP:      0,
+  DOWN:    180,
+  LEFT:    -90,
+  RIGHT:   90,
+  FORWARD: -45,
+  BACK:    135,
+};
+
+const _palmEuler = new THREE.Euler();
+const _palmQuat = new THREE.Quaternion();
+const _fingerQuat = new THREE.Quaternion();
+const _fingerEuler = new THREE.Euler();
+
+function orientationToQuat(palm: string, fingers: string): THREE.Quaternion {
+  const [rx, ry, rz] = PALM_EULER[palm] ?? PALM_EULER.FORWARD;
+  _palmEuler.set(rx * DEG, ry * DEG, rz * DEG, "XYZ");
+  _palmQuat.setFromEuler(_palmEuler);
+
+  const roll = FINGER_ROLL[fingers] ?? 0;
+  _fingerEuler.set(0, 0, roll * DEG, "XYZ");
+  _fingerQuat.setFromEuler(_fingerEuler);
+
+  // Compose: first apply palm rotation, then finger roll on top
+  return new THREE.Quaternion().copy(_palmQuat).multiply(_fingerQuat);
+}
+
+interface OrientationTarget {
+  palm: string;
+  fingers: string;
+}
+
 interface RiggedHandProps {
   cm: CMEntry | null;
   autoRotate?: boolean;
+  orientation?: OrientationTarget;
 }
 
-export default function RiggedHand({ cm, autoRotate = false }: RiggedHandProps) {
+export default function RiggedHand({ cm, autoRotate = false, orientation }: RiggedHandProps) {
   const { scene } = useGLTF(MODEL_PATH);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -190,6 +243,12 @@ export default function RiggedHand({ cm, autoRotate = false }: RiggedHandProps) 
     return cm ? cmEntryToHandPose(cm) : RESTING_POSE;
   }, [cm]);
 
+  // Compute target orientation quaternion
+  const targetOrientQuat = useMemo(() => {
+    if (!orientation) return null;
+    return orientationToQuat(orientation.palm, orientation.fingers);
+  }, [orientation]);
+
   // Animation loop
   useFrame((_, delta) => {
     if (!boneRefs || !bindPoses) return;
@@ -231,8 +290,12 @@ export default function RiggedHand({ cm, autoRotate = false }: RiggedHandProps) 
     applyPose(boneRefs.thumb[1], bindPoses.thumb[1], -ts.mcpFlex, 0, 0);
     applyPose(boneRefs.thumb[2], bindPoses.thumb[2], -ts.ipFlex, 0, 0);
 
-    // Auto-rotate the whole group
-    if (groupRef.current && autoRotate && !cm) {
+    // Orientation slerp — smoothly rotate entire group
+    if (groupRef.current && targetOrientQuat) {
+      groupRef.current.quaternion.slerp(targetOrientQuat, factor * 2);
+    }
+    // Auto-rotate the whole group (only when no orientation is set)
+    else if (groupRef.current && autoRotate && !cm) {
       groupRef.current.rotation.y += clampedDelta * 0.4;
     }
   });

@@ -1,6 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+
+const Hand3DViewer = dynamic(
+  () => import("@/components/Hand3D/Hand3DViewer"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center rounded-2xl bg-gradient-to-b from-violet-950/80 to-gray-950">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+          <p className="text-xs text-violet-300">Cargando modelo 3D…</p>
+        </div>
+      </div>
+    ),
+  },
+);
 
 type PalmFacing = "UP" | "DOWN" | "FORWARD" | "BACK" | "LEFT" | "RIGHT";
 type FingerPointing = "UP" | "DOWN" | "FORWARD" | "BACK" | "LEFT" | "RIGHT";
@@ -11,87 +27,30 @@ interface OrientationState {
 }
 
 const PALM_DIRECTIONS: { value: PalmFacing; label: string; icon: string }[] = [
-  { value: "UP", label: "Arriba", icon: "\u2191" },
-  { value: "DOWN", label: "Abajo", icon: "\u2193" },
-  { value: "FORWARD", label: "Frente", icon: "\u2192" },
-  { value: "BACK", label: "Atrás", icon: "\u2190" },
-  { value: "LEFT", label: "Izquierda", icon: "\u2190" },
-  { value: "RIGHT", label: "Derecha", icon: "\u2192" },
+  { value: "UP", label: "Arriba", icon: "↑" },
+  { value: "DOWN", label: "Abajo", icon: "↓" },
+  { value: "FORWARD", label: "Frente", icon: "→" },
+  { value: "BACK", label: "Atrás", icon: "←" },
+  { value: "LEFT", label: "Izquierda", icon: "←" },
+  { value: "RIGHT", label: "Derecha", icon: "→" },
 ];
 
 const FINGER_DIRECTIONS: { value: FingerPointing; label: string; icon: string }[] = [
-  { value: "UP", label: "Arriba", icon: "\u2191" },
-  { value: "DOWN", label: "Abajo", icon: "\u2193" },
-  { value: "FORWARD", label: "Frente", icon: "\u2197" },
-  { value: "BACK", label: "Atrás", icon: "\u2199" },
-  { value: "LEFT", label: "Izquierda", icon: "\u2190" },
-  { value: "RIGHT", label: "Derecha", icon: "\u2192" },
+  { value: "UP", label: "Arriba", icon: "↑" },
+  { value: "DOWN", label: "Abajo", icon: "↓" },
+  { value: "FORWARD", label: "Frente", icon: "↗" },
+  { value: "BACK", label: "Atrás", icon: "↙" },
+  { value: "LEFT", label: "Izquierda", icon: "←" },
+  { value: "RIGHT", label: "Derecha", icon: "→" },
 ];
 
-/** Simple 3D-ish hand orientation visualization */
-function OrientationDiagram({ palm, fingers }: OrientationState) {
-  const palmTransforms: Record<PalmFacing, { rx: number; ry: number }> = {
-    UP: { rx: -60, ry: 0 },
-    DOWN: { rx: 60, ry: 0 },
-    FORWARD: { rx: 0, ry: 0 },
-    BACK: { rx: 0, ry: 180 },
-    LEFT: { rx: 0, ry: -45 },
-    RIGHT: { rx: 0, ry: 45 },
-  };
-
-  const fingerRotations: Record<FingerPointing, number> = {
-    UP: 0, DOWN: 180, FORWARD: -30, BACK: 150, LEFT: -90, RIGHT: 90,
-  };
-
-  const t = palmTransforms[palm];
-  const fingerAngle = fingerRotations[fingers];
-
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div className="relative h-48 w-48">
-        <svg viewBox="0 0 200 200" className="absolute inset-0">
-          <line x1="100" y1="20" x2="100" y2="180" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
-          <line x1="20" y1="100" x2="180" y2="100" stroke="#e5e7eb" strokeWidth="1" strokeDasharray="4,4" />
-
-          <text x="100" y="14" textAnchor="middle" fontSize="9" fill="#9ca3af">arriba</text>
-          <text x="100" y="194" textAnchor="middle" fontSize="9" fill="#9ca3af">abajo</text>
-          <text x="12" y="103" textAnchor="start" fontSize="9" fill="#9ca3af">izq</text>
-          <text x="188" y="103" textAnchor="end" fontSize="9" fill="#9ca3af">der</text>
-
-          <g transform={`translate(100,100) rotate(${fingerAngle})`}>
-            <ellipse
-              cx="0" cy="10" rx="28" ry="32"
-              fill={palm === "FORWARD" ? "#c7d2fe" : "#fde8d0"}
-              stroke={palm === "FORWARD" ? "#818cf8" : "#d4a574"}
-              strokeWidth="2"
-              style={{ transform: `perspective(200px) rotateX(${t.rx}deg) rotateY(${t.ry}deg)`, transformOrigin: "center" }}
-            />
-            {[-16, -8, 0, 8, 14].map((offset, i) => (
-              <rect
-                key={i}
-                x={offset - 4}
-                y={-42 - (i === 2 ? 6 : i === 1 || i === 3 ? 4 : 0)}
-                width={8}
-                height={i === 0 ? 18 : 22}
-                rx={4}
-                fill={palm === "FORWARD" ? "#a5b4fc" : "#fde8d0"}
-                stroke={palm === "FORWARD" ? "#818cf8" : "#d4a574"}
-                strokeWidth="1.5"
-              />
-            ))}
-            <line x1="0" y1="-55" x2="0" y2="-70" stroke="#4f46e5" strokeWidth="2.5" markerEnd="url(#arrow)" />
-          </g>
-
-          <defs>
-            <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
-              <path d="M 0 0 L 8 4 L 0 8 Z" fill="#4f46e5" />
-            </marker>
-          </defs>
-        </svg>
-      </div>
-    </div>
-  );
-}
+/** Spanish labels for palm/finger directions */
+const PALM_LABEL: Record<PalmFacing, string> = {
+  UP: "arriba", DOWN: "abajo", FORWARD: "frente", BACK: "atrás", LEFT: "izquierda", RIGHT: "derecha",
+};
+const FINGER_LABEL: Record<FingerPointing, string> = {
+  UP: "arriba", DOWN: "abajo", FORWARD: "frente", BACK: "atrás", LEFT: "izquierda", RIGHT: "derecha",
+};
 
 export default function ORExplorer() {
   const [orientation, setOrientation] = useState<OrientationState>({
@@ -109,19 +68,30 @@ export default function ORExplorer() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Visual */}
-        <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white">
-          <OrientationDiagram {...orientation} />
-          <div className="border-t border-gray-100 px-4 py-2 text-center">
-            <span className="text-xs text-gray-400">
-              Palma: <b className="text-violet-600">{PALM_DIRECTIONS.find(d => d.value === orientation.palm)?.label.toLowerCase()}</b>
-              {" | "}
-              Dedos: <b className="text-violet-600">{FINGER_DIRECTIONS.find(d => d.value === orientation.fingers)?.label.toLowerCase()}</b>
+      {/* Mobile: 3D hand on top */}
+      <div className="md:hidden">
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-violet-950/80 to-gray-950">
+          <Hand3DViewer
+            cm={null}
+            orientation={{ palm: orientation.palm, fingers: orientation.fingers }}
+            autoRotate={false}
+            height="280px"
+          />
+          {/* Orientation info overlay */}
+          <div className="border-t border-violet-800/30 bg-black/40 px-4 py-2 text-center">
+            <span className="text-xs text-violet-300/80">
+              Palma: <b className="text-violet-200">{PALM_LABEL[orientation.palm]}</b>
+              {" · "}
+              Dedos: <b className="text-violet-200">{FINGER_LABEL[orientation.fingers]}</b>
             </span>
           </div>
         </div>
+        <p className="mt-1.5 text-center text-[10px] text-gray-400">
+          Arrastra para rotar el modelo 3D
+        </p>
+      </div>
 
+      <div className="grid gap-4 md:grid-cols-[1fr_340px]">
         {/* Controls */}
         <div className="space-y-4">
           {/* Palm facing */}
@@ -136,7 +106,7 @@ export default function ORExplorer() {
                   onClick={() => setOrientation((o) => ({ ...o, palm: dir.value }))}
                   className={`rounded-lg px-2 py-2 text-center text-xs font-medium transition-all ${
                     orientation.palm === dir.value
-                      ? "bg-violet-600 text-white shadow-md"
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-500/25"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -160,7 +130,7 @@ export default function ORExplorer() {
                   onClick={() => setOrientation((o) => ({ ...o, fingers: dir.value }))}
                   className={`rounded-lg px-2 py-2 text-center text-xs font-medium transition-all ${
                     orientation.fingers === dir.value
-                      ? "bg-violet-600 text-white shadow-md"
+                      ? "bg-violet-600 text-white shadow-md shadow-violet-500/25"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -179,6 +149,34 @@ export default function ORExplorer() {
             </p>
             <p className="font-mono text-sm text-emerald-400">
               OR: palma={orientation.palm.toLowerCase()}, dedos={orientation.fingers.toLowerCase()}
+            </p>
+          </div>
+        </div>
+
+        {/* Desktop: 3D hand panel (sticky right) */}
+        <div className="hidden md:block">
+          <div className="sticky top-24 space-y-2">
+            <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-violet-950/80 to-gray-950">
+              <Hand3DViewer
+                cm={null}
+                orientation={{ palm: orientation.palm, fingers: orientation.fingers }}
+                autoRotate={false}
+                height="360px"
+              />
+              {/* Orientation info overlay */}
+              <div className="border-t border-violet-800/30 bg-black/40 px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-violet-300/80">
+                    Palma: <b className="text-violet-200">{PALM_LABEL[orientation.palm]}</b>
+                  </span>
+                  <span className="text-xs text-violet-300/80">
+                    Dedos: <b className="text-violet-200">{FINGER_LABEL[orientation.fingers]}</b>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="text-center text-[10px] text-gray-400">
+              Arrastra para rotar el modelo 3D
             </p>
           </div>
         </div>
