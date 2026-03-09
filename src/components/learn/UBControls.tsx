@@ -1,181 +1,249 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   UB_LOCATIONS,
+  FREQUENT_LOCATIONS,
   REGION_COLORS,
   REGION_LABELS,
+  LOCATIONS_BY_REGION,
   type UBLocation,
 } from "@/lib/ub_inventory";
 
-type BodyZone = "full" | "head" | "trunk" | "arm" | "hand";
-
-const VIEWBOX: Record<BodyZone, string> = {
-  full: "0 0 200 280",
-  head: "60 5 80 80",
-  trunk: "50 80 100 110",
-  arm: "20 85 80 130",
-  hand: "15 185 55 60",
-};
-
-const ZONE_REGIONS: Record<BodyZone, string[]> = {
-  full: ["HEAD", "FACE", "NECK", "TRUNK", "ARM", "FOREARM", "HAND"],
-  head: ["HEAD", "FACE", "NECK"],
-  trunk: ["TRUNK", "NECK"],
-  arm: ["ARM", "FOREARM"],
-  hand: ["HAND"],
-};
-
-const ZONE_LABELS: Record<BodyZone, string> = {
-  full: "Completo",
-  head: "Cabeza",
-  trunk: "Tronco",
-  arm: "Brazos",
-  hand: "Manos",
-};
-
 interface UBControlsProps {
+  onLocationChange?: (loc: UBLocation | null) => void;
+  /** Pre-select a location (used by sign builder) */
+  defaultLocation?: UBLocation | null;
+  /** Filter 3D spheres by region */
+  onRegionFilter?: (region: string | null) => void;
   className?: string;
 }
 
-export default function UBControls({ className = "" }: UBControlsProps) {
-  const [zone, setZone] = useState<BodyZone>("full");
+export default function UBControls({
+  onLocationChange,
+  defaultLocation,
+  onRegionFilter,
+  className = "",
+}: UBControlsProps) {
+  const [search, setSearch] = useState("");
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const [hoveredLoc, setHoveredLoc] = useState<UBLocation | null>(null);
-  const [selectedLoc, setSelectedLoc] = useState<UBLocation | null>(null);
+  const [selectedLoc, setSelectedLoc] = useState<UBLocation | null>(
+    defaultLocation ?? null,
+  );
 
-  const visibleLocations = useMemo(() => {
-    const regions = ZONE_REGIONS[zone];
-    let locs = UB_LOCATIONS.filter((loc) => regions.includes(loc.region));
-    if (selectedRegion) locs = locs.filter((l) => l.region === selectedRegion);
+  // Filter locations by search + region
+  const filteredLocations = useMemo(() => {
+    let locs = UB_LOCATIONS;
+    if (selectedRegion) {
+      locs = locs.filter((loc) => loc.region === selectedRegion);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      locs = locs.filter(
+        (loc) =>
+          loc.code.toLowerCase().includes(q) ||
+          loc.name.toLowerCase().includes(q) ||
+          (loc.latin && loc.latin.toLowerCase().includes(q)),
+      );
+    }
     return locs;
-  }, [zone, selectedRegion]);
+  }, [search, selectedRegion]);
 
-  const displayLoc = hoveredLoc || selectedLoc;
+  // Propagate location state to parent
+  useEffect(() => {
+    onLocationChange?.(selectedLoc);
+  }, [selectedLoc, onLocationChange]);
+
+  // Propagate region filter to parent (for 3D sphere filtering)
+  useEffect(() => {
+    onRegionFilter?.(selectedRegion);
+  }, [selectedRegion, onRegionFilter]);
+
+  // Select from 3D click (external update)
+  useEffect(() => {
+    if (defaultLocation) {
+      setSelectedLoc(defaultLocation);
+    }
+  }, [defaultLocation]);
+
+  const handleRegionClick = (region: string) => {
+    const newRegion = selectedRegion === region ? null : region;
+    setSelectedRegion(newRegion);
+  };
+
+  const handleLocClick = (loc: UBLocation) => {
+    setSelectedLoc(selectedLoc?.code === loc.code ? null : loc);
+  };
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {/* Zone selector */}
-      <div className="flex flex-wrap gap-1.5">
-        {(Object.keys(ZONE_LABELS) as BodyZone[]).map((z) => (
-          <button
-            key={z}
-            onClick={() => { setZone(z); setSelectedLoc(null); }}
-            className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
-              zone === z
-                ? "bg-emerald-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            {ZONE_LABELS[z]}
-          </button>
-        ))}
-      </div>
-
-      {/* SVG body diagram */}
+    <div className={`space-y-2.5 ${className}`}>
+      {/* Search input */}
       <div className="relative">
         <svg
-          viewBox={VIEWBOX[zone]}
-          className="w-full rounded-xl border border-gray-200 bg-gradient-to-b from-slate-50 to-white"
-          style={{ maxHeight: 300 }}
+          viewBox="0 0 24 24"
+          className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
         >
-          {/* Body outline */}
-          <g opacity={0.12} fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-            <ellipse cx={100} cy={38} rx={22} ry={28} fill="#d1d5db" stroke="#9ca3af" />
-            <rect x={92} y={65} width={16} height={18} rx={4} fill="#d1d5db" stroke="#9ca3af" />
-            <path d="M68,88 Q66,86 68,84 L132,84 Q134,86 132,88 L138,165 Q138,180 120,182 L80,182 Q62,180 62,165 Z" fill="#d1d5db" stroke="#9ca3af" />
-            <path d="M68,88 Q55,92 50,110 L44,150 Q40,165 38,190 L32,215 Q28,230 30,235" stroke="#9ca3af" strokeWidth={12} fill="none" opacity={0.4} />
-            <path d="M132,88 Q145,92 150,110 L156,150 Q160,165 162,190 L168,215 Q172,230 170,235" stroke="#9ca3af" strokeWidth={12} fill="none" opacity={0.4} />
-            <path d="M90,182 L85,240 Q82,260 80,275" stroke="#9ca3af" strokeWidth={14} fill="none" opacity={0.3} />
-            <path d="M110,182 L115,240 Q118,260 120,275" stroke="#9ca3af" strokeWidth={14} fill="none" opacity={0.3} />
-          </g>
-
-          {/* Location points */}
-          {visibleLocations.map((loc) => {
-            const isSelected = selectedLoc?.code === loc.code;
-            const isHovered = hoveredLoc?.code === loc.code;
-            const color = REGION_COLORS[loc.region];
-            const r = zone === "full" ? 3 : 5;
-
-            return (
-              <g key={loc.code}>
-                {isSelected && (
-                  <circle cx={loc.x} cy={loc.y} r={r + 4} fill="none" stroke={color} strokeWidth={1.5} opacity={0.5}>
-                    <animate attributeName="r" values={`${r + 3};${r + 6};${r + 3}`} dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                )}
-                <circle
-                  cx={loc.x}
-                  cy={loc.y}
-                  r={isSelected ? r + 1 : isHovered ? r + 0.5 : r}
-                  fill={isSelected ? color : isHovered ? color : `${color}60`}
-                  stroke={isSelected ? "white" : color}
-                  strokeWidth={isSelected ? 1.5 : 0.8}
-                  className="cursor-pointer transition-all"
-                  onMouseEnter={() => setHoveredLoc(loc)}
-                  onMouseLeave={() => setHoveredLoc(null)}
-                  onClick={() => setSelectedLoc(isSelected ? null : loc)}
-                />
-                {zone !== "full" && (isSelected || isHovered) && (
-                  <text
-                    x={loc.x + r + 3}
-                    y={loc.y + 1}
-                    fontSize={zone === "hand" ? 3.5 : 5}
-                    fill={color}
-                    fontWeight={isSelected ? "bold" : "normal"}
-                    dominantBaseline="middle"
-                  >
-                    {loc.name}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
         </svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar punto UB..."
+          className="w-full rounded-lg border border-black/10 bg-white/50 py-1.5 pl-8 pr-3 text-[11px] text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+        />
+      </div>
 
-        {/* Hover tooltip */}
-        {hoveredLoc && zone === "full" && (
-          <div className="absolute bottom-2 left-2 rounded-lg bg-gray-900/90 px-2 py-1 text-[10px] text-white shadow-lg">
-            <span className="font-bold">{hoveredLoc.code}</span> {hoveredLoc.name}
-            <span className="ml-1 opacity-60">({hoveredLoc.region})</span>
+      {/* Region filter chips */}
+      <div className="flex flex-wrap gap-1">
+        {Object.entries(REGION_COLORS).map(([region, color]) => {
+          const count = (LOCATIONS_BY_REGION[region] || []).length;
+          return (
+            <button
+              key={region}
+              onClick={() => handleRegionClick(region)}
+              className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
+                selectedRegion === region
+                  ? "bg-white shadow ring-1 ring-gray-200"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              {REGION_LABELS[region] || region}
+              <span className="text-gray-400">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Frequent quick-select */}
+      {!search && !selectedRegion && (
+        <div>
+          <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-400">
+            Alta frecuencia
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {FREQUENT_LOCATIONS.map((loc) => {
+              const isActive = selectedLoc?.code === loc.code;
+              const color = REGION_COLORS[loc.region];
+              return (
+                <button
+                  key={loc.code}
+                  onClick={() => handleLocClick(loc)}
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-all ${
+                    isActive
+                      ? "text-white shadow-sm"
+                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  }`}
+                  style={
+                    isActive ? { backgroundColor: color } : { borderLeft: `2px solid ${color}40` }
+                  }
+                >
+                  {loc.code}
+                  <span className={`ml-0.5 text-[8px] ${isActive ? "text-white/70" : "text-gray-400"}`}>
+                    {loc.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* Location list grouped by region */}
+      <div className="max-h-[30vh] space-y-2 overflow-y-auto rounded-lg border border-black/5 bg-white/30 p-2">
+        {filteredLocations.length === 0 ? (
+          <p className="py-4 text-center text-[10px] text-gray-400">
+            No se encontraron puntos UB
+          </p>
+        ) : (
+          (() => {
+            // Group filtered by region
+            const grouped: Record<string, typeof filteredLocations> = {};
+            for (const loc of filteredLocations) {
+              if (!grouped[loc.region]) grouped[loc.region] = [];
+              grouped[loc.region].push(loc);
+            }
+            return Object.entries(grouped).map(([region, locs]) => (
+              <div key={region}>
+                <div className="mb-0.5 flex items-center gap-1">
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: REGION_COLORS[region] }}
+                  />
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">
+                    {REGION_LABELS[region] || region} ({locs.length})
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-0.5">
+                  {locs.map((loc) => {
+                    const isActive = selectedLoc?.code === loc.code;
+                    const color = REGION_COLORS[loc.region];
+                    return (
+                      <button
+                        key={loc.code}
+                        onClick={() => handleLocClick(loc)}
+                        className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-all ${
+                          isActive
+                            ? "text-white shadow-sm"
+                            : "bg-gray-50/50 text-gray-600 hover:bg-gray-100"
+                        }`}
+                        style={isActive ? { backgroundColor: color } : {}}
+                        title={`${loc.code} — ${loc.name}${loc.latin ? ` (${loc.latin})` : ""}`}
+                      >
+                        {loc.code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()
         )}
       </div>
 
-      {/* Region filter buttons */}
-      <div className="flex flex-wrap gap-1">
-        {Object.entries(REGION_COLORS).map(([region, color]) => (
-          <button
-            key={region}
-            onClick={() => setSelectedRegion(selectedRegion === region ? null : region)}
-            className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
-              selectedRegion === region ? "bg-white shadow ring-1 ring-gray-200" : "hover:bg-gray-100"
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-            {REGION_LABELS[region] || region}
-          </button>
-        ))}
-      </div>
-
       {/* Selected location detail */}
-      {displayLoc && (
+      {selectedLoc && (
         <div
           className="rounded-xl border-2 p-3"
-          style={{ borderColor: REGION_COLORS[displayLoc.region], backgroundColor: `${REGION_COLORS[displayLoc.region]}08` }}
+          style={{
+            borderColor: REGION_COLORS[selectedLoc.region],
+            backgroundColor: `${REGION_COLORS[selectedLoc.region]}08`,
+          }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-900">{displayLoc.code}</span>
-            <span className="text-sm text-gray-600">{displayLoc.name}</span>
-            {displayLoc.frequent && (
+            <span className="text-sm font-bold text-gray-900">
+              {selectedLoc.code}
+            </span>
+            <span className="text-sm text-gray-600">{selectedLoc.name}</span>
+            {selectedLoc.frequent && (
               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
                 Alta Freq.
               </span>
             )}
           </div>
-          {displayLoc.latin && (
-            <p className="mt-0.5 text-[10px] italic text-gray-400">Latín: {displayLoc.latin}</p>
+          {selectedLoc.latin && (
+            <p className="mt-0.5 text-[10px] italic text-gray-400">
+              Lat&iacute;n: {selectedLoc.latin}
+            </p>
           )}
+          <p className="mt-1 text-[9px] text-gray-500">
+            Regi&oacute;n:{" "}
+            <span
+              className="font-bold"
+              style={{ color: REGION_COLORS[selectedLoc.region] }}
+            >
+              {REGION_LABELS[selectedLoc.region]}
+            </span>
+          </p>
         </div>
       )}
     </div>

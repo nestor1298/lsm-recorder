@@ -16,6 +16,7 @@ import {
   type ThumbPose,
   type FingerName,
 } from "@/lib/hand_pose";
+import { PALM_EULER, FINGER_ROLL, orientationToQuat } from "@/lib/orientation";
 
 const MODEL_PATH = "/models/rigget_V16.glb";
 
@@ -72,6 +73,11 @@ function findBone(root: THREE.Object3D, name: string): THREE.Bone | null {
 const _euler = new THREE.Euler();
 const _deltaQuat = new THREE.Quaternion();
 
+// Movement animation temps
+const _mvPos = new THREE.Vector3();
+const _mvEuler = new THREE.Euler();
+const _mvQuat = new THREE.Quaternion();
+
 function applyPose(
   bone: THREE.Bone,
   bindQuat: THREE.Quaternion,
@@ -86,65 +92,90 @@ function applyPose(
 
 // ── Main component ──────────────────────────────────────────────
 
-// ── Orientation → Quaternion mapping ─────────────────────────────
-
-const DEG = Math.PI / 180;
-
-/**
- * Palm direction → base rotation (which way the palm surface faces).
- * Euler angles in degrees: [rx, ry, rz].
- */
-const PALM_EULER: Record<string, [number, number, number]> = {
-  FORWARD: [0, 0, 0],
-  BACK:    [0, 180, 0],
-  UP:      [-90, 0, 0],
-  DOWN:    [90, 0, 0],
-  LEFT:    [0, -90, 0],
-  RIGHT:   [0, 90, 0],
-};
-
-/**
- * Finger direction → Z-axis roll on top of palm rotation (degrees).
- */
-const FINGER_ROLL: Record<string, number> = {
-  UP:      0,
-  DOWN:    180,
-  LEFT:    -90,
-  RIGHT:   90,
-  FORWARD: -45,
-  BACK:    135,
-};
-
-const _palmEuler = new THREE.Euler();
-const _palmQuat = new THREE.Quaternion();
-const _fingerQuat = new THREE.Quaternion();
-const _fingerEuler = new THREE.Euler();
-
-function orientationToQuat(palm: string, fingers: string): THREE.Quaternion {
-  const [rx, ry, rz] = PALM_EULER[palm] ?? PALM_EULER.FORWARD;
-  _palmEuler.set(rx * DEG, ry * DEG, rz * DEG, "XYZ");
-  _palmQuat.setFromEuler(_palmEuler);
-
-  const roll = FINGER_ROLL[fingers] ?? 0;
-  _fingerEuler.set(0, 0, roll * DEG, "XYZ");
-  _fingerQuat.setFromEuler(_fingerEuler);
-
-  // Compose: first apply palm rotation, then finger roll on top
-  return new THREE.Quaternion().copy(_palmQuat).multiply(_fingerQuat);
-}
+// ── Orientation (imported from shared lib) ──────────────────────
 
 interface OrientationTarget {
   palm: string;
   fingers: string;
 }
 
+// ── Movement → Position mapping ─────────────────────────────────
+
+interface MovementTarget {
+  contour: string;
+  local: string | null;
+  plane: string;
+}
+
+function contourOffset(
+  contour: string,
+  plane: string,
+  t: number,
+): [number, number, number] {
+  const A = 0.35;
+  let u = 0,
+    v = 0;
+
+  switch (contour) {
+    case "STRAIGHT":
+      u = Math.sin(t * 2) * A;
+      break;
+    case "ARC":
+      u = Math.sin(t * 2) * A;
+      v = -Math.abs(Math.cos(t * 2)) * A * 0.6 + A * 0.3;
+      break;
+    case "CIRCLE":
+      u = Math.cos(t * 1.5) * A * 0.7;
+      v = Math.sin(t * 1.5) * A * 0.7;
+      break;
+    case "ZIGZAG": {
+      const p =
+        (((t * 1.5) % (Math.PI * 2)) + Math.PI * 2) %
+        (Math.PI * 2) /
+        (Math.PI * 2);
+      u =
+        (p < 0.25 ? p * 4 : p < 0.75 ? 2 - p * 4 : p * 4 - 4) * A;
+      v = Math.abs(Math.sin(t * 6)) * A * 0.3;
+      break;
+    }
+    case "SEVEN": {
+      const p =
+        (((t * 1.2) % (Math.PI * 2)) + Math.PI * 2) %
+        (Math.PI * 2) /
+        (Math.PI * 2);
+      if (p < 0.4) {
+        u = ((p / 0.4) * 2 - 1) * A;
+        v = A * 0.4;
+      } else {
+        const q = (p - 0.4) / 0.6;
+        u = A - q * A * 1.5;
+        v = A * 0.4 - q * A * 1.2;
+      }
+      break;
+    }
+  }
+
+  let px = 0,
+    py = 0,
+    pz = 0;
+  switch (plane) {
+    case "HORIZONTAL": px = u; pz = v; break;
+    case "VERTICAL":   px = u; py = v; break;
+    case "SAGITTAL":   pz = u; py = v; break;
+    case "OBLIQUE":    px = u * 0.7; py = v * 0.7; pz = u * 0.5; break;
+  }
+
+  return [px, py, pz];
+}
+
 interface RiggedHandProps {
   cm: CMEntry | null;
   autoRotate?: boolean;
   orientation?: OrientationTarget;
+  movement?: MovementTarget;
 }
 
-export default function RiggedHand({ cm, autoRotate = false, orientation }: RiggedHandProps) {
+export default function RiggedHand({ cm, autoRotate = false, orientation, movement }: RiggedHandProps) {
   const { scene } = useGLTF(MODEL_PATH);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -250,25 +281,24 @@ export default function RiggedHand({ cm, autoRotate = false, orientation }: Rigg
   }, [orientation]);
 
   // Animation loop
-  useFrame((_, delta) => {
+  useFrame((rs, delta) => {
     if (!boneRefs || !bindPoses) return;
 
     const clampedDelta = Math.min(delta, 0.05);
     const factor = 1 - Math.pow(1 - 0.08, clampedDelta * 60);
 
-    const state = animState.current;
+    const anim = animState.current;
     const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
 
     // Lerp finger poses
     for (const name of fingerNames) {
-      const s = state[name];
+      const s = anim[name];
       const t = targetPose[name];
       s.carpalSpread += (t.carpalSpread - s.carpalSpread) * factor;
       s.mcpFlex += (t.mcpFlex - s.mcpFlex) * factor;
       s.pipFlex += (t.pipFlex - s.pipFlex) * factor;
       s.dipFlex += (t.dipFlex - s.dipFlex) * factor;
 
-      // Apply to bones
       const refs = boneRefs.fingers[name];
       const bind = bindPoses.fingers[name];
 
@@ -279,7 +309,7 @@ export default function RiggedHand({ cm, autoRotate = false, orientation }: Rigg
     }
 
     // Lerp thumb pose
-    const ts = state.thumb;
+    const ts = anim.thumb;
     const tt = targetPose.thumb;
     ts.cmcOpposition += (tt.cmcOpposition - ts.cmcOpposition) * factor;
     ts.cmcRotation += (tt.cmcRotation - ts.cmcRotation) * factor;
@@ -290,13 +320,94 @@ export default function RiggedHand({ cm, autoRotate = false, orientation }: Rigg
     applyPose(boneRefs.thumb[1], bindPoses.thumb[1], -ts.mcpFlex, 0, 0);
     applyPose(boneRefs.thumb[2], bindPoses.thumb[2], -ts.ipFlex, 0, 0);
 
-    // Orientation slerp — smoothly rotate entire group
-    if (groupRef.current && targetOrientQuat) {
+    // ── Group position & rotation ──────────────────────────────
+    if (!groupRef.current) return;
+
+    if (movement) {
+      const t = rs.clock.elapsedTime;
+
+      // ─ Contour: move hand along trajectory path ─
+      const [cpx, cpy, cpz] = contourOffset(movement.contour, movement.plane, t);
+      _mvPos.set(cpx, cpy, cpz);
+
+      // Vibrate / Rub: add jitter on top of contour
+      if (movement.local === "VIBRATE") {
+        _mvPos.x += Math.sin(t * 25) * 0.015;
+        _mvPos.y += Math.cos(t * 22) * 0.015;
+      }
+      if (movement.local === "RUB") {
+        _mvPos.x += Math.sin(t * 6) * 0.04;
+      }
+
+      groupRef.current.position.lerp(_mvPos, factor * 4);
+
+      // ─ Group rotation from wrist-level local movements ─
+      let lrx = 0, lry = 0, lrz = 0;
+      switch (movement.local) {
+        case "CIRCULAR": lrx = Math.sin(t * 3) * 0.15; lrz = Math.cos(t * 3) * 0.15; break;
+        case "TWIST":    lrz = Math.sin(t * 3) * 0.4; break;
+        case "NOD":      lrx = Math.sin(t * 3) * 0.3; break;
+        case "OSCILLATE": lry = Math.sin(t * 4) * 0.25; break;
+      }
+      _mvEuler.set(lrx, lry, lrz, "XYZ");
+      _mvQuat.setFromEuler(_mvEuler);
+      groupRef.current.quaternion.slerp(_mvQuat, factor * 4);
+
+      // ─ Finger-level local movements (on top of resting pose) ─
+      switch (movement.local) {
+        case "WIGGLE":
+          for (let i = 0; i < fingerNames.length; i++) {
+            boneRefs.fingers[fingerNames[i]].bones[0].rotateX(
+              -Math.sin(t * 10 + i * 1.2) * 0.3,
+            );
+          }
+          break;
+        case "SCRATCH":
+          for (const name of fingerNames) {
+            boneRefs.fingers[name].bones[2].rotateX(-Math.sin(t * 14) * 0.2);
+          }
+          break;
+        case "RELEASE": {
+          const rp = (Math.sin(t * 2) + 1) / 2;
+          for (const name of fingerNames) {
+            boneRefs.fingers[name].bones[0].rotateX(-rp * 1.0);
+            boneRefs.fingers[name].bones[1].rotateX(-rp * 0.7);
+            boneRefs.fingers[name].bones[2].rotateX(-rp * 0.4);
+          }
+          break;
+        }
+        case "FLATTEN": {
+          const fp = (Math.sin(t * 2.5) + 1) / 2;
+          for (const name of fingerNames) {
+            boneRefs.fingers[name].bones[0].rotateX(fp * 0.25);
+          }
+          break;
+        }
+        case "PROGRESSIVE":
+          for (let i = 0; i < fingerNames.length; i++) {
+            const pp = Math.max(0, Math.sin(t * 2.5 - i * 0.7));
+            boneRefs.fingers[fingerNames[i]].bones[0].rotateX(-pp * 0.9);
+            boneRefs.fingers[fingerNames[i]].bones[1].rotateX(-pp * 0.7);
+          }
+          break;
+        case "RUB":
+          for (const name of fingerNames) {
+            boneRefs.fingers[name].bones[0].rotateX(-Math.sin(t * 6) * 0.12);
+          }
+          break;
+      }
+    } else if (targetOrientQuat) {
+      // Orientation mode
       groupRef.current.quaternion.slerp(targetOrientQuat, factor * 2);
-    }
-    // Auto-rotate the whole group (only when no orientation is set)
-    else if (groupRef.current && autoRotate && !cm) {
-      groupRef.current.rotation.y += clampedDelta * 0.4;
+      _mvPos.set(0, 0, 0);
+      groupRef.current.position.lerp(_mvPos, factor);
+    } else {
+      // Default: reset position, optional auto-rotate
+      _mvPos.set(0, 0, 0);
+      groupRef.current.position.lerp(_mvPos, factor);
+      if (autoRotate && !cm) {
+        groupRef.current.rotation.y += clampedDelta * 0.4;
+      }
     }
   });
 

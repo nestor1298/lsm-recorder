@@ -25,12 +25,15 @@ const FINGER_DIRECTIONS: { value: FingerPointing; label: string; icon: string }[
 
 interface ORControlsProps {
   onOrientationChange: (orientation: { palm: string; fingers: string }) => void;
+  /** Pre-select orientation (used by sign builder) */
+  defaultPalm?: string;
+  defaultFingers?: string;
   className?: string;
 }
 
-export default function ORControls({ onOrientationChange, className = "" }: ORControlsProps) {
-  const [palm, setPalm] = useState<PalmFacing>("FORWARD");
-  const [fingers, setFingers] = useState<FingerPointing>("UP");
+export default function ORControls({ onOrientationChange, defaultPalm, defaultFingers, className = "" }: ORControlsProps) {
+  const [palm, setPalm] = useState<PalmFacing>((defaultPalm as PalmFacing) ?? "FORWARD");
+  const [fingers, setFingers] = useState<FingerPointing>((defaultFingers as FingerPointing) ?? "UP");
 
   useEffect(() => {
     onOrientationChange({ palm, fingers });

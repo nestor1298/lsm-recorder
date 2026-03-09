@@ -18,11 +18,3 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Scroll-snap for learn page (proximity = gentle) */
-.learn-scroll-container {
-  scroll-snap-type: y proximity;
-}
-
-.learn-section {
-  scroll-snap-align: start;
-}

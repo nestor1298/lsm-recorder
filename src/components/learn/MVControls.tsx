@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ContourType = "STRAIGHT" | "ARC" | "CIRCLE" | "ZIGZAG" | "SEVEN";
 type LocalType = "WIGGLE" | "CIRCULAR" | "TWIST" | "SCRATCH" | "NOD" | "OSCILLATE" | "RELEASE" | "FLATTEN" | "PROGRESSIVE" | "VIBRATE" | "RUB";
@@ -36,13 +36,23 @@ const PLANES: { type: PlaneType; label: string; color: string; description: stri
 ];
 
 interface MVControlsProps {
+  onMovementChange?: (mv: { contour: string; local: string | null; plane: string }) => void;
+  /** Pre-select values (used by sign builder) */
+  defaultContour?: string;
+  defaultLocal?: string | null;
+  defaultPlane?: string;
   className?: string;
 }
 
-export default function MVControls({ className = "" }: MVControlsProps) {
-  const [activeContour, setActiveContour] = useState<ContourType>("STRAIGHT");
-  const [activePlane, setActivePlane] = useState<PlaneType>("VERTICAL");
-  const [activeLocal, setActiveLocal] = useState<LocalType | null>(null);
+export default function MVControls({ onMovementChange, defaultContour, defaultLocal, defaultPlane, className = "" }: MVControlsProps) {
+  const [activeContour, setActiveContour] = useState<ContourType>((defaultContour as ContourType) ?? "STRAIGHT");
+  const [activePlane, setActivePlane] = useState<PlaneType>((defaultPlane as PlaneType) ?? "VERTICAL");
+  const [activeLocal, setActiveLocal] = useState<LocalType | null>((defaultLocal as LocalType) ?? null);
+
+  // Propagate movement state to parent
+  useEffect(() => {
+    onMovementChange?.({ contour: activeContour, local: activeLocal, plane: activePlane });
+  }, [activeContour, activeLocal, activePlane, onMovementChange]);
 
   const contour = CONTOUR_MOVEMENTS.find((c) => c.type === activeContour)!;
   const plane = PLANES.find((p) => p.type === activePlane)!;

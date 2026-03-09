@@ -84,16 +84,17 @@ function MiniHand({ cm, size = 56 }: { cm: CMEntry; size?: number }) {
 
 interface CMControlsProps {
   onCMChange: (cm: CMEntry | null) => void;
+  /** Pre-select a CM (used by sign builder to restore segment state) */
+  defaultCM?: CMEntry | null;
   className?: string;
 }
 
-export default function CMControls({ onCMChange, className = "" }: CMControlsProps) {
+export default function CMControls({ onCMChange, defaultCM, className = "" }: CMControlsProps) {
   const [selectedTier, setSelectedTier] = useState<number | null>(1);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [hoveredCM, setHoveredCM] = useState<CMEntry | null>(null);
-  const [selectedCM, setSelectedCM] = useState<CMEntry | null>(null);
+  const [selectedCM, setSelectedCM] = useState<CMEntry | null>(defaultCM ?? null);
 
-  const activeCM = selectedCM ?? hoveredCM;
+  const activeCM = selectedCM;
 
   const filtered = useMemo(() => {
     let items = CM_INVENTORY;
@@ -227,19 +228,14 @@ export default function CMControls({ onCMChange, className = "" }: CMControlsPro
         <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
           {filtered.map((cm) => {
             const isSelected = selectedCM?.cm_id === cm.cm_id;
-            const isHovered = hoveredCM?.cm_id === cm.cm_id;
             return (
               <div
                 key={cm.cm_id}
                 className={`group relative cursor-pointer rounded-lg border bg-white p-1 transition-all hover:shadow-md ${
                   isSelected
                     ? "border-indigo-500 ring-2 ring-indigo-400/50 shadow-lg"
-                    : isHovered
-                      ? "border-indigo-400 shadow-md"
-                      : "border-gray-200"
+                    : "border-gray-200"
                 }`}
-                onMouseEnter={() => setHoveredCM(cm)}
-                onMouseLeave={() => setHoveredCM(null)}
                 onClick={() => setSelectedCM(isSelected ? null : cm)}
               >
                 <MiniHand cm={cm} size={48} />
