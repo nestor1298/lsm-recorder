@@ -29,18 +29,25 @@ export const THUMB_BONES = ["rThumb1", "rThumb2", "rThumb3"] as const;
 export type FingerName = keyof typeof FINGER_BONES;
 
 // ── Flexion angle mapping (degrees → radians) ──────────────────
-// Calibrated from rigget_V16.glb baked animations:
-//   "S" (fist): PIP≈-85°, DIP≈-70°, MCP≈-28°  → total ≈ 183°
-//   "A" (fist): PIP≈-70°, DIP≈-70°, MCP≈-28°  → total ≈ 168°
-// The model's bones require larger angles than the 2D SVG visualization.
+// Anatomical finger flexion ranges (Mixamo wscharacter.glb):
+//   MCP (metacarpophalangeal): 0–90°  — the big knuckle
+//   PIP (proximal interphalangeal): 0–100° — middle joint
+//   DIP (distal interphalangeal): 0–70°  — fingertip joint
+// Total anatomical range ≈ 260° for a full fist.
+//
+// In this Mixamo rig:
+//   *Index1 = metacarpal (carpal spread + cupping flex)
+//   *Index2 = proximal phalanx (MCP joint flex) — MOST visible
+//   *Index3 = middle phalanx (PIP joint flex)
+//   *Index4 = distal phalanx / tip node (DIP joint flex, minimal skinning)
 
 const DEG2RAD = Math.PI / 180;
 
 const FLEXION_RAD: Record<FlexionLevel, number> = {
   EXTENDED: 0,
-  CURVED:  60 * DEG2RAD,    // mild curl
-  BENT:    120 * DEG2RAD,   // firm curl
-  CLOSED:  180 * DEG2RAD,   // full fist
+  CURVED:  80 * DEG2RAD,    // mild curl — light hook shape
+  BENT:    160 * DEG2RAD,   // firm curl — partially closed
+  CLOSED:  260 * DEG2RAD,   // full fist — MCP≈90 + PIP≈100 + DIP≈70
 };
 
 // ── Types ───────────────────────────────────────────────────────
@@ -49,6 +56,8 @@ const FLEXION_RAD: Record<FlexionLevel, number> = {
 export interface FingerPose {
   /** Carpal bone Y-rotation for lateral spread */
   carpalSpread: number;
+  /** Carpal bone X-rotation for metacarpal cupping (palm closure) */
+  carpalFlex: number;
   /** MCP (Digit1) X-rotation for primary curl */
   mcpFlex: number;
   /** PIP (Digit2) X-rotation for mid curl */
@@ -82,13 +91,21 @@ export interface HandPose {
 
 /**
  * Distribute a flexion angle across MCP, PIP, DIP.
- * Based on rigget_V16.glb animation data:
- *   MCP ≈ 15%, PIP ≈ 47%, DIP ≈ 38% (from "S" fist pose)
+ *
+ * Anatomical distribution (from proximal → distal):
+ *   MCP ≈ 35% — the big knuckle flex, most visually impactful
+ *   PIP ≈ 40% — middle joint, second most important
+ *   DIP ≈ 25% — distal tip, least visible (tip bone has minimal skin weight)
+ *
+ * For CLOSED (260° total): MCP≈91°, PIP≈104°, DIP≈65°
+ * For BENT   (160° total): MCP≈56°, PIP≈64°,  DIP≈40°
+ * For CURVED  (80° total): MCP≈28°, PIP≈32°,  DIP≈20°
+ *
  * Returns [mcpFlex, pipFlex, dipFlex] in radians.
  */
 function distributeCurl(flexion: FlexionLevel): [number, number, number] {
   const total = FLEXION_RAD[flexion];
-  return [total * 0.15, total * 0.47, total * 0.38];
+  return [total * 0.35, total * 0.40, total * 0.25];
 }
 
 /** Spread angles per finger (radians), applied to carpal bone Y-axis */
@@ -97,6 +114,19 @@ const SPREAD_ANGLES: Record<FingerName, number> = {
   middle: -0.05,
   ring:    0.05,
   pinky:   0.15,
+};
+
+/**
+ * Metacarpal cupping angles per finger (radians).
+ * When making a fist, the ring and pinky metacarpals flex significantly
+ * to form the palm cup. Index/middle barely cup.
+ * Applied as X-rotation on the carpal/metacarpal bone (Index1, etc.).
+ */
+const METACARPAL_CUP_MAX: Record<FingerName, number> = {
+  index:  5 * DEG2RAD,
+  middle: 10 * DEG2RAD,
+  ring:   18 * DEG2RAD,
+  pinky:  25 * DEG2RAD,
 };
 
 /**
@@ -115,8 +145,16 @@ function buildFingerPose(
     finalDip += 0.4; // extra distal flexion
   }
 
+  // Metacarpal cupping: proportional to how closed the finger is
+  // Full cupping for CLOSED, partial for BENT, none for EXTENDED/CURVED
+  const closedness = FLEXION_RAD[flexion] / FLEXION_RAD.CLOSED; // 0..1
+  const carpalFlex = closedness > 0.5
+    ? METACARPAL_CUP_MAX[fingerName] * ((closedness - 0.5) * 2) // ramp from 50% closedness
+    : 0;
+
   return {
     carpalSpread: spread ? SPREAD_ANGLES[fingerName] : 0,
+    carpalFlex,
     mcpFlex,
     pipFlex,
     dipFlex: finalDip,
@@ -210,9 +248,9 @@ export function cmEntryToHandPose(cm: CMEntry): HandPose {
 
 /** Resting pose — slight natural curl (~10°) */
 export const RESTING_POSE: HandPose = {
-  index:  { carpalSpread: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
-  middle: { carpalSpread: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
-  ring:   { carpalSpread: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
-  pinky:  { carpalSpread: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
+  index:  { carpalSpread: 0, carpalFlex: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
+  middle: { carpalSpread: 0, carpalFlex: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
+  ring:   { carpalSpread: 0, carpalFlex: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
+  pinky:  { carpalSpread: 0, carpalFlex: 0, mcpFlex: 0.07, pipFlex: 0.06, dipFlex: 0.04 },
   thumb:  { cmcOpposition: 0, cmcRotation: 0, mcpFlex: 0.05, ipFlex: 0.04 },
 };

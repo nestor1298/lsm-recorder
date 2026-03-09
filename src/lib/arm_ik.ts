@@ -365,3 +365,36 @@ export function solveArmIKNatural(
 
   return { clavicleQuat, upperArmQuat, foreArmQuat };
 }
+
+// ── Forearm twist composition ────────────────────────────────────
+
+const _twistDelta = new THREE.Quaternion();
+const _twistBindInv = new THREE.Quaternion();
+const _twistResult = new THREE.Quaternion();
+
+/**
+ * Compose an axial pronation/supination twist onto the IK-solved forearm quaternion.
+ *
+ * The forearm bone's local Y-axis is its long axis. This function applies a
+ * Y-rotation (twist) on top of the elbow bend that the IK solver produced.
+ *
+ * @param foreArmQuat    IK-solved forearm quaternion (includes elbow bend)
+ * @param twistQuat      Axial twist quaternion from SplitOrientation.forearmTwist
+ * @param bindForeArm    Bind-pose quaternion for the forearm bone
+ * @returns New forearm quaternion with twist composed
+ */
+export function composeForearmTwist(
+  foreArmQuat: THREE.Quaternion,
+  twistQuat: THREE.Quaternion,
+  bindForeArm: THREE.Quaternion,
+): THREE.Quaternion {
+  // Apply twist in bone-local space:
+  // result = foreArmQuat * (bindForeArm⁻¹ * twistQuat * bindForeArm)
+  // This ensures the twist is applied along the bone's own Y-axis,
+  // regardless of the current elbow bend.
+  _twistBindInv.copy(bindForeArm).invert();
+  _twistDelta.copy(_twistBindInv).multiply(twistQuat).multiply(bindForeArm);
+  _twistResult.copy(foreArmQuat).multiply(_twistDelta);
+
+  return _twistResult.clone();
+}

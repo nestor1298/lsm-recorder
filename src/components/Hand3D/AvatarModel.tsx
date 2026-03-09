@@ -17,7 +17,12 @@ import {
   type ThumbPose,
   type FingerName,
 } from "@/lib/hand_pose";
-import { orientationToQuat } from "@/lib/orientation";
+import {
+  orientationToSplitQuats,
+  blendSplitOrientations,
+  clampWristRotation,
+  type SplitOrientation,
+} from "@/lib/orientation";
 import {
   AVATAR_FINGER_BONES,
   AVATAR_THUMB_BONES,
@@ -28,7 +33,7 @@ import {
   getRightFingerBones,
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
-import { measureArmLengths, solveArmIKNatural, type ArmLengths } from "@/lib/arm_ik";
+import { measureArmLengths, solveArmIKNatural, composeForearmTwist, type ArmLengths } from "@/lib/arm_ik";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
 const AVATAR_PATH = "/models/wscharacter.glb";
@@ -520,6 +525,7 @@ function animateFingers(
     const s = anim[name];
     const t = targetPose[name];
     s.carpalSpread += (t.carpalSpread - s.carpalSpread) * factor;
+    s.carpalFlex += (t.carpalFlex - s.carpalFlex) * factor;
     s.mcpFlex += (t.mcpFlex - s.mcpFlex) * factor;
     s.pipFlex += (t.pipFlex - s.pipFlex) * factor;
     s.dipFlex += (t.dipFlex - s.dipFlex) * factor;
@@ -528,7 +534,8 @@ function animateFingers(
     const bind = bindPoses.fingers[name];
 
     // Mixamo finger bones flex with positive X (opposite of rigget_V16)
-    applyPose(boneRefs.carpal, bind.carpal, 0, -s.carpalSpread, 0);
+    // Carpal/metacarpal gets both X-flex (cupping) and Y-spread
+    applyPose(boneRefs.carpal, bind.carpal, s.carpalFlex, -s.carpalSpread, 0);
     applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0);
     applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0);
     applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0);
@@ -557,6 +564,7 @@ function blendHandPoses(from: HandPose, to: HandPose, t: number): HandPose {
     const tt = to[name];
     result[name] = {
       carpalSpread: f.carpalSpread + (tt.carpalSpread - f.carpalSpread) * t,
+      carpalFlex: f.carpalFlex + (tt.carpalFlex - f.carpalFlex) * t,
       mcpFlex: f.mcpFlex + (tt.mcpFlex - f.mcpFlex) * t,
       pipFlex: f.pipFlex + (tt.pipFlex - f.pipFlex) * t,
       dipFlex: f.dipFlex + (tt.dipFlex - f.dipFlex) * t,
@@ -576,19 +584,16 @@ function blendHandPoses(from: HandPose, to: HandPose, t: number): HandPose {
   };
 }
 
-// ── Blend orientations via slerp ────────────────────────────────
+// ── Blend split orientations for movement segments ───────────────
 
-const _blendOrientQ1 = new THREE.Quaternion();
-const _blendOrientQ2 = new THREE.Quaternion();
-
-function blendOrientationQuats(
+function blendSplitOrients(
   from: { palm: string; fingers: string },
   to: { palm: string; fingers: string },
   t: number,
-): THREE.Quaternion {
-  _blendOrientQ1.copy(orientationToQuat(from.palm, from.fingers));
-  _blendOrientQ2.copy(orientationToQuat(to.palm, to.fingers));
-  return new THREE.Quaternion().copy(_blendOrientQ1).slerp(_blendOrientQ2, t);
+): SplitOrientation {
+  const fromSplit = orientationToSplitQuats(from.palm, from.fingers);
+  const toSplit = orientationToSplitQuats(to.palm, to.fingers);
+  return blendSplitOrientations(fromSplit, toSplit, t);
 }
 
 // ── Pre-allocated scratch vectors for movement interpolation ────
@@ -678,7 +683,7 @@ function animateArmIK(
   armLengths: ArmLengths,
   factor: number,
   isLeftArm: boolean,
-  wristOrientQuat: THREE.Quaternion | null,
+  splitOrient: SplitOrientation | null,
 ) {
   if (targetWorldPos) {
     const { clavicleQuat, upperArmQuat, foreArmQuat } = solveArmIKNatural(
@@ -693,15 +698,26 @@ function animateArmIK(
       isLeftArm,
     );
 
-    // Slerp all joints toward IK targets
+    // Slerp clavicle and upper arm toward IK targets
     refs.armChain.clavicle.quaternion.slerp(clavicleQuat, factor * 2);
     refs.armChain.upperArm.quaternion.slerp(upperArmQuat, factor * 2);
-    refs.armChain.foreArm.quaternion.slerp(foreArmQuat, factor * 2);
 
-    // Apply wrist orientation
-    if (wristOrientQuat) {
-      const targetHandQuat = bindPoses.armChain.hand.clone().multiply(wristOrientQuat);
+    if (splitOrient) {
+      // Compose forearm pronation/supination twist onto IK-solved forearm
+      const finalForeArm = composeForearmTwist(
+        foreArmQuat,
+        splitOrient.forearmTwist,
+        bindPoses.armChain.foreArm,
+      );
+      refs.armChain.foreArm.quaternion.slerp(finalForeArm, factor * 2);
+
+      // Apply hand local orientation (flex/ext + deviation) with anatomical clamping
+      const targetHandQuat = bindPoses.armChain.hand.clone().multiply(splitOrient.handLocal);
+      clampWristRotation(targetHandQuat, bindPoses.armChain.hand);
       refs.armChain.hand.quaternion.slerp(targetHandQuat, factor * 2);
+    } else {
+      // No orientation — just use IK forearm, hand stays at bind
+      refs.armChain.foreArm.quaternion.slerp(foreArmQuat, factor * 2);
     }
   } else {
     // Return all 4 bones to bind pose (T-pose)
@@ -857,16 +873,16 @@ export default function AvatarModel({
     return cm ? cmEntryToHandPose(cm) : RESTING_POSE;
   }, [cm]);
 
-  const targetOrientQuat = useMemo(() => {
+  const targetSplitOrient = useMemo<SplitOrientation | null>(() => {
     if (!orientation) return null;
-    return orientationToQuat(orientation.palm, orientation.fingers);
+    return orientationToSplitQuats(orientation.palm, orientation.fingers);
   }, [orientation]);
 
   // Mirror orientation for symmetric mode
-  const mirroredOrientQuat = useMemo(() => {
+  const mirroredSplitOrient = useMemo<SplitOrientation | null>(() => {
     if (!orientation) return null;
     const mirrored = mirrorOrientation(orientation);
-    return orientationToQuat(mirrored.palm, mirrored.fingers);
+    return orientationToSplitQuats(mirrored.palm, mirrored.fingers);
   }, [orientation]);
 
   // Compute target morph weights from RNM state
@@ -985,8 +1001,8 @@ export default function AvatarModel({
             );
             _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-            // 3. Blend orientation between from/to
-            const blendedOrient = blendOrientationQuats(
+            // 3. Blend split orientation between from/to
+            const blendedSplitOrient = blendSplitOrients(
               movementInterp.fromOrientation,
               movementInterp.toOrientation,
               mt,
@@ -999,7 +1015,7 @@ export default function AvatarModel({
               leftArmLengths,
               factor,
               true,
-              blendedOrient,
+              blendedSplitOrient,
             );
 
             // 4. Apply local movement overlays (after IK)
@@ -1029,7 +1045,7 @@ export default function AvatarModel({
             leftArmLengths,
             factor,
             true,
-            targetOrientQuat,
+            targetSplitOrient,
           );
         }
       }
@@ -1061,7 +1077,7 @@ export default function AvatarModel({
             );
             _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-            const blendedOrient = blendOrientationQuats(
+            const blendedSplitOrientR = blendSplitOrients(
               mirrorOrientation(movementInterp.fromOrientation),
               mirrorOrientation(movementInterp.toOrientation),
               mt,
@@ -1074,7 +1090,7 @@ export default function AvatarModel({
               rightArmLengths,
               factor,
               false,
-              blendedOrient,
+              blendedSplitOrientR,
             );
 
             if (movementInterp.local) {
@@ -1103,7 +1119,7 @@ export default function AvatarModel({
             rightArmLengths,
             factor,
             false,
-            mirroredOrientQuat,
+            mirroredSplitOrient,
           );
         }
       }

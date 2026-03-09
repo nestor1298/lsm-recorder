@@ -295,6 +295,7 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
       const s = anim[name];
       const t = targetPose[name];
       s.carpalSpread += (t.carpalSpread - s.carpalSpread) * factor;
+      s.carpalFlex += (t.carpalFlex - s.carpalFlex) * factor;
       s.mcpFlex += (t.mcpFlex - s.mcpFlex) * factor;
       s.pipFlex += (t.pipFlex - s.pipFlex) * factor;
       s.dipFlex += (t.dipFlex - s.dipFlex) * factor;
@@ -302,7 +303,7 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
       const refs = boneRefs.fingers[name];
       const bind = bindPoses.fingers[name];
 
-      applyPose(refs.carpal, bind.carpal, 0, s.carpalSpread, 0);
+      applyPose(refs.carpal, bind.carpal, -s.carpalFlex, s.carpalSpread, 0);
       applyPose(refs.bones[0], bind.bones[0], -s.mcpFlex, 0, 0);
       applyPose(refs.bones[1], bind.bones[1], -s.pipFlex, 0, 0);
       applyPose(refs.bones[2], bind.bones[2], -s.dipFlex, 0, 0);
