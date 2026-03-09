@@ -368,33 +368,28 @@ export function solveArmIKNatural(
 
 // ── Forearm twist composition ────────────────────────────────────
 
-const _twistDelta = new THREE.Quaternion();
-const _twistBindInv = new THREE.Quaternion();
 const _twistResult = new THREE.Quaternion();
 
 /**
  * Compose an axial pronation/supination twist onto the IK-solved forearm quaternion.
  *
- * The forearm bone's local Y-axis is its long axis. This function applies a
- * Y-rotation (twist) on top of the elbow bend that the IK solver produced.
+ * The IK solver produces foreArmQuat = bindForeArm * elbowDelta (pure X-rotation).
+ * We add the orientation Y-twist on the right side (in bone-local space, after
+ * the elbow bend): result = foreArmQuat * twistQuat.
  *
- * @param foreArmQuat    IK-solved forearm quaternion (includes elbow bend)
- * @param twistQuat      Axial twist quaternion from SplitOrientation.forearmTwist
- * @param bindForeArm    Bind-pose quaternion for the forearm bone
+ * This works because the twist is a pure Y-rotation extracted along the bone's
+ * long axis, and multiplying on the right applies it in the bone's local frame
+ * (i.e., pronation/supination happens around the forearm's own long axis,
+ * regardless of elbow bend angle).
+ *
+ * @param foreArmQuat    IK-solved forearm quaternion (bind + elbow bend)
+ * @param twistQuat      Axial Y-twist from SplitOrientation.forearmTwist
  * @returns New forearm quaternion with twist composed
  */
 export function composeForearmTwist(
   foreArmQuat: THREE.Quaternion,
   twistQuat: THREE.Quaternion,
-  bindForeArm: THREE.Quaternion,
 ): THREE.Quaternion {
-  // Apply twist in bone-local space:
-  // result = foreArmQuat * (bindForeArm⁻¹ * twistQuat * bindForeArm)
-  // This ensures the twist is applied along the bone's own Y-axis,
-  // regardless of the current elbow bend.
-  _twistBindInv.copy(bindForeArm).invert();
-  _twistDelta.copy(_twistBindInv).multiply(twistQuat).multiply(bindForeArm);
-  _twistResult.copy(foreArmQuat).multiply(_twistDelta);
-
+  _twistResult.copy(foreArmQuat).multiply(twistQuat);
   return _twistResult.clone();
 }

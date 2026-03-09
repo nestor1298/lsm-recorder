@@ -707,12 +707,17 @@ function animateArmIK(
       const finalForeArm = composeForearmTwist(
         foreArmQuat,
         splitOrient.forearmTwist,
-        bindPoses.armChain.foreArm,
       );
       refs.armChain.foreArm.quaternion.slerp(finalForeArm, factor * 2);
 
-      // Apply hand local orientation (flex/ext + deviation) with anatomical clamping
-      const targetHandQuat = bindPoses.armChain.hand.clone().multiply(splitOrient.handLocal);
+      // Hand: compensate for forearm twist propagating through bone hierarchy.
+      // The forearm is the hand's parent, so any forearm twist automatically
+      // rotates the hand too. We counter-rotate to undo that propagation,
+      // then apply the full orientation:
+      //   targetHand = inv(forearmTwist) * bindHand * fullOrient
+      const targetHandQuat = splitOrient.forearmTwist.clone().invert()
+        .multiply(bindPoses.armChain.hand)
+        .multiply(splitOrient.fullOrient);
       clampWristRotation(targetHandQuat, bindPoses.armChain.hand);
       refs.armChain.hand.quaternion.slerp(targetHandQuat, factor * 2);
     } else {

@@ -53,12 +53,18 @@ export const FINGER_ROLL: Record<string, number> = {
 
 /**
  * Orientation split into two anatomical components:
- *  - forearmTwist: Axial rotation (pronation/supination) applied to the forearm bone
- *  - handLocal:    Remaining rotation (flex/ext + radial/ulnar dev) applied to the hand bone
+ *  - forearmTwist: Axial Y-rotation (pronation/supination) applied to the forearm bone
+ *  - fullOrient:   Complete orientation delta — applied to the hand bone with
+ *                  forearm-twist counter-rotation (handled in animateArmIK)
+ *
+ * The hand's target quaternion is computed at application time as:
+ *   targetHand = inv(forearmTwist) * bindHand * fullOrient
+ * This compensates for the forearm twist propagating through the parent→child
+ * bone hierarchy, ensuring the final hand world rotation is correct.
  */
 export interface SplitOrientation {
   forearmTwist: THREE.Quaternion;
-  handLocal: THREE.Quaternion;
+  fullOrient: THREE.Quaternion;
 }
 
 // ── Reusable temp objects (module-level, not per-frame allocated) ──
@@ -68,9 +74,7 @@ const _fingerQuat = new THREE.Quaternion();
 const _fingerEuler = new THREE.Euler();
 const _fullQuat = new THREE.Quaternion();
 const _twistQuat = new THREE.Quaternion();
-const _swingQuat = new THREE.Quaternion();
 const _forearmPartial = new THREE.Quaternion();
-const _handRemainder = new THREE.Quaternion();
 const _identityQuat = new THREE.Quaternion();
 
 /**
@@ -185,38 +189,31 @@ const _twistAxis = new THREE.Vector3(0, 1, 0);
  *
  * @param palm    Palm direction code (UP, DOWN, FORWARD, BACK, LEFT, RIGHT)
  * @param fingers Finger direction code
- * @returns SplitOrientation with forearmTwist and handLocal quaternions
+ * @returns SplitOrientation with forearmTwist and fullOrient quaternions
  */
 export function orientationToSplitQuats(
   palm: string,
   fingers: string,
 ): SplitOrientation {
-  // 1. Full orientation
-  _fullQuat.copy(orientationToQuat(palm, fingers));
+  // 1. Full orientation delta
+  const fullOrient = orientationToQuat(palm, fingers); // already returns a new Quaternion
 
-  // 2. Swing-twist decomposition around Y axis
+  // 2. Extract the Y-twist component via swing-twist decomposition
+  _fullQuat.copy(fullOrient);
   extractTwist(_fullQuat, _twistAxis, _twistQuat);
 
-  // swing = fullQuat * inverse(twist)
-  _swingQuat.copy(_twistQuat).invert();
-  _swingQuat.premultiply(_fullQuat);
-
-  // 3. Forearm gets a fraction of the twist
+  // 3. Forearm absorbs a fraction of the Y-twist
   slerpFraction(_twistQuat, FOREARM_TWIST_FRACTION, _forearmPartial);
 
-  // Clamp forearm twist to anatomical limits
+  // Clamp forearm twist to anatomical limits (±85°)
   clampTwistAngle(_forearmPartial, FOREARM_TWIST_MAX);
 
-  // 4. Hand gets remaining twist + swing
-  // remainingTwist = fullTwist * inverse(forearmTwist)
-  _handRemainder.copy(_forearmPartial).invert();
-  _handRemainder.premultiply(_twistQuat);
-
-  // handLocal = swing * remainingTwist
-  const handLocal = new THREE.Quaternion().copy(_swingQuat).multiply(_handRemainder);
   const forearmTwist = _forearmPartial.clone();
 
-  return { forearmTwist, handLocal };
+  // 4. fullOrient is stored as-is — the hand compensation (counter-rotating
+  //    for the parent forearm twist) is done at application time in animateArmIK:
+  //    targetHand = inv(forearmTwist) * bindHand * fullOrient
+  return { forearmTwist, fullOrient };
 }
 
 /**
@@ -229,7 +226,7 @@ export function blendSplitOrientations(
 ): SplitOrientation {
   return {
     forearmTwist: new THREE.Quaternion().copy(from.forearmTwist).slerp(to.forearmTwist, t),
-    handLocal: new THREE.Quaternion().copy(from.handLocal).slerp(to.handLocal, t),
+    fullOrient: new THREE.Quaternion().copy(from.fullOrient).slerp(to.fullOrient, t),
   };
 }
 
