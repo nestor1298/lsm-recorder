@@ -19,7 +19,7 @@ export const WRIST_RADIAL_MAX = 20 * DEG;  // radial deviation (toward thumb)
 export const WRIST_ULNAR_MAX = 30 * DEG;   // ulnar deviation (toward pinky)
 
 /** Fraction of axial twist that the forearm absorbs (vs. hand) */
-const FOREARM_TWIST_FRACTION = 0.6;
+const FOREARM_TWIST_FRACTION = 0.25;
 
 /** Max forearm pronation/supination from neutral (±85°) */
 const FOREARM_TWIST_MAX = 85 * DEG;

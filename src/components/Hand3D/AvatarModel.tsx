@@ -20,7 +20,6 @@ import {
 import {
   orientationToSplitQuats,
   blendSplitOrientations,
-  clampWristRotation,
   type SplitOrientation,
 } from "@/lib/orientation";
 import {
@@ -718,7 +717,6 @@ function animateArmIK(
       const targetHandQuat = splitOrient.forearmTwist.clone().invert()
         .multiply(bindPoses.armChain.hand)
         .multiply(splitOrient.fullOrient);
-      clampWristRotation(targetHandQuat, bindPoses.armChain.hand);
       refs.armChain.hand.quaternion.slerp(targetHandQuat, factor * 2);
     } else {
       // No orientation — just use IK forearm, hand stays at bind
