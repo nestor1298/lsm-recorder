@@ -509,6 +509,60 @@ function snapshotHandBindPoses(refs: HandBoneRefs): HandBindPoses {
   };
 }
 
+// ── Hand centroid: average position of all hand bones ────────────
+
+const _centroidPos = new THREE.Vector3();
+const _wristPos = new THREE.Vector3();
+const _handDirVec = new THREE.Vector3();
+const _handWorldQ = new THREE.Quaternion();
+
+/**
+ * Compute the distance from the wrist bone to the centroid of all
+ * hand bones, measured along the hand's extension direction (-Y).
+ *
+ * Called once at bind-pose time. The returned value is used to offset
+ * the IK target so that the palm center (not the wrist joint) reaches
+ * the UB point.
+ */
+function computeHandCentroidDistance(refs: HandBoneRefs): number {
+  const hand = refs.armChain.hand;
+  hand.updateWorldMatrix(true, true);
+
+  hand.getWorldPosition(_wristPos);
+
+  // Hand's extension direction in world space (bone -Y)
+  hand.getWorldQuaternion(_handWorldQ);
+  _handDirVec.set(0, -1, 0).applyQuaternion(_handWorldQ);
+
+  let totalProjection = 0;
+  let count = 0;
+
+  const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
+  for (const name of fingerNames) {
+    const finger = refs.fingers[name];
+    // Carpal
+    finger.carpal.getWorldPosition(_centroidPos);
+    totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
+    count++;
+    // MCP, PIP, DIP
+    for (const bone of finger.bones) {
+      bone.getWorldPosition(_centroidPos);
+      totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
+      count++;
+    }
+  }
+
+  // Thumb
+  for (const bone of refs.thumb) {
+    bone.getWorldPosition(_centroidPos);
+    totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
+    count++;
+  }
+
+  // Average projection along hand extension = centroid distance from wrist
+  return count > 0 ? totalProjection / count : 0.06;
+}
+
 // ── Animate fingers on one hand ──────────────────────────────────
 
 function animateFingers(
@@ -675,6 +729,12 @@ function applyLocalMovement(
 
 // ── Animate arm IK for one hand (anatomically constrained) ──────
 
+// Scratch vectors for centroid offset and rest pose
+const _shoulderPosIK = new THREE.Vector3();
+const _reachDirIK = new THREE.Vector3();
+const _adjustedTarget = new THREE.Vector3();
+const _restTarget = new THREE.Vector3();
+
 function animateArmIK(
   targetWorldPos: THREE.Vector3 | null,
   refs: HandBoneRefs,
@@ -683,51 +743,75 @@ function animateArmIK(
   factor: number,
   isLeftArm: boolean,
   splitOrient: SplitOrientation | null,
+  centroidDist: number,
 ) {
+  // ── Determine effective IK target ───────────────────────────────
+  let ikTarget: THREE.Vector3;
+  let ikFactor: number;
+  let orient: SplitOrientation | null;
+
   if (targetWorldPos) {
-    const { clavicleQuat, upperArmQuat, foreArmQuat } = solveArmIKNatural(
-      targetWorldPos,
-      armLengths,
-      refs.armChain.clavicle,
-      refs.armChain.upperArm,
-      refs.armChain.foreArm,
-      bindPoses.armChain.clavicle,
-      bindPoses.armChain.upperArm,
-      bindPoses.armChain.foreArm,
-      isLeftArm,
-    );
-
-    // Slerp clavicle and upper arm toward IK targets
-    refs.armChain.clavicle.quaternion.slerp(clavicleQuat, factor * 2);
-    refs.armChain.upperArm.quaternion.slerp(upperArmQuat, factor * 2);
-
-    if (splitOrient) {
-      // Compose forearm pronation/supination twist onto IK-solved forearm
-      const finalForeArm = composeForearmTwist(
-        foreArmQuat,
-        splitOrient.forearmTwist,
-      );
-      refs.armChain.foreArm.quaternion.slerp(finalForeArm, factor * 2);
-
-      // Hand: compensate for forearm twist propagating through bone hierarchy.
-      // The forearm is the hand's parent, so any forearm twist automatically
-      // rotates the hand too. We counter-rotate to undo that propagation,
-      // then apply the full orientation:
-      //   targetHand = inv(forearmTwist) * bindHand * fullOrient
-      const targetHandQuat = splitOrient.forearmTwist.clone().invert()
-        .multiply(bindPoses.armChain.hand)
-        .multiply(splitOrient.fullOrient);
-      refs.armChain.hand.quaternion.slerp(targetHandQuat, factor * 2);
-    } else {
-      // No orientation — just use IK forearm, hand stays at bind
-      refs.armChain.foreArm.quaternion.slerp(foreArmQuat, factor * 2);
-    }
+    // Offset the target so the hand CENTROID (not wrist) reaches the UB point.
+    // The centroid is centroidDist past the wrist along the reach direction.
+    // Pull the target back toward the shoulder by that amount.
+    refs.armChain.upperArm.getWorldPosition(_shoulderPosIK);
+    _reachDirIK.copy(targetWorldPos).sub(_shoulderPosIK).normalize();
+    _adjustedTarget.copy(targetWorldPos).addScaledVector(_reachDirIK, -centroidDist);
+    ikTarget = _adjustedTarget;
+    ikFactor = factor;
+    orient = splitOrient;
   } else {
-    // Return all 4 bones to bind pose (T-pose)
-    refs.armChain.clavicle.quaternion.slerp(bindPoses.armChain.clavicle, factor);
-    refs.armChain.upperArm.quaternion.slerp(bindPoses.armChain.upperArm, factor);
-    refs.armChain.foreArm.quaternion.slerp(bindPoses.armChain.foreArm, factor);
-    refs.armChain.hand.quaternion.slerp(bindPoses.armChain.hand, factor);
+    // No UB target → arms-down rest pose via IK
+    // Position beside the hip: below clavicle, slightly to the side + forward
+    refs.armChain.clavicle.updateWorldMatrix(true, false);
+    refs.armChain.clavicle.getWorldPosition(_restTarget);
+    const sign = isLeftArm ? 1 : -1;
+    _restTarget.x += sign * 0.12;
+    _restTarget.y -= 0.55;
+    _restTarget.z += 0.06;
+    ikTarget = _restTarget;
+    ikFactor = factor * 0.5; // slower convergence for natural transition
+    orient = null;
+  }
+
+  // ── Solve IK ────────────────────────────────────────────────────
+  const { clavicleQuat, upperArmQuat, foreArmQuat } = solveArmIKNatural(
+    ikTarget,
+    armLengths,
+    refs.armChain.clavicle,
+    refs.armChain.upperArm,
+    refs.armChain.foreArm,
+    bindPoses.armChain.clavicle,
+    bindPoses.armChain.upperArm,
+    bindPoses.armChain.foreArm,
+    isLeftArm,
+  );
+
+  // Slerp clavicle and upper arm toward IK targets
+  refs.armChain.clavicle.quaternion.slerp(clavicleQuat, ikFactor * 2);
+  refs.armChain.upperArm.quaternion.slerp(upperArmQuat, ikFactor * 2);
+
+  if (orient) {
+    // Compose forearm pronation/supination twist onto IK-solved forearm
+    const finalForeArm = composeForearmTwist(
+      foreArmQuat,
+      orient.forearmTwist,
+    );
+    refs.armChain.foreArm.quaternion.slerp(finalForeArm, ikFactor * 2);
+
+    // Hand: compensate for forearm twist propagating through bone hierarchy.
+    // The forearm is the hand's parent, so any forearm twist automatically
+    // rotates the hand too. We counter-rotate to undo that propagation,
+    // then apply the full orientation:
+    //   targetHand = inv(forearmTwist) * bindHand * fullOrient
+    const targetHandQuat = orient.forearmTwist.clone().invert()
+      .multiply(bindPoses.armChain.hand)
+      .multiply(orient.fullOrient);
+    refs.armChain.hand.quaternion.slerp(targetHandQuat, ikFactor * 2);
+  } else {
+    // No orientation — just use IK forearm, hand returns to bind
+    refs.armChain.foreArm.quaternion.slerp(foreArmQuat, ikFactor * 2);
+    refs.armChain.hand.quaternion.slerp(bindPoses.armChain.hand, ikFactor);
   }
 }
 
@@ -863,6 +947,18 @@ export default function AvatarModel({
       rightHandRefs.armChain.foreArm,
       rightHandRefs.armChain.hand,
     );
+  }, [rightHandRefs]);
+
+  // ── Hand centroid distance (measured once at bind pose) ──
+
+  const leftCentroidDist = useMemo<number>(() => {
+    if (!leftHandRefs) return 0.06; // fallback ~6cm
+    return computeHandCentroidDistance(leftHandRefs);
+  }, [leftHandRefs]);
+
+  const rightCentroidDist = useMemo<number>(() => {
+    if (!rightHandRefs) return 0.06;
+    return computeHandCentroidDistance(rightHandRefs);
   }, [rightHandRefs]);
 
   // ── Animation state refs (mutable) ──
@@ -1019,6 +1115,7 @@ export default function AvatarModel({
               factor,
               true,
               blendedSplitOrient,
+              leftCentroidDist,
             );
 
             // 4. Apply local movement overlays (after IK)
@@ -1049,6 +1146,7 @@ export default function AvatarModel({
             factor,
             true,
             targetSplitOrient,
+            leftCentroidDist,
           );
         }
       }
@@ -1094,6 +1192,7 @@ export default function AvatarModel({
               factor,
               false,
               blendedSplitOrientR,
+              rightCentroidDist,
             );
 
             if (movementInterp.local) {
@@ -1123,17 +1222,22 @@ export default function AvatarModel({
             factor,
             false,
             mirroredSplitOrient,
+            rightCentroidDist,
           );
         }
       }
-    } else if (rightHandRefs && rightHandBindPoses) {
-      // Single-hand mode: return right arm to bind pose (including clavicle)
-      const rArm = rightHandRefs.armChain;
-      const rBind = rightHandBindPoses.armChain;
-      rArm.clavicle.quaternion.slerp(rBind.clavicle, factor);
-      rArm.upperArm.quaternion.slerp(rBind.upperArm, factor);
-      rArm.foreArm.quaternion.slerp(rBind.foreArm, factor);
-      rArm.hand.quaternion.slerp(rBind.hand, factor);
+    } else if (rightHandRefs && rightHandBindPoses && rightArmLengths) {
+      // Single-hand mode: right arm rests at side via IK
+      animateArmIK(
+        null,
+        rightHandRefs,
+        rightHandBindPoses,
+        rightArmLengths,
+        factor,
+        false,
+        null,
+        rightCentroidDist,
+      );
 
       // Return right fingers to resting
       animateFingers(
