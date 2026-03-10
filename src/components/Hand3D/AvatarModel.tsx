@@ -734,6 +734,15 @@ const _shoulderPosIK = new THREE.Vector3();
 const _reachDirIK = new THREE.Vector3();
 const _adjustedTarget = new THREE.Vector3();
 const _restTarget = new THREE.Vector3();
+const _handWorldPosDbg = new THREE.Vector3();
+
+/** Debug info filled by animateArmIK for rendering debug spheres */
+interface DebugIKInfo {
+  ikTarget: THREE.Vector3;       // green: centroid-adjusted IK target
+  ubTarget: THREE.Vector3;       // blue: raw UB target
+  handWorldPos: THREE.Vector3;   // red: actual hand bone world pos
+  active: boolean;
+}
 
 function animateArmIK(
   targetWorldPos: THREE.Vector3 | null,
@@ -744,6 +753,7 @@ function animateArmIK(
   isLeftArm: boolean,
   splitOrient: SplitOrientation | null,
   centroidDist: number,
+  debugInfo?: DebugIKInfo,
 ) {
   // ── Determine effective IK target ───────────────────────────────
   let ikTarget: THREE.Vector3;
@@ -760,6 +770,13 @@ function animateArmIK(
     ikTarget = _adjustedTarget;
     ikFactor = factor;
     orient = splitOrient;
+
+    // Fill debug info
+    if (debugInfo) {
+      debugInfo.ubTarget.copy(targetWorldPos);
+      debugInfo.ikTarget.copy(ikTarget);
+      debugInfo.active = true;
+    }
   } else {
     // No UB target → arms-down rest pose via IK
     // Position beside the hip: below clavicle, slightly to the side + forward
@@ -772,6 +789,8 @@ function animateArmIK(
     ikTarget = _restTarget;
     ikFactor = factor * 0.5; // slower convergence for natural transition
     orient = null;
+
+    if (debugInfo) debugInfo.active = false;
   }
 
   // ── Solve IK ────────────────────────────────────────────────────
@@ -813,6 +832,23 @@ function animateArmIK(
     refs.armChain.foreArm.quaternion.slerp(foreArmQuat, ikFactor * 2);
     refs.armChain.hand.quaternion.slerp(bindPoses.armChain.hand, ikFactor);
   }
+
+  // Capture hand world position for debug rendering
+  if (debugInfo && debugInfo.active) {
+    refs.armChain.hand.updateWorldMatrix(true, false);
+    refs.armChain.hand.getWorldPosition(debugInfo.handWorldPos);
+  }
+}
+
+// ── Debug sphere component ──────────────────────────────────────
+
+function DebugSphere({ position, color }: { position: THREE.Vector3; color: string }) {
+  return (
+    <mesh position={position} renderOrder={10}>
+      <sphereGeometry args={[0.025, 8, 8]} />
+      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.9} />
+    </mesh>
+  );
 }
 
 // ── Main component ──────────────────────────────────────────────
@@ -960,6 +996,14 @@ export default function AvatarModel({
     if (!rightHandRefs) return 0.06;
     return computeHandCentroidDistance(rightHandRefs);
   }, [rightHandRefs]);
+
+  // ── Debug IK state (for rendering debug spheres) ──
+  const debugIK = useRef<DebugIKInfo>({
+    ikTarget: new THREE.Vector3(),
+    ubTarget: new THREE.Vector3(),
+    handWorldPos: new THREE.Vector3(),
+    active: false,
+  });
 
   // ── Animation state refs (mutable) ──
 
@@ -1116,6 +1160,7 @@ export default function AvatarModel({
               true,
               blendedSplitOrient,
               leftCentroidDist,
+              debugIK.current,
             );
 
             // 4. Apply local movement overlays (after IK)
@@ -1147,6 +1192,7 @@ export default function AvatarModel({
             true,
             targetSplitOrient,
             leftCentroidDist,
+            debugIK.current,
           );
         }
       }
@@ -1255,6 +1301,9 @@ export default function AvatarModel({
     }
   });
 
+  // Snapshot debug positions for rendering (avoid creating new objects per frame)
+  const dbg = debugIK.current;
+
   return (
     <group ref={groupRef}>
       <primitive object={clonedScene} />
@@ -1266,6 +1315,14 @@ export default function AvatarModel({
           regionFilter={ubRegionFilter}
           onMarkerClick={handleUBMarkerClick}
         />
+      )}
+      {/* Debug spheres: Blue=UB target, Green=IK target (centroid-adjusted), Red=hand bone */}
+      {dbg.active && (
+        <>
+          <DebugSphere position={dbg.ubTarget} color="#3b82f6" />
+          <DebugSphere position={dbg.ikTarget} color="#22c55e" />
+          <DebugSphere position={dbg.handWorldPos} color="#ef4444" />
+        </>
       )}
     </group>
   );
