@@ -20,6 +20,7 @@ import {
 import {
   orientationToSplitQuats,
   blendSplitOrientations,
+  clampWristRotation,
   type SplitOrientation,
 } from "@/lib/orientation";
 import {
@@ -835,6 +836,10 @@ function animateArmIK(
     const targetHandQuat = _totalAxialTwist.clone().invert()
       .multiply(bindPoses.armChain.hand)
       .multiply(orient.fullOrient);
+
+    // Clamp wrist to clinical ROM (flex ±60°, radial/ulnar 20°/30°)
+    clampWristRotation(targetHandQuat, bindPoses.armChain.hand);
+
     refs.armChain.hand.quaternion.slerp(targetHandQuat, ikFactor * 2);
   } else {
     // No orientation — just use IK results, hand returns to bind

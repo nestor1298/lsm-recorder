@@ -21,10 +21,13 @@ const DEG2RAD = Math.PI / 180;
 const MAX_ELBOW_FLEX = 140 * DEG2RAD;  // elbow flexion (clinical: 140°)
 
 // Shoulder anatomical limits (Euler YXZ decomposition)
+// Note: Clinical max is 180° for flexion/abduction but this includes scapulothoracic
+// contribution. Glenohumeral-only ROM is ~120°. We use 150° as a compromise to
+// avoid gimbal lock instability in Euler decomposition near ±180° (causes joint flipping).
 const SHOULDER_SWING_MIN = -50 * DEG2RAD;  // extension / backward (clinical: 50°)
-const SHOULDER_SWING_MAX = 180 * DEG2RAD;  // flexion / forward (clinical: 180°)
+const SHOULDER_SWING_MAX = 150 * DEG2RAD;  // flexion / forward (glenohumeral ~120°, capped for Euler stability)
 const SHOULDER_ELEV_MIN = -50 * DEG2RAD;   // adduction below horizontal (clinical: 50°)
-const SHOULDER_ELEV_MAX = 180 * DEG2RAD;   // abduction overhead (clinical: 180°)
+const SHOULDER_ELEV_MAX = 150 * DEG2RAD;   // abduction (glenohumeral ~120°, capped for Euler stability)
 const SHOULDER_TWIST_MIN = -90 * DEG2RAD;  // internal rotation (clinical: 90°)
 const SHOULDER_TWIST_MAX = 90 * DEG2RAD;   // external rotation (clinical: 90°)
 
