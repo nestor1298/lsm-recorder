@@ -16,15 +16,17 @@ import * as THREE from "three";
 // ── Constants ───────────────────────────────────────────────────
 
 const DEG2RAD = Math.PI / 180;
-const MAX_ELBOW_FLEX = 150 * DEG2RAD;
+
+// Clinical ROM limits (ref: WikEM Range of Motion by Joint)
+const MAX_ELBOW_FLEX = 140 * DEG2RAD;  // elbow flexion (clinical: 140°)
 
 // Shoulder anatomical limits (Euler YXZ decomposition)
-const SHOULDER_SWING_MIN = -40 * DEG2RAD; // backward
-const SHOULDER_SWING_MAX = 130 * DEG2RAD; // forward / across
-const SHOULDER_ELEV_MIN = -50 * DEG2RAD; // below horizontal
-const SHOULDER_ELEV_MAX = 170 * DEG2RAD; // overhead
-const SHOULDER_TWIST_MIN = -70 * DEG2RAD; // internal rotation
-const SHOULDER_TWIST_MAX = 90 * DEG2RAD; // external rotation
+const SHOULDER_SWING_MIN = -50 * DEG2RAD;  // extension / backward (clinical: 50°)
+const SHOULDER_SWING_MAX = 180 * DEG2RAD;  // flexion / forward (clinical: 180°)
+const SHOULDER_ELEV_MIN = -50 * DEG2RAD;   // adduction below horizontal (clinical: 50°)
+const SHOULDER_ELEV_MAX = 180 * DEG2RAD;   // abduction overhead (clinical: 180°)
+const SHOULDER_TWIST_MIN = -90 * DEG2RAD;  // internal rotation (clinical: 90°)
+const SHOULDER_TWIST_MAX = 90 * DEG2RAD;   // external rotation (clinical: 90°)
 
 // Clavicle ranges
 const CLAV_SHRUG_MAX = 18 * DEG2RAD;
@@ -392,4 +394,54 @@ export function composeForearmTwist(
 ): THREE.Quaternion {
   _twistResult.copy(foreArmQuat).multiply(twistQuat);
   return _twistResult.clone();
+}
+
+// ── Shoulder twist for orientation support ───────────────────────
+
+const _shoulderTwistEuler = new THREE.Euler();
+const _shoulderTwistDelta = new THREE.Quaternion();
+const _shoulderTwistResult = new THREE.Quaternion();
+
+/**
+ * Add an orientation-driven axial twist to the IK-solved upper arm quaternion.
+ *
+ * The IK solver positions the arm without considering hand orientation.
+ * When the target orientation requires more axial rotation than the forearm
+ * can provide (±80°), the shoulder contributes internal/external rotation.
+ *
+ * This decomposes the IK-solved shoulder into YXZ Euler, adds the twist
+ * to the Z component (axial twist), re-clamps, and reconstructs.
+ *
+ * @param upperArmQuat  IK-solved upper arm quaternion (modified in place)
+ * @param bindUpperArm  Bind-pose quaternion for the upper arm
+ * @param twistAngle    Additional twist in radians (+ = internal, - = external)
+ * @param isLeftArm     true for left arm
+ */
+export function composeShoulderTwist(
+  upperArmQuat: THREE.Quaternion,
+  bindUpperArm: THREE.Quaternion,
+  twistAngleRad: number,
+  isLeftArm: boolean,
+): THREE.Quaternion {
+  if (Math.abs(twistAngleRad) < 0.001) {
+    return upperArmQuat.clone();
+  }
+
+  // Extract delta from bind pose
+  _shoulderTwistDelta.copy(upperArmQuat).multiply(bindUpperArm.clone().invert());
+  _shoulderTwistEuler.setFromQuaternion(_shoulderTwistDelta, "YXZ");
+
+  const sign = isLeftArm ? 1 : -1;
+
+  // Add orientation-driven twist to Z component
+  _shoulderTwistEuler.z += twistAngleRad * sign;
+
+  // Re-clamp to shoulder ROM limits
+  const zNorm = _shoulderTwistEuler.z * sign;
+  _shoulderTwistEuler.z = clamp(zNorm, SHOULDER_TWIST_MIN, SHOULDER_TWIST_MAX) * sign;
+
+  // Reconstruct
+  _shoulderTwistDelta.setFromEuler(_shoulderTwistEuler);
+  _shoulderTwistResult.copy(_shoulderTwistDelta).multiply(bindUpperArm);
+  return _shoulderTwistResult.clone();
 }

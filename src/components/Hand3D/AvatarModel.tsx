@@ -32,7 +32,7 @@ import {
   getRightFingerBones,
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
-import { measureArmLengths, solveArmIKNatural, composeForearmTwist, type ArmLengths } from "@/lib/arm_ik";
+import { measureArmLengths, solveArmIKNatural, composeForearmTwist, composeShoulderTwist, type ArmLengths } from "@/lib/arm_ik";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
 const AVATAR_PATH = "/models/wscharacter.glb";
@@ -735,6 +735,9 @@ const _reachDirIK = new THREE.Vector3();
 const _adjustedTarget = new THREE.Vector3();
 const _restTarget = new THREE.Vector3();
 const _handWorldPosDbg = new THREE.Vector3();
+const _shoulderYTwist = new THREE.Quaternion();
+const _totalAxialTwist = new THREE.Quaternion();
+const _yAxisUp = new THREE.Vector3(0, 1, 0);
 
 /** Debug info filled by animateArmIK for rendering debug spheres */
 interface DebugIKInfo {
@@ -806,29 +809,36 @@ function animateArmIK(
     isLeftArm,
   );
 
-  // Slerp clavicle and upper arm toward IK targets
+  // Slerp clavicle toward IK target
   refs.armChain.clavicle.quaternion.slerp(clavicleQuat, ikFactor * 2);
-  refs.armChain.upperArm.quaternion.slerp(upperArmQuat, ikFactor * 2);
 
   if (orient) {
-    // Compose forearm pronation/supination twist onto IK-solved forearm
-    const finalForeArm = composeForearmTwist(
-      foreArmQuat,
-      orient.forearmTwist,
+    // Apply shoulder twist for orientation support (overflow from forearm ROM)
+    const adjustedUpperArm = composeShoulderTwist(
+      upperArmQuat,
+      bindPoses.armChain.upperArm,
+      orient.shoulderTwist,
+      isLeftArm,
     );
+    refs.armChain.upperArm.quaternion.slerp(adjustedUpperArm, ikFactor * 2);
+
+    // Compose forearm pronation/supination twist onto IK-solved forearm
+    const finalForeArm = composeForearmTwist(foreArmQuat, orient.forearmTwist);
     refs.armChain.foreArm.quaternion.slerp(finalForeArm, ikFactor * 2);
 
-    // Hand: compensate for forearm twist propagating through bone hierarchy.
-    // The forearm is the hand's parent, so any forearm twist automatically
-    // rotates the hand too. We counter-rotate to undo that propagation,
-    // then apply the full orientation:
-    //   targetHand = inv(forearmTwist) * bindHand * fullOrient
-    const targetHandQuat = orient.forearmTwist.clone().invert()
+    // Hand: compensate for BOTH shoulder twist AND forearm twist propagating
+    // through the bone hierarchy. Both are Y-axis rotations, so compose:
+    //   totalAxialTwist = shoulderTwistQuat * forearmTwist
+    //   targetHand = inv(totalAxialTwist) * bindHand * fullOrient
+    _shoulderYTwist.setFromAxisAngle(_yAxisUp, orient.shoulderTwist);
+    _totalAxialTwist.copy(_shoulderYTwist).multiply(orient.forearmTwist);
+    const targetHandQuat = _totalAxialTwist.clone().invert()
       .multiply(bindPoses.armChain.hand)
       .multiply(orient.fullOrient);
     refs.armChain.hand.quaternion.slerp(targetHandQuat, ikFactor * 2);
   } else {
-    // No orientation — just use IK forearm, hand returns to bind
+    // No orientation — just use IK results, hand returns to bind
+    refs.armChain.upperArm.quaternion.slerp(upperArmQuat, ikFactor * 2);
     refs.armChain.foreArm.quaternion.slerp(foreArmQuat, ikFactor * 2);
     refs.armChain.hand.quaternion.slerp(bindPoses.armChain.hand, ikFactor);
   }
