@@ -892,12 +892,20 @@ function animateArmIK(
 }
 
 // ── Debug sphere component ──────────────────────────────────────
+// Uses useFrame to continuously sync with the mutated Vector3 ref,
+// since R3F only copies the position prop on mount/reconciliation.
 
 function DebugSphere({ position, color }: { position: THREE.Vector3; color: string }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.position.copy(position);
+    }
+  });
   return (
-    <mesh position={position} renderOrder={10}>
-      <sphereGeometry args={[0.025, 8, 8]} />
-      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.9} />
+    <mesh ref={meshRef} renderOrder={10}>
+      <sphereGeometry args={[0.04, 12, 12]} />
+      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
     </mesh>
   );
 }
@@ -1192,15 +1200,17 @@ export default function AvatarModel({
       // 2. Animate fingers normally
       animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
 
-      // 3. Compute FK state and write to shared ref
+      // 3. Force full world matrix update from clavicle down through fingers
+      leftHandRefs.armChain.clavicle.updateWorldMatrix(true, true);
+
+      // 4. Compute FK state, debug spheres, and write to shared ref
+      const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
+      const ubWorldPos = ubLocation ? computeUBWorldPosition(ubLocation.code, boneMap) : null;
+      const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
+
+      leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
+
       if (armFKStateRef) {
-        leftHandRefs.armChain.hand.updateWorldMatrix(true, true);
-        const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
-        const ubWorldPos = ubLocation ? computeUBWorldPosition(ubLocation.code, boneMap) : null;
-        const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
-
-        leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
-
         armFKStateRef.current = {
           centroidWorldPos: [centroidPos.x, centroidPos.y, centroidPos.z],
           ubWorldPos: ubWorldPos ? [ubWorldPos.x, ubWorldPos.y, ubWorldPos.z] : null,
@@ -1210,18 +1220,14 @@ export default function AvatarModel({
         };
       }
 
-      // 4. Update debug spheres for FK mode
-      if (ubLocation) {
-        const ubPos = computeUBWorldPosition(ubLocation.code, boneMap);
-        if (ubPos) {
-          debugIK.current.ubTarget.copy(ubPos);
-          const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
-          debugIK.current.ikTarget.copy(centroidPos);
-          leftHandRefs.armChain.hand.getWorldPosition(debugIK.current.handWorldPos);
-          debugIK.current.active = true;
-        }
+      // Debug spheres: Blue=UB (if selected), Green=centroid (always in FK mode)
+      debugIK.current.ikTarget.copy(centroidPos);
+      debugIK.current.active = true;
+      if (ubWorldPos) {
+        debugIK.current.ubTarget.copy(ubWorldPos);
       } else {
-        debugIK.current.active = false;
+        // No UB selected — hide blue sphere by placing it far off-screen
+        debugIK.current.ubTarget.set(0, -100, 0);
       }
 
     } else if (leftHandRefs && leftHandBindPoses) {
@@ -1424,12 +1430,11 @@ export default function AvatarModel({
           onMarkerClick={handleUBMarkerClick}
         />
       )}
-      {/* Debug spheres: Blue=UB target, Green=IK target (centroid-adjusted), Red=hand bone */}
+      {/* Debug spheres: Blue=UB target, Green=hand centroid */}
       {dbg.active && (
         <>
           <DebugSphere position={dbg.ubTarget} color="#3b82f6" />
           <DebugSphere position={dbg.ikTarget} color="#22c55e" />
-          <DebugSphere position={dbg.handWorldPos} color="#ef4444" />
         </>
       )}
     </group>
