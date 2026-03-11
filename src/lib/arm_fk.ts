@@ -180,9 +180,9 @@ export function applyArmFK(
   _shoulderDelta.setFromEuler(_shoulderEuler);
   refs.upperArm.quaternion.copy(bind.upperArm).multiply(_shoulderDelta);
 
-  // ── Forearm: X = elbow flex, Y = pronation/supination ──
+  // ── Forearm: X = elbow flex (negated for Mixamo), Y = pronation/supination ──
   _forearmEuler.set(
-    angles.elbowFlex * DEG,
+    -angles.elbowFlex * DEG,
     angles.forearmTwist * DEG,
     0,
     "XYZ",
