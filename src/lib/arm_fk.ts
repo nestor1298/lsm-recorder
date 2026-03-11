@@ -132,7 +132,7 @@ const DEG = Math.PI / 180;
  * Each joint's rotation is a delta applied on top of the bind-pose
  * quaternion, using the same Euler conventions as the IK solver:
  *
- *   Clavicle:  XYZ — Y = shrug, Z = protraction
+ *   Clavicle:  XYZ — Y = protraction, Z = shrug (elevation)
  *   Shoulder:  YXZ — Y = swing, X = elevation, Z = twist
  *   Forearm:   XYZ — X = elbow flex, Y = pronation/supination
  *   Wrist:     XYZ — X = flexion, Z = deviation
@@ -161,10 +161,13 @@ export function applyArmFK(
   const sign = isLeftArm ? 1 : -1;
 
   // ── Clavicle: XYZ delta ──
+  // Mixamo LeftShoulder bone extends horizontally (≈+X).
+  // Local Z-axis ≈ forward → rotation around Z tilts the shoulder up/down (elevation).
+  // Local Y-axis ≈ up     → rotation around Y swings it forward/back (protraction).
   _clavEuler.set(
     0,
-    angles.clavShrug * DEG * sign,
-    angles.clavProtract * DEG * sign,
+    angles.clavProtract * DEG * sign,   // Y = protraction (forward/back)
+    angles.clavShrug * DEG * sign,      // Z = elevation/depression (up/down)
     "XYZ",
   );
   _clavDelta.setFromEuler(_clavEuler);
