@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
 import type { CMEntry } from "@/lib/types";
+import type { ArmJointAngles, ArmFKState } from "@/lib/arm_fk";
 import RiggedHand from "./RiggedHand";
 import AvatarModel from "./AvatarModel";
 import type { UBTarget, RNMTarget, MovementInterpolation } from "./AvatarModel";
@@ -40,6 +41,10 @@ interface Hand3DViewerProps {
   handMode?: "dominant" | "both_symmetric";
   /** Movement interpolation data for smooth M-segment animation */
   movementInterp?: MovementInterpolation | null;
+  /** Manual FK joint angles — when provided, bypasses IK for left arm */
+  armAngles?: ArmJointAngles | null;
+  /** Shared ref for FK state reporting (centroid pos, UB distance, etc.) */
+  armFKStateRef?: React.MutableRefObject<ArmFKState | null>;
 }
 
 export default function Hand3DViewer({
@@ -58,9 +63,11 @@ export default function Hand3DViewer({
   onUBClick,
   isBuildMode = false,
   handMode,
+  armAngles,
+  armFKStateRef,
 }: Hand3DViewerProps) {
-  // Show avatar in build mode always, or in explore mode for UB/RNM channels
-  const showAvatar = isBuildMode || activeChannel === "ub" || activeChannel === "rnm";
+  // Show avatar in build mode always, or in explore mode for UB/RNM/FK channels
+  const showAvatar = isBuildMode || activeChannel === "ub" || activeChannel === "rnm" || activeChannel === "fk";
   // For avatar channels, pull camera back and look at full body
   const cameraPosition: [number, number, number] = showAvatar
     ? [0, 0.3, 4.5]
@@ -94,6 +101,8 @@ export default function Hand3DViewer({
               orientation={orientation}
               handMode={handMode}
               movementInterp={movementInterp}
+              armAngles={armAngles}
+              armFKStateRef={armFKStateRef}
             />
           ) : (
             <RiggedHand

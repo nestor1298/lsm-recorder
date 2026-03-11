@@ -12,11 +12,13 @@ import {
   DEFAULT_PLAYBACK_CONFIG,
   type PlaybackConfig,
 } from "@/lib/sign_playback";
+import { defaultArmAngles, type ArmJointAngles, type ArmFKState, type CapturedPose } from "@/lib/arm_fk";
 import CMControls from "@/components/learn/CMControls";
 import ORControls from "@/components/learn/ORControls";
 import UBControls from "@/components/learn/UBControls";
 import MVControls from "@/components/learn/MVControls";
 import RNMControls, { type FaceState } from "@/components/learn/RNMControls";
+import ArmControls from "@/components/learn/ArmControls";
 import SignBuilder, { type ViewerState } from "@/components/learn/SignBuilder";
 import PlaybackControls from "@/components/learn/PlaybackControls";
 import SignSummary from "@/components/learn/SignSummary";
@@ -99,6 +101,17 @@ const CHANNELS = [
       </svg>
     ),
   },
+  {
+    id: "fk",
+    label: "FK",
+    fullName: "Cinemática Directa",
+    color: "#d97706",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M4 12h16M12 4v16M8 8l8 8M16 8l-8 8" />
+      </svg>
+    ),
+  },
 ];
 
 // ── Main Page Component ─────────────────────────────────────────
@@ -128,6 +141,10 @@ export default function LearnPage() {
     head: "NONE",
   });
   const [ubRegionFilter, setUBRegionFilter] = useState<string | null>(null);
+
+  // ── FK mode state ──
+  const [armAngles, setArmAngles] = useState<ArmJointAngles>(defaultArmAngles());
+  const armFKStateRef = useRef<ArmFKState | null>(null);
 
   // ── Build mode state — SignBuilder owns sign state, emits viewer props ──
   const [buildViewer, setBuildViewer] = useState<ViewerState>({
@@ -324,14 +341,17 @@ export default function LearnPage() {
       const loc = effectiveViewer.ubLocation;
       return { code: loc.code, region: loc.region, name: loc.name, x: loc.x, y: loc.y };
     }
-    if (activeChannel !== "ub" || !activeUBLocation) return null;
-    return {
-      code: activeUBLocation.code,
-      region: activeUBLocation.region,
-      name: activeUBLocation.name,
-      x: activeUBLocation.x,
-      y: activeUBLocation.y,
-    };
+    // In explore mode, show UB target for both UB tab and FK tab
+    if ((activeChannel === "ub" || activeChannel === "fk") && activeUBLocation) {
+      return {
+        code: activeUBLocation.code,
+        region: activeUBLocation.region,
+        name: activeUBLocation.name,
+        x: activeUBLocation.x,
+        y: activeUBLocation.y,
+      };
+    }
+    return null;
   }, [mode, effectiveViewer, activeChannel, activeUBLocation]);
 
   const avatarRNMTarget = useMemo(() => {
@@ -370,6 +390,8 @@ export default function LearnPage() {
           onUBClick={viewerChannel === "ub" ? handleUBClickFrom3D : undefined}
           isBuildMode={mode === "build"}
           handMode={effectiveViewer.handMode}
+          armAngles={activeChannel === "fk" && mode === "explore" ? armAngles : null}
+          armFKStateRef={armFKStateRef}
         />
       </div>
 
@@ -664,6 +686,19 @@ export default function LearnPage() {
                 {activeChannel === "or" && <ORControls onOrientationChange={handleOrientationChange} />}
                 {activeChannel === "mv" && <MVControls onMovementChange={handleMovementChange} />}
                 {activeChannel === "rnm" && <RNMControls onFaceChange={handleFaceChange} />}
+                {activeChannel === "fk" && (
+                  <ArmControls
+                    angles={armAngles}
+                    onChange={setArmAngles}
+                    fkStateRef={armFKStateRef}
+                    ubCode={activeUBLocation?.code}
+                    onCapture={(pose) => {
+                      // eslint-disable-next-line no-console
+                      console.log("Captured FK pose:", pose);
+                    }}
+                    onReset={() => setArmAngles(defaultArmAngles())}
+                  />
+                )}
               </>
             ) : (
               <div className="space-y-3">

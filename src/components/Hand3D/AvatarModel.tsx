@@ -34,6 +34,7 @@ import {
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
 import { measureArmLengths, solveArmIKNatural, composeForearmTwist, composeShoulderTwist, type ArmLengths } from "@/lib/arm_ik";
+import { applyArmFK, type ArmJointAngles, type ArmFKState } from "@/lib/arm_fk";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
 const AVATAR_PATH = "/models/wscharacter.glb";
@@ -100,6 +101,10 @@ interface AvatarModelProps {
   handMode?: "dominant" | "both_symmetric";
   /** Movement interpolation data (during M segment playback) */
   movementInterp?: MovementInterpolation | null;
+  /** Manual FK joint angles — when provided, bypasses IK for left arm */
+  armAngles?: ArmJointAngles | null;
+  /** Shared ref for FK state reporting (centroid pos, UB distance, etc.) */
+  armFKStateRef?: React.MutableRefObject<ArmFKState | null>;
 }
 
 // ── Bone lookup helpers ─────────────────────────────────────────
@@ -564,6 +569,37 @@ function computeHandCentroidDistance(refs: HandBoneRefs): number {
   return count > 0 ? totalProjection / count : 0.06;
 }
 
+/**
+ * Compute the average world position of all hand bones (centroid).
+ * Used by FK mode to measure distance to UB target.
+ */
+const _centroidWorldTmp = new THREE.Vector3();
+
+function computeHandCentroidWorldPos(refs: HandBoneRefs): THREE.Vector3 {
+  const centroid = new THREE.Vector3();
+  let count = 0;
+
+  const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
+  for (const name of fingerNames) {
+    const finger = refs.fingers[name];
+    finger.carpal.getWorldPosition(_centroidWorldTmp);
+    centroid.add(_centroidWorldTmp);
+    count++;
+    for (const bone of finger.bones) {
+      bone.getWorldPosition(_centroidWorldTmp);
+      centroid.add(_centroidWorldTmp);
+      count++;
+    }
+  }
+  for (const bone of refs.thumb) {
+    bone.getWorldPosition(_centroidWorldTmp);
+    centroid.add(_centroidWorldTmp);
+    count++;
+  }
+
+  return centroid.divideScalar(count);
+}
+
 // ── Animate fingers on one hand ──────────────────────────────────
 
 function animateFingers(
@@ -879,6 +915,8 @@ export default function AvatarModel({
   orientation,
   handMode = "dominant",
   movementInterp,
+  armAngles,
+  armFKStateRef,
 }: AvatarModelProps) {
   // Load GLB model
   const gltf = useLoader(GLTFLoader, AVATAR_PATH, (loader) => {
@@ -1131,8 +1169,63 @@ export default function AvatarModel({
     // ─ Determine effective hand mode ─
     const effectiveHandMode = movementInterp?.handMode ?? handMode;
 
+    // ─ LEFT ARM: FK mode (manual joint angles) ─
+    if (armAngles && leftHandRefs && leftHandBindPoses) {
+      // 1. Apply FK angles directly to arm bones
+      applyArmFK(
+        armAngles,
+        {
+          clavicle: leftHandRefs.armChain.clavicle,
+          upperArm: leftHandRefs.armChain.upperArm,
+          foreArm: leftHandRefs.armChain.foreArm,
+          hand: leftHandRefs.armChain.hand,
+        },
+        {
+          clavicle: leftHandBindPoses.armChain.clavicle,
+          upperArm: leftHandBindPoses.armChain.upperArm,
+          foreArm: leftHandBindPoses.armChain.foreArm,
+          hand: leftHandBindPoses.armChain.hand,
+        },
+        true, // isLeftArm
+      );
+
+      // 2. Animate fingers normally
+      animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
+
+      // 3. Compute FK state and write to shared ref
+      if (armFKStateRef) {
+        leftHandRefs.armChain.hand.updateWorldMatrix(true, true);
+        const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
+        const ubWorldPos = ubLocation ? computeUBWorldPosition(ubLocation.code, boneMap) : null;
+        const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
+
+        leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
+
+        armFKStateRef.current = {
+          centroidWorldPos: [centroidPos.x, centroidPos.y, centroidPos.z],
+          ubWorldPos: ubWorldPos ? [ubWorldPos.x, ubWorldPos.y, ubWorldPos.z] : null,
+          distanceToUB: dist,
+          reached: dist < 0.05, // 5cm threshold
+          handWorldQuat: [_handWorldQ.x, _handWorldQ.y, _handWorldQ.z, _handWorldQ.w],
+        };
+      }
+
+      // 4. Update debug spheres for FK mode
+      if (ubLocation) {
+        const ubPos = computeUBWorldPosition(ubLocation.code, boneMap);
+        if (ubPos) {
+          debugIK.current.ubTarget.copy(ubPos);
+          const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
+          debugIK.current.ikTarget.copy(centroidPos);
+          leftHandRefs.armChain.hand.getWorldPosition(debugIK.current.handWorldPos);
+          debugIK.current.active = true;
+        }
+      } else {
+        debugIK.current.active = false;
+      }
+
+    } else if (leftHandRefs && leftHandBindPoses) {
     // ─ LEFT ARM: Finger posing + Arm IK (dominant hand) ─
-    if (leftHandRefs && leftHandBindPoses) {
       if (movementInterp && movementInterp.fromUBCode && movementInterp.toUBCode) {
         // ── MOVEMENT SEGMENT: Smooth interpolation ──
         const mt = movementInterp.t;
