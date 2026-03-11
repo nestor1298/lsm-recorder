@@ -183,7 +183,7 @@ export function applyArmFK(
   // ── Forearm: X = elbow flex (negated for Mixamo), Y = pronation/supination ──
   _forearmEuler.set(
     -angles.elbowFlex * DEG,
-    angles.forearmTwist * DEG,
+    -angles.forearmTwist * DEG * sign,
     0,
     "XYZ",
   );
