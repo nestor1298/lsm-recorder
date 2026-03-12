@@ -32,6 +32,12 @@ interface ArmControlsProps {
   onCapture?: (pose: CapturedPose) => void;
   /** Reset all angles to bind pose */
   onReset?: () => void;
+  /** Trigger auto-solve for all non-arm UB points */
+  onAutoSolveAll?: () => void;
+  /** Whether auto-solve is currently running */
+  autoSolveRunning?: boolean;
+  /** Auto-solve results count */
+  autoSolveCount?: number;
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -43,6 +49,9 @@ export default function ArmControls({
   ubCode,
   onCapture,
   onReset,
+  onAutoSolveAll,
+  autoSolveRunning = false,
+  autoSolveCount = 0,
 }: ArmControlsProps) {
   // Local copy of FK state, polled from ref every 100ms
   const [fkState, setFkState] = useState<ArmFKState | null>(null);
@@ -202,6 +211,21 @@ export default function ArmControls({
         className="w-full rounded-lg bg-gray-100 py-1.5 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-200"
       >
         Resetear (Pose Bind)
+      </button>
+
+      {/* ── Auto-solve all button ── */}
+      <button
+        onClick={onAutoSolveAll}
+        disabled={autoSolveRunning}
+        className={`w-full rounded-lg py-2 text-[10px] font-bold transition-colors ${
+          autoSolveRunning
+            ? "bg-amber-100 text-amber-700 cursor-wait animate-pulse"
+            : "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+        }`}
+      >
+        {autoSolveRunning
+          ? `Resolviendo… (${autoSolveCount} capturados)`
+          : "⚡ Auto-capturar todos (excl. brazo/mano)"}
       </button>
 
       {/* ── Hand Orientation Readout ── */}

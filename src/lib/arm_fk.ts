@@ -111,6 +111,133 @@ export interface CapturedPose {
   timestamp: number;
 }
 
+// ── Auto-solve types ─────────────────────────────────────────────
+
+/**
+ * Request to auto-solve FK angles for a list of UB codes.
+ * Processed inside AvatarModel useFrame which has access to bones.
+ */
+export interface AutoSolveRequest {
+  codes: string[];
+  /** Called when all codes are solved */
+  onComplete: (results: CapturedPose[]) => void;
+  /** Called each frame with current count of solved codes */
+  onProgress?: (count: number) => void;
+}
+
+/**
+ * Single coordinate descent pass.
+ *
+ * For each joint, sweeps its ROM range to find the angle that minimises
+ * the distance between the hand centroid and a world-space target.
+ * Runs multiple refinement passes (narrowing the search window).
+ */
+function coordinateDescentPass(
+  applyAndMeasure: (angles: ArmJointAngles) => number,
+  startAngles: ArmJointAngles,
+  samples: number,
+  iterations: number,
+): { angles: ArmJointAngles; distance: number } {
+  const angles = { ...startAngles };
+
+  // Joints ordered by impact (shoulder/elbow first, wrist last)
+  const JOINTS: (keyof ArmJointAngles)[] = [
+    "shoulderSwing", "shoulderElev", "elbowFlex",
+    "shoulderTwist", "clavShrug", "clavProtract",
+    "forearmTwist", "wristFlex", "wristDeviation",
+  ];
+
+  for (let iter = 0; iter < iterations; iter++) {
+    for (const joint of JOINTS) {
+      const rom = ARM_ROM_LIMITS[joint];
+      let bestVal = angles[joint];
+      let bestDist = applyAndMeasure(angles);
+
+      // First iteration: sweep full range. Later: narrow around current best.
+      const fullRange = rom.max - rom.min;
+      const range = iter === 0 ? fullRange : Math.max(8, fullRange / (iter * 2));
+      const center = iter === 0 ? (rom.min + rom.max) / 2 : angles[joint];
+      const lo = Math.max(rom.min, center - range / 2);
+      const hi = Math.min(rom.max, center + range / 2);
+
+      for (let s = 0; s <= samples; s++) {
+        const val = Math.round(lo + (hi - lo) * (s / samples));
+        angles[joint] = val;
+        const dist = applyAndMeasure(angles);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestVal = val;
+        }
+      }
+      angles[joint] = bestVal;
+
+      // Early exit if already very close
+      if (bestDist < 0.015) break;
+    }
+  }
+
+  const finalDist = applyAndMeasure(angles);
+  return { angles, distance: finalDist };
+}
+
+/**
+ * Multi-restart coordinate descent FK solver.
+ *
+ * Tries multiple strategic starting configurations and keeps the best
+ * result. This avoids local minima that plague single-start solvers
+ * when the arm needs to reach varied body locations.
+ *
+ * Starting configurations:
+ *   - T-pose (all zeros)
+ *   - Arm forward + elbow bent (reaching toward face/head)
+ *   - Arm down + elbow bent (reaching toward torso)
+ *   - Arm across chest (reaching contralateral side)
+ *   - Arm raised high (reaching above head)
+ *
+ * @param applyAndMeasure Function that applies angles, updates matrices,
+ *                        and returns the distance to the target.
+ * @param startAngles     Optional starting angles (skips multi-restart)
+ * @returns               Best angles found and the final distance
+ */
+export function solveFKCoordinateDescent(
+  applyAndMeasure: (angles: ArmJointAngles) => number,
+  startAngles?: ArmJointAngles,
+): { angles: ArmJointAngles; distance: number } {
+  // If explicit start given, run a single pass
+  if (startAngles) {
+    return coordinateDescentPass(applyAndMeasure, startAngles, 36, 6);
+  }
+
+  // Strategic starting configurations
+  const STARTS: ArmJointAngles[] = [
+    // 1. T-pose (default)
+    defaultArmAngles(),
+    // 2. Arm forward + elbow bent (reaching head/face)
+    { ...defaultArmAngles(), shoulderSwing: 90, elbowFlex: 90, shoulderElev: 30 },
+    // 3. Arm up high (reaching top of head)
+    { ...defaultArmAngles(), shoulderSwing: 130, shoulderElev: 60, elbowFlex: 60 },
+    // 4. Arm down alongside body, elbow bent (reaching torso/hip)
+    { ...defaultArmAngles(), shoulderSwing: -30, shoulderElev: -40, elbowFlex: 90 },
+    // 5. Arm across chest (reaching contralateral side)
+    { ...defaultArmAngles(), shoulderSwing: 60, shoulderElev: -40, elbowFlex: 110, shoulderTwist: 45 },
+    // 6. Arm forward + low (reaching abdomen/waist)
+    { ...defaultArmAngles(), shoulderSwing: 40, shoulderElev: -30, elbowFlex: 120 },
+  ];
+
+  let bestResult = { angles: defaultArmAngles(), distance: Infinity };
+
+  for (const start of STARTS) {
+    const result = coordinateDescentPass(applyAndMeasure, start, 36, 7);
+    if (result.distance < bestResult.distance) {
+      bestResult = result;
+    }
+    // Early exit if we found a very good solution
+    if (bestResult.distance < 0.02) break;
+  }
+
+  return bestResult;
+}
+
 // ── Reusable temp objects ────────────────────────────────────────
 
 const _clavEuler = new THREE.Euler();

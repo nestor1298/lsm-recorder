@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
 import type { CMEntry } from "@/lib/types";
-import type { ArmJointAngles, ArmFKState } from "@/lib/arm_fk";
+import type { ArmJointAngles, ArmFKState, AutoSolveRequest } from "@/lib/arm_fk";
 import RiggedHand from "./RiggedHand";
 import AvatarModel from "./AvatarModel";
 import type { UBTarget, RNMTarget, MovementInterpolation } from "./AvatarModel";
@@ -47,6 +47,8 @@ interface Hand3DViewerProps {
   armAngles?: ArmJointAngles | null;
   /** Shared ref for FK state reporting (centroid pos, UB distance, etc.) */
   armFKStateRef?: React.MutableRefObject<ArmFKState | null>;
+  /** Auto-solve request for batch FK solving */
+  autoSolveRequest?: AutoSolveRequest | null;
 }
 
 export default function Hand3DViewer({
@@ -68,6 +70,7 @@ export default function Hand3DViewer({
   handMode,
   armAngles,
   armFKStateRef,
+  autoSolveRequest,
 }: Hand3DViewerProps) {
   // Show avatar in build mode always, or in explore mode for UB/RNM/FK channels
   const showAvatar = isBuildMode || activeChannel === "ub" || activeChannel === "rnm" || activeChannel === "fk";
@@ -107,6 +110,7 @@ export default function Hand3DViewer({
               movementInterp={movementInterp}
               armAngles={armAngles}
               armFKStateRef={armFKStateRef}
+              autoSolveRequest={autoSolveRequest}
             />
           ) : (
             <RiggedHand

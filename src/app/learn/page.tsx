@@ -12,7 +12,7 @@ import {
   DEFAULT_PLAYBACK_CONFIG,
   type PlaybackConfig,
 } from "@/lib/sign_playback";
-import { defaultArmAngles, type ArmJointAngles, type ArmFKState, type CapturedPose } from "@/lib/arm_fk";
+import { defaultArmAngles, type ArmJointAngles, type ArmFKState, type CapturedPose, type AutoSolveRequest } from "@/lib/arm_fk";
 import CMControls from "@/components/learn/CMControls";
 import ORControls from "@/components/learn/ORControls";
 import UBControls from "@/components/learn/UBControls";
@@ -145,6 +145,36 @@ export default function LearnPage() {
   // ── FK mode state ──
   const [armAngles, setArmAngles] = useState<ArmJointAngles>(defaultArmAngles());
   const armFKStateRef = useRef<ArmFKState | null>(null);
+  const [autoSolveRequest, setAutoSolveRequest] = useState<AutoSolveRequest | null>(null);
+  const [autoSolveRunning, setAutoSolveRunning] = useState(false);
+  const [autoSolveResults, setAutoSolveResults] = useState<CapturedPose[]>([]);
+
+  // UB codes to auto-solve: all non-arm/forearm/hand/neutral regions
+  const AUTO_SOLVE_CODES = useMemo(() =>
+    UB_LOCATIONS
+      .filter((loc) => !["ARM", "FOREARM", "HAND", "NEUTRAL_SPACE"].includes(loc.region))
+      .map((loc) => loc.code),
+  []);
+
+  const [autoSolveCount, setAutoSolveCount] = useState(0);
+  const handleAutoSolveAll = useCallback(() => {
+    if (autoSolveRunning) return;
+    setAutoSolveRunning(true);
+    setAutoSolveResults([]);
+    setAutoSolveCount(0);
+    setAutoSolveRequest({
+      codes: AUTO_SOLVE_CODES,
+      onProgress: (count) => setAutoSolveCount(count),
+      onComplete: (results) => {
+        setAutoSolveResults(results);
+        setAutoSolveRunning(false);
+        setAutoSolveRequest(null);
+        setAutoSolveCount(results.length);
+        // Copy results to clipboard
+        navigator.clipboard.writeText(JSON.stringify(results, null, 2)).catch(() => {});
+      },
+    });
+  }, [autoSolveRunning, AUTO_SOLVE_CODES]);
 
   // ── Build mode state — SignBuilder owns sign state, emits viewer props ──
   const [buildViewer, setBuildViewer] = useState<ViewerState>({
@@ -403,6 +433,7 @@ export default function LearnPage() {
           handMode={effectiveViewer.handMode}
           armAngles={activeChannel === "fk" && mode === "explore" ? armAngles : null}
           armFKStateRef={armFKStateRef}
+          autoSolveRequest={autoSolveRequest}
         />
       </div>
 
@@ -708,6 +739,9 @@ export default function LearnPage() {
                       console.log("Captured FK pose:", pose);
                     }}
                     onReset={() => setArmAngles(defaultArmAngles())}
+                    onAutoSolveAll={handleAutoSolveAll}
+                    autoSolveRunning={autoSolveRunning}
+                    autoSolveCount={autoSolveCount}
                   />
                 )}
               </>

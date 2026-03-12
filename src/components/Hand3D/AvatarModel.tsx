@@ -34,7 +34,7 @@ import {
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
 import { measureArmLengths, solveArmIKNatural, composeForearmTwist, composeShoulderTwist, type ArmLengths } from "@/lib/arm_ik";
-import { applyArmFK, type ArmJointAngles, type ArmFKState } from "@/lib/arm_fk";
+import { applyArmFK, solveFKCoordinateDescent, type ArmJointAngles, type ArmFKState, type AutoSolveRequest, type CapturedPose } from "@/lib/arm_fk";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
 const AVATAR_PATH = "/models/wscharacter.glb";
@@ -107,6 +107,8 @@ interface AvatarModelProps {
   armAngles?: ArmJointAngles | null;
   /** Shared ref for FK state reporting (centroid pos, UB distance, etc.) */
   armFKStateRef?: React.MutableRefObject<ArmFKState | null>;
+  /** Auto-solve request: solve FK for a batch of UB codes */
+  autoSolveRequest?: AutoSolveRequest | null;
 }
 
 // ── Bone lookup helpers ─────────────────────────────────────────
@@ -994,6 +996,7 @@ export default function AvatarModel({
   movementInterp,
   armAngles,
   armFKStateRef,
+  autoSolveRequest,
 }: AvatarModelProps) {
   // Load GLB model
   const gltf = useLoader(GLTFLoader, AVATAR_PATH, (loader) => {
@@ -1176,9 +1179,93 @@ export default function AvatarModel({
     [onUBClick],
   );
 
+  // ── Auto-solve processing (incremental FK solver — 1 code per frame) ──
+  const autoSolveProcessedRef = useRef<AutoSolveRequest | null>(null);
+  const autoSolveIndexRef = useRef(0);
+  const autoSolveResultsRef = useRef<CapturedPose[]>([]);
+  const autoSolveDoneRef = useRef(false);
+
   // Animation loop
   useFrame((rs, delta) => {
     if (!groupRef.current) return;
+
+    // ─ AUTO-SOLVE: Process one UB code per frame to avoid freezing ─
+    if (
+      autoSolveRequest &&
+      leftHandRefs &&
+      leftHandBindPoses &&
+      boneMap.size > 0
+    ) {
+      // New request: initialize
+      if (autoSolveRequest !== autoSolveProcessedRef.current) {
+        autoSolveProcessedRef.current = autoSolveRequest;
+        autoSolveIndexRef.current = 0;
+        autoSolveResultsRef.current = [];
+        autoSolveDoneRef.current = false;
+      }
+
+      // Skip if already finalized (waiting for React to clear the request)
+      if (!autoSolveDoneRef.current) {
+        const idx = autoSolveIndexRef.current;
+        if (idx < autoSolveRequest.codes.length) {
+          const code = autoSolveRequest.codes[idx];
+
+          const armRefs = {
+            clavicle: leftHandRefs.armChain.clavicle,
+            upperArm: leftHandRefs.armChain.upperArm,
+            foreArm: leftHandRefs.armChain.foreArm,
+            hand: leftHandRefs.armChain.hand,
+          };
+          const armBind = {
+            clavicle: leftHandBindPoses.armChain.clavicle,
+            upperArm: leftHandBindPoses.armChain.upperArm,
+            foreArm: leftHandBindPoses.armChain.foreArm,
+            hand: leftHandBindPoses.armChain.hand,
+          };
+
+          const ubWorldPos = computeUBWorldPosition(code, boneMap);
+          if (ubWorldPos) {
+            const applyAndMeasure = (testAngles: ArmJointAngles): number => {
+              applyArmFK(testAngles, armRefs, armBind, true);
+              leftHandRefs.armChain.clavicle.updateWorldMatrix(true, true);
+              const centroid = computeHandCentroidWorldPos(leftHandRefs);
+              return centroid.distanceTo(ubWorldPos);
+            };
+
+            const { angles: solvedAngles, distance } = solveFKCoordinateDescent(applyAndMeasure);
+
+            // Read hand world quaternion
+            leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
+
+            autoSolveResultsRef.current.push({
+              ubCode: code,
+              angles: { ...solvedAngles },
+              handWorldQuat: [_handWorldQ.x, _handWorldQ.y, _handWorldQ.z, _handWorldQ.w],
+              distanceToUB: distance,
+              timestamp: Date.now(),
+            });
+
+            // Restore bind pose after each solve
+            armRefs.clavicle.quaternion.copy(armBind.clavicle);
+            armRefs.upperArm.quaternion.copy(armBind.upperArm);
+            armRefs.foreArm.quaternion.copy(armBind.foreArm);
+            armRefs.hand.quaternion.copy(armBind.hand);
+          }
+
+          autoSolveIndexRef.current = idx + 1;
+
+          // Report progress
+          if (autoSolveRequest.onProgress) {
+            autoSolveRequest.onProgress(autoSolveResultsRef.current.length);
+          }
+        } else {
+          // All codes processed — finalize
+          autoSolveDoneRef.current = true;
+          const results = [...autoSolveResultsRef.current];
+          autoSolveRequest.onComplete(results);
+        }
+      }
+    }
 
     const clampedDelta = Math.min(delta, 0.05);
     const factor = 1 - Math.pow(1 - 0.08, clampedDelta * 60);
