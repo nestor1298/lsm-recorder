@@ -343,7 +343,7 @@ function poseArmDown(
   // Positive X = adduction (arm DOWN from T-pose toward body)
   // Y = swing: slight forward lean
   _neutralEuler.set(
-    110 * (Math.PI / 180),            // X: adduction → bring arm fully down from T-pose
+    88 * (Math.PI / 180),             // X: adduction → bring arm down from T-pose
     5 * (Math.PI / 180) * sign,       // Y: slight forward swing
     0,                                // Z: no axial twist
     "YXZ",
