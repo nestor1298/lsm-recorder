@@ -29,6 +29,8 @@ interface Hand3DViewerProps {
   activeChannel?: string;
   ubLocation?: UBTarget | null;
   rnm?: RNMTarget | null;
+  /** Selected UB code for point cloud highlighting (separate from IK target) */
+  selectedUBCode?: string | null;
   /** Show all 80 UB points as interactive spheres */
   showAllUBPoints?: boolean;
   /** Filter spheres by region */
@@ -57,6 +59,7 @@ export default function Hand3DViewer({
   movementInterp,
   activeChannel,
   ubLocation,
+  selectedUBCode,
   rnm,
   showAllUBPoints,
   ubRegionFilter,
@@ -95,6 +98,7 @@ export default function Hand3DViewer({
               rnm={rnm}
               autoRotate={autoRotate}
               showAllUBPoints={showAllUBPoints}
+              selectedUBCode={selectedUBCode}
               ubRegionFilter={ubRegionFilter}
               onUBClick={onUBClick}
               cm={cm}

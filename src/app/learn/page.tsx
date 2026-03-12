@@ -334,6 +334,7 @@ export default function LearnPage() {
     }
   }, [mode, effectiveViewer, activeChannel, activeCM, activeOrientation, activeMovement]);
 
+  // UB target for IK arm posing — NOT used in UB explore mode (arms stay down)
   const avatarUBTarget = useMemo(() => {
     if (mode === "build") {
       // In build mode, always pass UB to avatar (for arm IK), not just when on UB tab
@@ -341,8 +342,8 @@ export default function LearnPage() {
       const loc = effectiveViewer.ubLocation;
       return { code: loc.code, region: loc.region, name: loc.name, x: loc.x, y: loc.y };
     }
-    // In explore mode, show UB target for both UB tab and FK tab
-    if ((activeChannel === "ub" || activeChannel === "fk") && activeUBLocation) {
+    // In explore mode, only pass UB as IK target for FK tab (not UB browse)
+    if (activeChannel === "fk" && activeUBLocation) {
       return {
         code: activeUBLocation.code,
         region: activeUBLocation.region,
@@ -350,6 +351,15 @@ export default function LearnPage() {
         x: activeUBLocation.x,
         y: activeUBLocation.y,
       };
+    }
+    return null;
+  }, [mode, effectiveViewer, activeChannel, activeUBLocation]);
+
+  // Selected UB code for point cloud highlighting (used in UB explore mode)
+  const selectedUBCode = useMemo(() => {
+    if (mode === "build") return effectiveViewer.ubLocation?.code ?? null;
+    if ((activeChannel === "ub" || activeChannel === "fk") && activeUBLocation) {
+      return activeUBLocation.code;
     }
     return null;
   }, [mode, effectiveViewer, activeChannel, activeUBLocation]);
@@ -382,6 +392,7 @@ export default function LearnPage() {
           className="rounded-none"
           activeChannel={viewerChannel}
           ubLocation={avatarUBTarget}
+          selectedUBCode={selectedUBCode}
           rnm={avatarRNMTarget}
           showAllUBPoints={
             viewerChannel === "ub" && (mode === "explore" || effectiveViewer.showAllUBPoints)

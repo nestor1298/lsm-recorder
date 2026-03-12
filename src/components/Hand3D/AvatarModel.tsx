@@ -89,6 +89,8 @@ interface AvatarModelProps {
   autoRotate?: boolean;
   /** Show all 80 UB points as interactive spheres */
   showAllUBPoints?: boolean;
+  /** Selected UB code for point cloud highlighting (separate from IK target) */
+  selectedUBCode?: string | null;
   /** Filter spheres by region */
   ubRegionFilter?: string | null;
   /** Callback when a UB sphere is clicked */
@@ -177,9 +179,11 @@ interface UBPointProps {
   isSelected: boolean;
   boneMap: Map<string, THREE.Bone>;
   onClick: (code: string) => void;
+  /** If true, render this point mirrored on the opposite side (Left↔Right) */
+  mirrored?: boolean;
 }
 
-function UBPoint({ code, region, isSelected, boneMap, onClick }: UBPointProps) {
+function UBPoint({ code, region, isSelected, boneMap, onClick, mirrored = false }: UBPointProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
@@ -188,7 +192,9 @@ function UBPoint({ code, region, isSelected, boneMap, onClick }: UBPointProps) {
 
   useFrame(() => {
     if (!meshRef.current) return;
-    const pos = computeUBWorldPosition(code, boneMap);
+    const pos = mirrored
+      ? computeUBWorldPositionMirrored(code, boneMap)
+      : computeUBWorldPosition(code, boneMap);
     if (!pos) return;
 
     meshRef.current.position.copy(pos);
@@ -272,6 +278,9 @@ interface UBPointCloudProps {
   onMarkerClick: (code: string) => void;
 }
 
+// Regions that are on the left arm and should be mirrored to the right
+const MIRRORED_REGIONS = new Set(["ARM", "FOREARM", "HAND"]);
+
 function UBPointCloud({ boneMap, selectedCode, regionFilter, onMarkerClick }: UBPointCloudProps) {
   const filteredLocations = useMemo(() => {
     if (!regionFilter) return UB_LOCATIONS;
@@ -290,8 +299,67 @@ function UBPointCloud({ boneMap, selectedCode, regionFilter, onMarkerClick }: UB
           onClick={onMarkerClick}
         />
       ))}
+      {/* Mirror arm/forearm/hand points on the opposite side */}
+      {filteredLocations
+        .filter((loc) => MIRRORED_REGIONS.has(loc.region))
+        .map((loc) => (
+          <UBPoint
+            key={`${loc.code}_R`}
+            code={loc.code}
+            region={loc.region}
+            isSelected={selectedCode === loc.code}
+            boneMap={boneMap}
+            onClick={onMarkerClick}
+            mirrored
+          />
+        ))}
     </>
   );
+}
+
+// ── Neutral arms-down pose helper ────────────────────────────────
+// Slerps arm bones from bind (T-pose) toward a natural arms-down stance.
+// Uses a small delta on upperArm to rotate the arm downward (≈ -75° on local Z).
+
+const _neutralEuler = new THREE.Euler();
+const _neutralDelta = new THREE.Quaternion();
+const _neutralTarget = new THREE.Quaternion();
+
+function poseArmDown(
+  refs: { clavicle: THREE.Bone; upperArm: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
+  bind: { clavicle: THREE.Quaternion; upperArm: THREE.Quaternion; foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  isLeftArm: boolean,
+  factor: number,
+) {
+  const sign = isLeftArm ? 1 : -1;
+
+  // Clavicle: slight depression (≈ -3°)
+  _neutralEuler.set(0, 0, -3 * (Math.PI / 180) * sign, "XYZ");
+  _neutralDelta.setFromEuler(_neutralEuler);
+  _neutralTarget.copy(bind.clavicle).multiply(_neutralDelta);
+  refs.clavicle.quaternion.slerp(_neutralTarget, factor * 3);
+
+  // Upper arm: rotate down from T-pose using YXZ (matching FK shoulder convention)
+  // Positive X = adduction (arm DOWN from T-pose toward body)
+  // Y = swing: slight forward lean
+  _neutralEuler.set(
+    110 * (Math.PI / 180),            // X: adduction → bring arm fully down from T-pose
+    5 * (Math.PI / 180) * sign,       // Y: slight forward swing
+    0,                                // Z: no axial twist
+    "YXZ",
+  );
+  _neutralDelta.setFromEuler(_neutralEuler);
+  _neutralTarget.copy(bind.upperArm).multiply(_neutralDelta);
+  refs.upperArm.quaternion.slerp(_neutralTarget, factor * 3);
+
+  // Forearm: slight bend at elbow (≈ 8°)
+  _neutralEuler.set(-8 * (Math.PI / 180), 0, 0, "XYZ");
+  _neutralDelta.setFromEuler(_neutralEuler);
+  _neutralTarget.copy(bind.foreArm).multiply(_neutralDelta);
+  refs.foreArm.quaternion.slerp(_neutralTarget, factor * 3);
+
+  // Hand: return to bind pose
+  refs.hand.quaternion.slerp(bind.hand, factor * 3);
 }
 
 // ── Temp animation variables ─────────────────────────────────────
@@ -917,6 +985,7 @@ export default function AvatarModel({
   rnm,
   autoRotate = false,
   showAllUBPoints = false,
+  selectedUBCode: selectedUBCodeProp = null,
   ubRegionFilter = null,
   onUBClick,
   cm,
@@ -1096,7 +1165,8 @@ export default function AvatarModel({
   }, [rnm, morphMap]);
 
   // Selected UB code (from props or 3D click)
-  const selectedUBCode = ubLocation?.code ?? null;
+  // Use explicit selectedUBCode prop if provided, otherwise fall back to ubLocation
+  const selectedUBCode = selectedUBCodeProp ?? ubLocation?.code ?? null;
 
   // Handle 3D sphere click → propagate to parent
   const handleUBMarkerClick = useCallback(
@@ -1177,8 +1247,19 @@ export default function AvatarModel({
     // ─ Determine effective hand mode ─
     const effectiveHandMode = movementInterp?.handMode ?? handMode;
 
+    // ─ UB BROWSE MODE: Both arms in neutral down pose ─
+    if (showAllUBPoints && leftHandRefs && leftHandBindPoses) {
+      poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
+      animateFingers(leftAnimState.current, RESTING_POSE, leftHandRefs, leftHandBindPoses, factor);
+      debugIK.current.active = false;
+
+      if (rightHandRefs && rightHandBindPoses) {
+        poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
+        animateFingers(rightAnimState.current, RESTING_POSE, rightHandRefs, rightHandBindPoses, factor);
+      }
+    }
     // ─ LEFT ARM: FK mode (manual joint angles) ─
-    if (armAngles && leftHandRefs && leftHandBindPoses) {
+    else if (armAngles && leftHandRefs && leftHandBindPoses) {
       // 1. Apply FK angles directly to arm bones
       applyArmFK(
         armAngles,
@@ -1313,7 +1394,10 @@ export default function AvatarModel({
     }
 
     // ─ RIGHT ARM: Mirror for symmetric mode ─
-    if (effectiveHandMode === "both_symmetric" && rightHandRefs && rightHandBindPoses) {
+    // (skip if already posed in UB browse mode above)
+    if (showAllUBPoints) {
+      // Already handled above
+    } else if (effectiveHandMode === "both_symmetric" && rightHandRefs && rightHandBindPoses) {
       if (movementInterp && movementInterp.fromUBCode && movementInterp.toUBCode) {
         // ── MOVEMENT SEGMENT: Mirrored smooth interpolation ──
         const mt = movementInterp.t;
