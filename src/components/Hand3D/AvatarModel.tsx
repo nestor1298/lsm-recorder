@@ -1260,6 +1260,15 @@ export default function AvatarModel({
     }
     // ─ LEFT ARM: FK mode (manual joint angles) ─
     else if (armAngles && leftHandRefs && leftHandBindPoses) {
+      // Check if all FK angles are at default (zero) — use arms-down pose instead of T-pose
+      const fkHasInput = Object.values(armAngles).some((v) => v !== 0);
+
+      if (!fkHasInput) {
+        // All sliders at zero → same arms-down neutral as other modes
+        poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
+        animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
+        debugIK.current.active = false;
+      } else {
       // 1. Apply FK angles directly to arm bones
       applyArmFK(
         armAngles,
@@ -1310,6 +1319,8 @@ export default function AvatarModel({
         // No UB selected — hide blue sphere by placing it far off-screen
         debugIK.current.ubTarget.set(0, -100, 0);
       }
+
+      } // end fkHasInput else
 
     } else if (leftHandRefs && leftHandBindPoses) {
     // ─ LEFT ARM: Finger posing + Arm IK (dominant hand) ─
@@ -1378,17 +1389,23 @@ export default function AvatarModel({
           const ubTarget = ubLocation
             ? computeUBWorldPosition(ubLocation.code, boneMap)
             : null;
-          animateArmIK(
-            ubTarget,
-            leftHandRefs,
-            leftHandBindPoses,
-            leftArmLengths,
-            factor,
-            true,
-            targetSplitOrient,
-            leftCentroidDist,
-            debugIK.current,
-          );
+          if (ubTarget) {
+            animateArmIK(
+              ubTarget,
+              leftHandRefs,
+              leftHandBindPoses,
+              leftArmLengths,
+              factor,
+              true,
+              targetSplitOrient,
+              leftCentroidDist,
+              debugIK.current,
+            );
+          } else {
+            // No IK target — neutral arms-down pose
+            poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
+            debugIK.current.active = false;
+          }
         }
       }
     }
@@ -1458,32 +1475,26 @@ export default function AvatarModel({
           const ubTarget = ubLocation
             ? computeUBWorldPositionMirrored(ubLocation.code, boneMap)
             : null;
-          animateArmIK(
-            ubTarget,
-            rightHandRefs,
-            rightHandBindPoses,
-            rightArmLengths,
-            factor,
-            false,
-            mirroredSplitOrient,
-            rightCentroidDist,
-          );
+          if (ubTarget) {
+            animateArmIK(
+              ubTarget,
+              rightHandRefs,
+              rightHandBindPoses,
+              rightArmLengths,
+              factor,
+              false,
+              mirroredSplitOrient,
+              rightCentroidDist,
+            );
+          } else {
+            // No IK target — neutral arms-down pose
+            poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
+          }
         }
       }
-    } else if (rightHandRefs && rightHandBindPoses && rightArmLengths) {
-      // Single-hand mode: right arm rests at side via IK
-      animateArmIK(
-        null,
-        rightHandRefs,
-        rightHandBindPoses,
-        rightArmLengths,
-        factor,
-        false,
-        null,
-        rightCentroidDist,
-      );
-
-      // Return right fingers to resting
+    } else if (rightHandRefs && rightHandBindPoses) {
+      // Single-hand mode: right arm rests at side via direct pose
+      poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
       animateFingers(
         rightAnimState.current,
         RESTING_POSE,
