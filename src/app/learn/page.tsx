@@ -170,8 +170,11 @@ export default function LearnPage() {
         setAutoSolveRunning(false);
         setAutoSolveRequest(null);
         setAutoSolveCount(results.length);
-        // Copy results to clipboard
-        navigator.clipboard.writeText(JSON.stringify(results, null, 2)).catch(() => {});
+        // Persist results: clipboard + localStorage + window
+        const json = JSON.stringify(results, null, 2);
+        navigator.clipboard.writeText(json).catch(() => {});
+        try { localStorage.setItem("autoSolveResults", json); } catch { /* quota */ }
+        (window as unknown as Record<string, unknown>).__autoSolveResults = results;
       },
     });
   }, [autoSolveRunning, AUTO_SOLVE_CODES]);
@@ -372,8 +375,8 @@ export default function LearnPage() {
       const loc = effectiveViewer.ubLocation;
       return { code: loc.code, region: loc.region, name: loc.name, x: loc.x, y: loc.y };
     }
-    // In explore mode, only pass UB as IK target for FK tab (not UB browse)
-    if (activeChannel === "fk" && activeUBLocation) {
+    // In explore mode, pass UB target for FK tab and UB browse (for arm FK presets)
+    if ((activeChannel === "fk" || activeChannel === "ub") && activeUBLocation) {
       return {
         code: activeUBLocation.code,
         region: activeUBLocation.region,
