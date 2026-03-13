@@ -159,9 +159,15 @@ const _surfaceOffsetDir = new THREE.Vector3();
  * The hand centroid (average of all finger bones) sits at the palm center.
  * When the centroid reaches the UB surface point, the fingers extend
  * through the mesh. This function pushes the target point outward along
- * the bone-to-UB direction so the hand touches the surface instead.
+ * the approximate surface normal so the hand touches without penetrating.
  *
- * @param surfaceOffset Distance in world units to push outward (e.g. 0.06 = 6cm)
+ * For Head-anchored points the bone→UB vector has a large vertical (Y)
+ * component (because face points sit above the Head bone origin), but the
+ * actual face surface normal is mostly in the XZ plane. We dampen Y by
+ * 0.3× so the offset pushes the target primarily *forward* from the face
+ * rather than *upward*.
+ *
+ * @param surfaceOffset Distance in world units to push outward (e.g. 0.08 = 8cm)
  */
 function computeUBWorldPositionWithSurfaceOffset(
   code: string,
@@ -179,10 +185,23 @@ function computeUBWorldPositionWithSurfaceOffset(
   _offsetVec.set(anchor.offset[0], anchor.offset[1], anchor.offset[2]);
   const ubPos = _boneWorldPos.clone().add(_offsetVec);
 
-  // Outward direction = from bone center to UB surface point
+  // Compute approximate outward direction
   const offsetLen = _offsetVec.length();
   if (offsetLen > 0.001) {
-    _surfaceOffsetDir.copy(_offsetVec).normalize();
+    _surfaceOffsetDir.copy(_offsetVec);
+
+    // For Head-anchored points, dampen Y so the offset direction
+    // approximates the surface normal (mostly XZ) rather than following
+    // the large vertical bone→UB vector.
+    if (anchor.boneName === "Head") {
+      _surfaceOffsetDir.y *= 0.3;
+      // Fallback for top-of-head points where XZ is very small
+      if (_surfaceOffsetDir.lengthSq() < 0.001) {
+        _surfaceOffsetDir.set(0, 1, 0);
+      }
+    }
+
+    _surfaceOffsetDir.normalize();
     ubPos.addScaledVector(_surfaceOffsetDir, surfaceOffset);
   }
 
@@ -1330,8 +1349,8 @@ export default function AvatarModel({
 
           // Use surface-offset target so the hand touches the surface
           // instead of the centroid penetrating through the mesh.
-          // 0.06 = 6cm outward along bone→UB direction.
-          const ubWorldPos = computeUBWorldPositionWithSurfaceOffset(code, boneMap, 0.06);
+          // 0.08 = 8cm outward along approximate surface normal.
+          const ubWorldPos = computeUBWorldPositionWithSurfaceOffset(code, boneMap, 0.08);
           if (ubWorldPos) {
             const applyAndMeasure = (testAngles: ArmJointAngles): number => {
               applyArmFK(testAngles, armRefs, armBind, true);

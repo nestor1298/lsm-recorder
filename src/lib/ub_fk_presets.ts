@@ -6,9 +6,10 @@
  * to the ArmJointAngles that bring the left hand centroid closest to
  * that body point on the Mixamo avatar.
  *
- * Solver targets are offset 6 cm outward from the bone surface along
- * the bone→UB direction, so the hand touches the mesh surface instead
- * of the centroid penetrating through it.
+ * Solver targets are offset 8 cm outward from the bone surface along
+ * the approximate surface normal (Y-dampened for Head-anchored points),
+ * so the hand touches the mesh surface instead of the centroid
+ * penetrating through it.
  *
  * Accuracy: 49 of 52 non-arm points converge to < 6 cm of the offset target.
  * Outliers (Vx, Um, Gen) are physically unreachable by the left arm
@@ -44,69 +45,69 @@ function a(
  */
 export const UB_FK_PRESETS: Readonly<Record<string, ArmJointAngles>> = {
   // ── CABEZA (Head) ─────────────────────────────────────────────────
-  Ca:      a( 145, -50,  16,  -1,   2,   8,   7,   2,  -1),  // Cabeza (top)
-  Par:     a( 149, -50,  43, -10,   2,   2,   3,   4, -11),  // Parietal
-  Te:      a(  37, -32,  61,  -6,  -5,   0,  -4, -52, -20),  // Temporal
-  Au:      a(  48,   4, 122,  -2,  -5,  12,  -4, -21,  17),  // Auricular
-  LobAu:   a(  44,  23, 131,  -2,  -5,  12,  -4, -42, -20),  // Lóbulo Auricular
+  Ca:      a( 135, -50,  12,  -5,   1,  11,   5,  -1, -12),  // Cabeza (top)
+  Par:     a( 146, -50,  47,  -5,   0,  12,   1,   3,  -3),  // Parietal
+  Te:      a(  -6, -30,  64,  -3,  -5,   0,  -4, -55, -20),  // Temporal
+  Au:      a(  72,  -6,  95,   4,  -5,  12,  -9, -60,  30),  // Auricular
+  LobAu:   a(  63,  11, 114,   7,  -5,  12,  -9, -60,  30),  // Lóbulo Auricular
 
   // ── CARA (Face) ───────────────────────────────────────────────────
-  Fa:      a( 121,   4,  56,  -1,   2,   2,   2,   6,   2),  // Facial (general)
-  Fr:      a( 122, -50,   0, -76,  -3,   5,   0,   6,   2),  // Frente
-  IpsiFr:  a( 117, -50,   0, -65,   0,   0,   0,   0,   0),  // Frente Ipsilateral
-  XFr:     a( 130, -44,   4,  -5,  -1,   8,   5,   1, -12),  // Frente Contralateral
-  Ci:      a( 122,  -9,  51,  -1,   3,   4,   6,   3, -11),  // Ceja Ipsilateral
-  Su:      a( 128, -44,   0, -90,   0,   0,   0,   0,   0),  // Superciliar
-  Cin:     a( 122, -44,   0, -65,   0,   0,   0,   0,   0),  // Entrecejo
+  Fa:      a( 124,   8,  56,  -1,   5,   3,   8,   8,   6),  // Facial (general)
+  Fr:      a( 121, -44,   1,  -5,   1,   5,   3,   3,  -7),  // Frente
+  IpsiFr:  a( 118, -50,   0,  90,   0,   0,   0,   0,   0),  // Frente Ipsilateral
+  XFr:     a( 127, -44,   1, -31,   0,   7,   2,   9,   2),  // Frente Contralateral
+  Ci:      a( 113,  -2,  57,  -3,   5,   7,   4,   9, -20),  // Ceja Ipsilateral
+  Su:      a( 128, -39,   4,  -5,  -1,   1,   0,   0,   0),  // Superciliar
+  Cin:     a( 123, -44,   0,  90,   0,   0,   0,   0,   0),  // Entrecejo
 
   // ── OJOS (Eyes) ───────────────────────────────────────────────────
-  Oc:      a( 119,  -1,  59,   0,   3,   6,   4,   6, -20),  // Ocular
-  RapOc:   a( 117,  -6,  58,   0,   0,   0,   0,   0,   0),  // Rabo del Ojo
-  OrbOc:   a( 120,  -3,  57,  -1,   5,   7,   7,   8, -12),  // Órbita Ocular
+  Oc:      a( 116,  -1,  57,  -1,   2,   5,   3,   7, -20),  // Ocular
+  RapOc:   a( 118,  15,  74,   0,  13,  10,  13,  17,   4),  // Rabo del Ojo
+  OrbOc:   a( 116,  -1,  57,   0,   4,  10,   7,   8,  -8),  // Órbita Ocular
 
   // ── NARIZ (Nose) ──────────────────────────────────────────────────
-  Na:      a( 122,  27,  78,  -2,  10,   8,   8,  13,   8),  // Nariz
-  Sep:     a( 122, -39,   0,  75,  -1,   0,   0,  -3, -12),  // Septo
-  AlNa:    a( 116,  28,  84,   0,   8,   8,   4,  16,  15),  // Ala Nasal
+  Na:      a( 122,  27,  76,  -2,  10,   9,  11,  14,   0),  // Nariz
+  Sep:     a( 117, -33,   4, -30,  -1,   0,   0,   0,   0),  // Septo
+  AlNa:    a( 119,  28,  80,   0,   8,   9,  10,  13,  17),  // Ala Nasal
 
   // ── BOCA (Mouth) ──────────────────────────────────────────────────
-  Po:      a( 116,  22,  82,  -1,  10,   8,   9,  17,  19),  // Pómulo
-  Ge:      a( 115,  29,  90,   0,  -1,   0,   0,  -5, -18),  // Geniano
-  Os:      a( 119,  37,  88,   0,   5,   8,   2,   7, -15),  // Oral superior
-  IpsiOs:  a( 124,  33,  86,   0,   1,   0,   4,   0,   5),  // Oral superior ipsilateral
-  XOs:     a( 126,  34,  83,   0,   6,   5,   2,  11,  30),  // Oral superior contralateral
-  La:      a( 121,  39,  89,   0,   4,   4,   1,   7,  14),  // Labial
-  Lab:     a( 119,  32,  85,   0,   5,   8,   2,   9, -13),  // Labial (lower)
-  Lin:     a( 128,  33,  86,   5,   2,   3,   0,   0,   0),  // Lingual
-  Den:     a( 128,  33,  86,   5,   2,   3,   0,   0,   0),  // Dental
-  Col:     a( 122,  33,  89,   0,   0,   0,   0,   0,   0),  // Colmillo
-  MedDen:  a( 122,  33,  86,   0,   1,   3,   0,   3,   0),  // Medio Dental
+  Po:      a( 110,  25,  83,   0,   8,  11,   6,  15,  20),  // Pómulo
+  Ge:      a( 112,  30,  90,   0,  -2,   1,   0,  -3,  -5),  // Geniano
+  Os:      a( 121,  34,  84,   0,   4,   4,   2,   8, -20),  // Oral superior
+  IpsiOs:  a( 116,  37,  88,   0,   4,   3,   1,   7,  12),  // Oral superior ipsilateral
+  XOs:     a( 126,  34,  79,   1,   8,   5,   3,  11,  20),  // Oral superior contralateral
+  La:      a( 119,  39,  86,   0,   4,   4,   0,   5,   4),  // Labial
+  Lab:     a( 124,  32,  81,  -1,   8,   5,   7,  11, -20),  // Labial (lower)
+  Lin:     a( 121,  37,  88,   0,   4,   4,   1,   7,   1),  // Lingual
+  Den:     a( 121,  37,  88,   0,   4,   4,   1,   7,   1),  // Dental
+  Col:     a( 118,  37,  91,   0,   3,   2,   0,   8,  -2),  // Colmillo
+  MedDen:  a( 121,  38,  88,   0,   5,   6,   3,   8,  -1),  // Medio Dental
 
   // ── CUELLO / MANDÍBULA (Neck / Jaw) ───────────────────────────────
-  Me:      a( 127,  45,  94,   0,  -5,   0,   0,  -8,  -9),  // Mentón
-  Ce:      a(  32, -40, 140,   1,  -3,  12,  -7, -14, -20),  // Cervical
-  Gu:      a( 148,  72,  97,   0,  -5,   0,   0, -60,  30),  // Gular
+  Me:      a( 130,  45,  91,   5,  -3,   0,   0,  -5,   3),  // Mentón
+  Ce:      a(  33, -45, 140,   5,  -3,  11,  -8,  -8, -20),  // Cervical
+  Gu:      a( 139,  87, 120,  -8,  -5,   0,   0, -33, -19),  // Gular
 
   // ── TORSO (Chest / Trunk) ─────────────────────────────────────────
-  Co:      a( 149, 105, 123,   6,  -5,   0,  -2, -38, -11),  // Cuello frontal
-  IpsiCo:  a( -40, -19, 140,   5,  10,   0,   0, -50, -20),  // Cuello Ipsilateral
-  Cla:     a( 141, 100, 109,   0,  -5,   0,   0, -60,  30),  // Clavicular
-  Pe:      a( 139, 122, 118,  -3,  -5,   0,   4, -29,  19),  // Pecho
-  XPe:     a( 150, 101, 109,  -3,  -5,   0,   6, -13,   7),  // Pecho Contralateral
-  IpsiPe:  a( 126, 125, 108,   5,  -5,   0,   0, -60,  30),  // Pecho Ipsilateral
-  Cor:     a( 150, 104, 107,  -2,  -5,   0,   4, -18, -15),  // Corazón
-  Es:      a( 141, 126, 115,   0,  -5,   0,   4, -30,  -4),  // Esternón
-  To:      a( 140, 127, 119,  -1,  -5,   0,   4, -13,  24),  // Torso
-  Cos:     a( 118, 144, 100,  -5,  -5,   0,   4, -60,  30),  // Costilla
-  Dor:     a(  28, -50, 140,   8,  18,   9,   1, -21,  -1),  // Dorso
+  Co:      a( 142,  84,  97,   0,  -5,   0,   0, -60,  30),  // Cuello frontal
+  IpsiCo:  a( 133, 109, 120,  -2,  -5,   0,   0, -60,  30),  // Cuello Ipsilateral
+  Cla:     a( 142, 115, 130,   1,  -5,   0,   0, -33,  29),  // Clavicular
+  Pe:      a( 137, 100,  89,   5,  -5,   0,   0, -60,   7),  // Pecho
+  XPe:     a( 150,  97, 106,   5,  -5,   0,   0, -12,  -4),  // Pecho Contralateral
+  IpsiPe:  a( 122, 121, 106,  -1,  -5,   0,   4, -60,  30),  // Pecho Ipsilateral
+  Cor:     a( 150, 100, 105,  -3,  -5,   0,   6, -15, -20),  // Corazón
+  Es:      a( 139, 122, 117,   0,  -5,   0,   4, -22, -10),  // Esternón
+  To:      a( 137, 123, 116,  -2,  -5,   0,   4, -18, -20),  // Torso
+  Cos:     a( 117, 141,  99,  -2,  -5,   0,   4, -60,  30),  // Costilla
+  Dor:     a(  35, -50, 140,   5,  18,   2,   2, -18,  24),  // Dorso
 
   // ── ABDOMEN / CADERA (Abdomen / Hip) ──────────────────────────────
-  Ve:      a( 138, 121,  96,   0,  -3,   0,   2,  -7, -11),  // Vientre
-  Abd:     a( 139, 122,  93,   0,   0,   0,   0,   0,   0),  // Abdomen
-  Je:      a( 131, 135, 106,   0,  -5,   0,   4,  -1,  12),  // Jején (flank)
-  Cit:     a( 129, 139,  98,   0,  -4,   0,   1,  -7, -16),  // Cintura
-  Cox:     a( 128, 137,  93,   0,  -5,   0,   1,  -7,  -3),  // Coxal
+  Ve:      a( 133, 118,  93,   0,  -3,   0,   0, -10, -16),  // Vientre
+  Abd:     a( 134, 117,  89,   0,  -2,   0,   0,   0,   0),  // Abdomen
+  Je:      a( 121, 133, 101,   0,  -5,   0,   0,  -9,  -7),  // Jején (flank)
+  Cit:     a( 122, 138,  97,   0,  -4,   0,   0,  -8,  -4),  // Cintura
+  Cox:     a( 129, 137,  93,   0,  -3,   0,   1,  -7,  -3),  // Coxal
 
   // ── PIERNA (Leg) ──────────────────────────────────────────────────
-  Fe:      a( 133,  78,   0, -45,   1,   0,   0,  -3,   0),  // Fémur
+  Fe:      a( 131,  78,   4,  -5,  -1,   0,   0,   0,   0),  // Fémur
 };
