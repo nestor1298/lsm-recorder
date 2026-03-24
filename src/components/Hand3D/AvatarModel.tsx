@@ -850,14 +850,14 @@ function animateFingers(
     const boneRefs = refs.fingers[name];
     const bind = bindPoses.fingers[name];
 
-    // New model (USD-converted): finger curl is on Z-axis, spread on Y
-    applyPose(boneRefs.carpal, bind.carpal, 0, -s.carpalSpread, s.carpalFlex);
-    applyPose(boneRefs.bones[0], bind.bones[0], 0, 0, s.mcpFlex);
-    applyPose(boneRefs.bones[1], bind.bones[1], 0, 0, s.pipFlex);
-    applyPose(boneRefs.bones[2], bind.bones[2], 0, 0, s.dipFlex);
+    // New model (USD-converted): finger curl is on Y-axis
+    applyPose(boneRefs.carpal, bind.carpal, 0, s.carpalFlex, -s.carpalSpread);
+    applyPose(boneRefs.bones[0], bind.bones[0], 0, s.mcpFlex, 0);
+    applyPose(boneRefs.bones[1], bind.bones[1], 0, s.pipFlex, 0);
+    applyPose(boneRefs.bones[2], bind.bones[2], 0, s.dipFlex, 0);
   }
 
-  // Thumb — Z-axis curl, X/Y for opposition
+  // Thumb — Y-axis curl, X for opposition
   const ts = anim.thumb;
   const tt = targetPose.thumb;
   ts.cmcOpposition += (tt.cmcOpposition - ts.cmcOpposition) * factor;
@@ -866,8 +866,8 @@ function animateFingers(
   ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
   applyPose(refs.thumb[0], bindPoses.thumb[0], -ts.cmcOpposition, -ts.cmcRotation, 0);
-  applyPose(refs.thumb[1], bindPoses.thumb[1], 0, 0, ts.mcpFlex);
-  applyPose(refs.thumb[2], bindPoses.thumb[2], 0, 0, ts.ipFlex);
+  applyPose(refs.thumb[1], bindPoses.thumb[1], 0, ts.mcpFlex, 0);
+  applyPose(refs.thumb[2], bindPoses.thumb[2], 0, ts.ipFlex, 0);
 }
 
 // ── Blend hand poses for movement interpolation ─────────────────
