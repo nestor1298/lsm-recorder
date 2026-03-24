@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { CM_INVENTORY, FINGER_GROUPS, TIER_LABELS, TIER_COLORS, getFingerGroup } from "@/lib/data";
 import type { CMEntry, FlexionLevel } from "@/lib/types";
+import { MiniHand, FLEXION_COLOR } from "./MiniHand";
 
 const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), {
   ssr: false,
@@ -16,13 +17,6 @@ const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), {
     </div>
   ),
 });
-
-const FLEXION_COLOR: Record<FlexionLevel, string> = {
-  EXTENDED: "#22c55e",
-  CURVED: "#eab308",
-  BENT: "#f97316",
-  CLOSED: "#ef4444",
-};
 
 const FLEXION_LABEL_ES: Record<FlexionLevel, string> = {
   EXTENDED: "extendido",
@@ -37,66 +31,6 @@ const TIER_LABELS_ES: Record<number, string> = {
   3: "Baja Frecuencia",
   4: "Raro",
 };
-
-/** Mini hand visualization — compact version */
-function MiniHand({ cm, size = 64 }: { cm: CMEntry; size?: number }) {
-  const fingerStates: FlexionLevel[] = [cm.index, cm.middle, cm.ring, cm.pinky];
-  const FINGER_ANGLES = [-25, -12, 3, 18];
-  const SEG = 8;
-
-  function fingerPath(baseX: number, baseY: number, angle: number, flexion: FlexionLevel) {
-    const curl = ({ EXTENDED: 0, CURVED: 25, BENT: 55, CLOSED: 80 }[flexion] * Math.PI) / 180;
-    const rad = ((angle - 90) * Math.PI) / 180;
-    let x = baseX,
-      y = baseY,
-      a = rad;
-    const pts = [`${x},${y}`];
-    for (let i = 0; i < 3; i++) {
-      a += curl * (i === 0 ? 0 : 0.5);
-      x += Math.cos(a) * SEG * (i === 2 ? 0.7 : i === 1 ? 0.9 : 1);
-      y += Math.sin(a) * SEG * (i === 2 ? 0.7 : i === 1 ? 0.9 : 1);
-      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
-    }
-    return pts.join(" ");
-  }
-
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" className="flex-shrink-0">
-      {/* Palm */}
-      <ellipse cx="32" cy="38" rx="12" ry="13" fill="#fde8d0" stroke="#d4a574" strokeWidth="0.5" />
-      {/* Fingers */}
-      {[
-        { x: 26, y: 28 },
-        { x: 31, y: 25 },
-        { x: 36, y: 27 },
-        { x: 40, y: 30 },
-      ].map((base, i) => {
-        const selected = cm.selected_fingers.includes(i + 1);
-        return (
-          <polyline
-            key={i}
-            points={fingerPath(base.x, base.y, FINGER_ANGLES[i], fingerStates[i])}
-            fill="none"
-            stroke={selected ? FLEXION_COLOR[fingerStates[i]] : "#ccc"}
-            strokeWidth={selected ? 2.5 : 1.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={selected ? 1 : 0.4}
-          />
-        );
-      })}
-      {/* Thumb */}
-      <polyline
-        points={`22,36 18,30 ${cm.thumb_opposition === "OPPOSED" ? "14,24" : "16,22"}`}
-        fill="none"
-        stroke={FLEXION_COLOR[cm.thumb_flexion]}
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export default function CMExplorer() {
   const [selectedTier, setSelectedTier] = useState<number | null>(1);
