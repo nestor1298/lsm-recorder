@@ -850,15 +850,14 @@ function animateFingers(
     const boneRefs = refs.fingers[name];
     const bind = bindPoses.fingers[name];
 
-    // Mixamo finger bones flex with positive X (opposite of rigget_V16)
-    // Carpal/metacarpal gets both X-flex (cupping) and Y-spread
-    applyPose(boneRefs.carpal, bind.carpal, s.carpalFlex, -s.carpalSpread, 0);
-    applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0);
-    applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0);
-    applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0);
+    // New model (USD-converted): finger curl is on Z-axis, spread on Y
+    applyPose(boneRefs.carpal, bind.carpal, 0, -s.carpalSpread, s.carpalFlex);
+    applyPose(boneRefs.bones[0], bind.bones[0], 0, 0, s.mcpFlex);
+    applyPose(boneRefs.bones[1], bind.bones[1], 0, 0, s.pipFlex);
+    applyPose(boneRefs.bones[2], bind.bones[2], 0, 0, s.dipFlex);
   }
 
-  // Thumb — Mixamo also uses flipped axes
+  // Thumb — Z-axis curl, X/Y for opposition
   const ts = anim.thumb;
   const tt = targetPose.thumb;
   ts.cmcOpposition += (tt.cmcOpposition - ts.cmcOpposition) * factor;
@@ -867,8 +866,8 @@ function animateFingers(
   ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
   applyPose(refs.thumb[0], bindPoses.thumb[0], -ts.cmcOpposition, -ts.cmcRotation, 0);
-  applyPose(refs.thumb[1], bindPoses.thumb[1], ts.mcpFlex, 0, 0);
-  applyPose(refs.thumb[2], bindPoses.thumb[2], ts.ipFlex, 0, 0);
+  applyPose(refs.thumb[1], bindPoses.thumb[1], 0, 0, ts.mcpFlex);
+  applyPose(refs.thumb[2], bindPoses.thumb[2], 0, 0, ts.ipFlex);
 }
 
 // ── Blend hand poses for movement interpolation ─────────────────
