@@ -38,7 +38,7 @@ import { applyArmFK, solveFKCoordinateDescent, type ArmJointAngles, type ArmFKSt
 import { UB_FK_PRESETS } from "@/lib/ub_fk_presets";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
-const AVATAR_PATH = "/models/wscharacter.glb";
+const AVATAR_PATH = "/models/wscharacter_new.glb";
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -1157,7 +1157,10 @@ export default function AvatarModel({
 }: AvatarModelProps) {
   // Load GLB model
   const gltf = useLoader(GLTFLoader, AVATAR_PATH, (loader) => {
-    loader.setMeshoptDecoder(MeshoptDecoder);
+    // MeshoptDecoder only needed for meshopt-compressed models (original wscharacter.glb)
+    if (!AVATAR_PATH.includes("_new")) {
+      loader.setMeshoptDecoder(MeshoptDecoder);
+    }
   });
   const groupRef = useRef<THREE.Group>(null);
 
@@ -1193,6 +1196,7 @@ export default function AvatarModel({
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
     const s = 2.5 / maxDim;
+
     clone.scale.setScalar(s);
     clone.position.set(-center.x * s, -center.y * s, -center.z * s);
 
