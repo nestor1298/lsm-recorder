@@ -488,6 +488,39 @@ function poseArmPreset(
   refs.hand.quaternion.slerp(_fkTarget, rate);
 }
 
+/**
+ * Apply orientation (palm/finger direction) on top of FK-preset arm pose.
+ *
+ * poseArmPreset positions the arm to reach a UB point but does not
+ * handle hand orientation. This function composes the orientation's
+ * forearm twist and hand rotation onto the bones AFTER the preset
+ * has been applied, using the same split-orientation system as IK.
+ */
+const _orientForearm = new THREE.Quaternion();
+const _orientHand = new THREE.Quaternion();
+
+function applyOrientationOverFK(
+  orient: SplitOrientation,
+  refs: { clavicle: THREE.Bone; upperArm: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
+  bind: { clavicle: THREE.Quaternion; upperArm: THREE.Quaternion; foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  isLeftArm: boolean,
+  factor: number,
+) {
+  const rate = factor * 3;
+
+  // Compose forearm twist onto current forearm quaternion
+  _orientForearm.copy(refs.foreArm.quaternion).multiply(orient.forearmTwist);
+  refs.foreArm.quaternion.slerp(_orientForearm, rate);
+
+  // Compose hand orientation: undo forearm twist propagation, apply full orient
+  // targetHand = inv(forearmTwist) * bindHand * fullOrient
+  _orientHand.copy(orient.forearmTwist).invert()
+    .multiply(bind.hand)
+    .multiply(orient.fullOrient);
+  clampWristRotation(_orientHand, bind.hand);
+  refs.hand.quaternion.slerp(_orientHand, rate);
+}
+
 // ── Temp animation variables ─────────────────────────────────────
 
 const _headEuler = new THREE.Euler();
@@ -1617,6 +1650,16 @@ export default function AvatarModel({
               true,
               factor,
             );
+            // Apply OR orientation on top of FK preset (palm/finger direction)
+            if (targetSplitOrient) {
+              applyOrientationOverFK(
+                targetSplitOrient,
+                leftHandRefs.armChain,
+                leftHandBindPoses.armChain,
+                true,
+                factor,
+              );
+            }
             debugIK.current.active = false;
           } else if (leftArmLengths) {
             // No preset — fall back to IK
@@ -1715,6 +1758,16 @@ export default function AvatarModel({
               false,
               factor,
             );
+            // Apply mirrored OR orientation on top of FK preset
+            if (mirroredSplitOrient) {
+              applyOrientationOverFK(
+                mirroredSplitOrient,
+                rightHandRefs.armChain,
+                rightHandBindPoses.armChain,
+                false,
+                factor,
+              );
+            }
           } else if (rightArmLengths) {
             // No preset — fall back to IK
             const ubTarget = computeUBWorldPositionMirrored(ubLocation.code, boneMap);
