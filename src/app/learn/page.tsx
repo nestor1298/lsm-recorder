@@ -20,7 +20,7 @@ import MVControls from "@/components/learn/MVControls";
 import RNMControls, { type FaceState } from "@/components/learn/RNMControls";
 import ArmControls from "@/components/learn/ArmControls";
 import SignBuilder, { type ViewerState } from "@/components/learn/SignBuilder";
-import PlaybackControls from "@/components/learn/PlaybackControls";
+import InteractiveTimeline from "@/components/learn/InteractiveTimeline";
 import SignSummary from "@/components/learn/SignSummary";
 
 // Single 3D viewer — no SSR, shared across all channels
@@ -270,13 +270,13 @@ export default function LearnPage() {
 
   // Derive playback viewer state
   const playbackFrame = useMemo(() => {
-    if (!currentSign || !isPlaying) return null;
+    if (!currentSign || (!isPlaying && playbackElapsed === 0)) return null;
     return getPlaybackFrame(currentSign, playbackElapsed);
   }, [currentSign, isPlaying, playbackElapsed]);
 
   // Override buildViewer with playback frame data
   const effectiveViewer = useMemo<ViewerState>(() => {
-    if (!isPlaying || !playbackFrame || !currentSign) return buildViewer;
+    if ((!isPlaying && playbackElapsed === 0) || !playbackFrame || !currentSign) return buildViewer;
 
     const seg = currentSign.segments[playbackFrame.segmentIndex];
     if (!seg) return buildViewer;
@@ -323,7 +323,7 @@ export default function LearnPage() {
         },
       };
     }
-  }, [isPlaying, playbackFrame, currentSign, buildViewer]);
+  }, [isPlaying, playbackElapsed, playbackFrame, currentSign, buildViewer]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
@@ -340,6 +340,19 @@ export default function LearnPage() {
   const stopPlayback = useCallback(() => {
     setIsPlaying(false);
     setPlaybackElapsed(0);
+  }, []);
+
+  // ── Scrub handlers (for interactive timeline) ──
+  const wasPlayingRef = useRef(false);
+  const handleScrubStart = useCallback(() => {
+    wasPlayingRef.current = isPlaying;
+    setIsPlaying(false);
+  }, [isPlaying]);
+  const handleScrub = useCallback((ms: number) => {
+    setPlaybackElapsed(ms);
+  }, []);
+  const handleScrubEnd = useCallback(() => {
+    if (wasPlayingRef.current) setIsPlaying(true);
   }, []);
 
   // ── Derive final 3D viewer props based on mode ──
@@ -755,23 +768,23 @@ export default function LearnPage() {
                   onSignChange={handleSignChange}
                 />
 
-                {/* Playback controls */}
+                {/* Interactive playback timeline */}
                 {currentSign && (
-                  <PlaybackControls
+                  <InteractiveTimeline
+                    sign={currentSign}
                     isPlaying={isPlaying}
+                    elapsedMs={playbackElapsed}
+                    totalDurationMs={computeTotalDuration(currentSign)}
+                    speed={playbackSpeed}
+                    loop={playbackLoop}
+                    currentFrame={playbackFrame}
                     onTogglePlay={togglePlay}
                     onStop={stopPlayback}
-                    loop={playbackLoop}
                     onToggleLoop={() => setPlaybackLoop((l) => !l)}
-                    speed={playbackSpeed}
                     onSpeedChange={setPlaybackSpeed}
-                    currentSegment={playbackFrame?.segmentIndex ?? 0}
-                    totalSegments={currentSign.segments.length}
-                    progress={
-                      computeTotalDuration(currentSign) > 0
-                        ? playbackElapsed / computeTotalDuration(currentSign)
-                        : 0
-                    }
+                    onScrub={handleScrub}
+                    onScrubStart={handleScrubStart}
+                    onScrubEnd={handleScrubEnd}
                   />
                 )}
 
