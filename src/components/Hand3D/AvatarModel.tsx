@@ -38,7 +38,7 @@ import { applyArmFK, solveFKCoordinateDescent, type ArmJointAngles, type ArmFKSt
 import { UB_FK_PRESETS } from "@/lib/ub_fk_presets";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
-const AVATAR_PATH = "/models/wscharacter_new.glb";
+const AVATAR_PATH = "/models/lexsi.glb";
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -850,14 +850,14 @@ function animateFingers(
     const boneRefs = refs.fingers[name];
     const bind = bindPoses.fingers[name];
 
-    // New model (USD-converted): curl toward palm = negative Z-axis
-    applyPose(boneRefs.carpal, bind.carpal, 0, -s.carpalSpread, -s.carpalFlex);
-    applyPose(boneRefs.bones[0], bind.bones[0], 0, 0, -s.mcpFlex);
-    applyPose(boneRefs.bones[1], bind.bones[1], 0, 0, -s.pipFlex);
-    applyPose(boneRefs.bones[2], bind.bones[2], 0, 0, -s.dipFlex);
+    // Mixamo FBX: finger bones flex with positive X toward palm
+    applyPose(boneRefs.carpal, bind.carpal, s.carpalFlex, -s.carpalSpread, 0);
+    applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0);      // MCP
+    applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0);      // PIP
+    applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0);      // DIP
   }
 
-  // Thumb — negative Z curl, X/Y for opposition
+  // Thumb — Mixamo uses flipped X/Y for opposition
   const ts = anim.thumb;
   const tt = targetPose.thumb;
   ts.cmcOpposition += (tt.cmcOpposition - ts.cmcOpposition) * factor;
@@ -866,8 +866,8 @@ function animateFingers(
   ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
   applyPose(refs.thumb[0], bindPoses.thumb[0], -ts.cmcOpposition, -ts.cmcRotation, 0);
-  applyPose(refs.thumb[1], bindPoses.thumb[1], 0, 0, -ts.mcpFlex);
-  applyPose(refs.thumb[2], bindPoses.thumb[2], 0, 0, -ts.ipFlex);
+  applyPose(refs.thumb[1], bindPoses.thumb[1], ts.mcpFlex, 0, 0);
+  applyPose(refs.thumb[2], bindPoses.thumb[2], ts.ipFlex, 0, 0);
 }
 
 // ── Blend hand poses for movement interpolation ─────────────────
