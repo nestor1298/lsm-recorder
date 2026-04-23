@@ -399,20 +399,20 @@ function poseArmDown(
   _neutralTarget.copy(bind.clavicle).multiply(_neutralDelta);
   refs.clavicle.quaternion.slerp(_neutralTarget, factor * 3);
 
-  // Upper arm: rotate down from T-pose
-  // Lexsi FBX (Blender-converted): Z-axis with side sign = adduction
+  // Upper arm: rotate down from T-pose using YXZ (Mixamo shoulder convention)
+  // Positive X = adduction (arm DOWN from T-pose toward body)
   _neutralEuler.set(
-    0,                                // X: no elevation
-    0,                                // Y: no swing
-    88 * (Math.PI / 180) * sign,      // Z: adduction → bring arm down from T-pose
-    "XYZ",
+    88 * (Math.PI / 180),             // X: adduction → bring arm down from T-pose
+    5 * (Math.PI / 180) * sign,       // Y: slight forward swing
+    0,                                // Z: no axial twist
+    "YXZ",
   );
   _neutralDelta.setFromEuler(_neutralEuler);
   _neutralTarget.copy(bind.upperArm).multiply(_neutralDelta);
   refs.upperArm.quaternion.slerp(_neutralTarget, factor * 3);
 
   // Forearm: slight bend at elbow (≈ 8°)
-  _neutralEuler.set(8 * (Math.PI / 180), 0, 0, "XYZ");
+  _neutralEuler.set(-8 * (Math.PI / 180), 0, 0, "XYZ");
   _neutralDelta.setFromEuler(_neutralEuler);
   _neutralTarget.copy(bind.foreArm).multiply(_neutralDelta);
   refs.foreArm.quaternion.slerp(_neutralTarget, factor * 3);
@@ -1156,7 +1156,7 @@ export default function AvatarModel({
   // Load GLB model
   const gltf = useLoader(GLTFLoader, AVATAR_PATH, (loader) => {
     // MeshoptDecoder only needed for meshopt-compressed models (original wscharacter.glb)
-    if (!AVATAR_PATH.includes("_new")) {
+    if (AVATAR_PATH.includes("wscharacter.glb") && !AVATAR_PATH.includes("_new")) {
       loader.setMeshoptDecoder(MeshoptDecoder);
     }
   });
