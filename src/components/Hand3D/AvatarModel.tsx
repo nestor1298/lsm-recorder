@@ -399,14 +399,13 @@ function poseArmDown(
   _neutralTarget.copy(bind.clavicle).multiply(_neutralDelta);
   refs.clavicle.quaternion.slerp(_neutralTarget, factor * 3);
 
-  // Upper arm: rotate down from T-pose using YXZ (matching FK shoulder convention)
-  // Lexsi FBX: negative X = adduction (arm DOWN from T-pose toward body)
-  // Y = swing: slight forward lean
+  // Upper arm: rotate down from T-pose
+  // Lexsi FBX (Blender-converted): Z-axis with side sign = adduction
   _neutralEuler.set(
-    -88 * (Math.PI / 180),            // X: adduction → bring arm down from T-pose
-    -5 * (Math.PI / 180) * sign,      // Y: slight forward swing
-    0,                                // Z: no axial twist
-    "YXZ",
+    0,                                // X: no elevation
+    0,                                // Y: no swing
+    88 * (Math.PI / 180) * sign,      // Z: adduction → bring arm down from T-pose
+    "XYZ",
   );
   _neutralDelta.setFromEuler(_neutralEuler);
   _neutralTarget.copy(bind.upperArm).multiply(_neutralDelta);
