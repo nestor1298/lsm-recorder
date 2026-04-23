@@ -134,6 +134,7 @@ function buildBoneMap(root: THREE.Object3D): Map<string, THREE.Bone> {
 
 const _boneWorldPos = new THREE.Vector3();
 const _offsetVec = new THREE.Vector3();
+const _boneWorldScale = new THREE.Vector3();
 
 function computeUBWorldPosition(
   code: string,
@@ -147,7 +148,15 @@ function computeUBWorldPosition(
   bone.updateWorldMatrix(true, false);
   bone.getWorldPosition(_boneWorldPos);
 
-  _offsetVec.set(anchor.offset[0], anchor.offset[1], anchor.offset[2]);
+  // Offsets are in model space but bone positions are in scene-scaled
+  // world space (the scene is auto-scaled by 2.5/maxDim). Multiply
+  // the offset by the bone's world scale so it matches.
+  bone.getWorldScale(_boneWorldScale);
+  _offsetVec.set(
+    anchor.offset[0] * _boneWorldScale.x,
+    anchor.offset[1] * _boneWorldScale.y,
+    anchor.offset[2] * _boneWorldScale.z,
+  );
   return _boneWorldPos.clone().add(_offsetVec);
 }
 
@@ -182,7 +191,13 @@ function computeUBWorldPositionWithSurfaceOffset(
   bone.updateWorldMatrix(true, false);
   bone.getWorldPosition(_boneWorldPos);
 
-  _offsetVec.set(anchor.offset[0], anchor.offset[1], anchor.offset[2]);
+  // Scale offset by scene scale (auto-scaled by 2.5/maxDim)
+  bone.getWorldScale(_boneWorldScale);
+  _offsetVec.set(
+    anchor.offset[0] * _boneWorldScale.x,
+    anchor.offset[1] * _boneWorldScale.y,
+    anchor.offset[2] * _boneWorldScale.z,
+  );
   const ubPos = _boneWorldPos.clone().add(_offsetVec);
 
   // Compute approximate outward direction
@@ -190,19 +205,16 @@ function computeUBWorldPositionWithSurfaceOffset(
   if (offsetLen > 0.001) {
     _surfaceOffsetDir.copy(_offsetVec);
 
-    // For Head-anchored points, dampen Y so the offset direction
-    // approximates the surface normal (mostly XZ) rather than following
-    // the large vertical bone→UB vector.
     if (anchor.boneName === "Head") {
       _surfaceOffsetDir.y *= 0.3;
-      // Fallback for top-of-head points where XZ is very small
       if (_surfaceOffsetDir.lengthSq() < 0.001) {
         _surfaceOffsetDir.set(0, 1, 0);
       }
     }
 
     _surfaceOffsetDir.normalize();
-    ubPos.addScaledVector(_surfaceOffsetDir, surfaceOffset);
+    // Surface offset also needs to be in world-scaled space
+    ubPos.addScaledVector(_surfaceOffsetDir, surfaceOffset * _boneWorldScale.x);
   }
 
   return ubPos;
@@ -226,8 +238,14 @@ function computeUBWorldPositionMirrored(
   bone.updateWorldMatrix(true, false);
   bone.getWorldPosition(_boneWorldPos);
 
+  // Scale offset by scene scale
+  bone.getWorldScale(_boneWorldScale);
   const mirrored = mirrorUBOffset(anchor.offset);
-  _offsetVec.set(mirrored[0], mirrored[1], mirrored[2]);
+  _offsetVec.set(
+    mirrored[0] * _boneWorldScale.x,
+    mirrored[1] * _boneWorldScale.y,
+    mirrored[2] * _boneWorldScale.z,
+  );
   return _boneWorldPos.clone().add(_offsetVec);
 }
 
