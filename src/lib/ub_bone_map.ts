@@ -37,166 +37,166 @@ export const UB_BONE_MAP: Record<string, BoneAnchor> = {
   // ── HEAD region (on skull, not face) ──────────────────────────────
 
   // Ca — Cabeza (top-center of head, between crown and forehead)
-  Ca: { boneName: "Head", offset: [0, 0.14, 0.02] },
+  Ca: { boneName: "Head", offset: [0, 0.14, 0.06] },
 
-  // Vx — Coronilla (very top of skull, crown at y+0.015)
-  Vx: { boneName: "Head", offset: [0, 0.16, 0.0] },
+  // Vx — Coronilla (very top of skull)
+  Vx: { boneName: "Head", offset: [0, 0.16, 0.03] },
 
   // Par — Parietal (side of skull, ipsi)
-  Par: { boneName: "Head", offset: [0.05, 0.12, 0.0] },
+  Par: { boneName: "Head", offset: [0.06, 0.12, 0.03] },
 
   // Te — Sien (temple)
-  Te: { boneName: "Head", offset: [0.06, 0.08, 0.02] },
+  Te: { boneName: "Head", offset: [0.07, 0.08, 0.04] },
 
   // Au — Oreja (ear)
-  Au: { boneName: "Head", offset: [0.06, 0.04, -0.01] },
+  Au: { boneName: "Head", offset: [0.07, 0.04, 0.0] },
 
   // LobAu — Lóbulo (earlobe)
-  LobAu: { boneName: "Head", offset: [0.05, 0.01, -0.01] },
+  LobAu: { boneName: "Head", offset: [0.06, 0.01, 0.0] },
 
   // ── FACE region (front of head) ───────────────────────────────────
 
   // Fa — Cara (center of face)
-  Fa: { boneName: "Head", offset: [0, 0.06, 0.055] },
+  Fa: { boneName: "Head", offset: [0, 0.06, 0.07] },
 
   // Fr — Frente (forehead center)
-  Fr: { boneName: "Head", offset: [0, 0.10, 0.03] },
+  Fr: { boneName: "Head", offset: [0, 0.11, 0.05] },
 
   // IpsiFr — Frente-ipsi
-  IpsiFr: { boneName: "Head", offset: [0.02, 0.10, 0.025] },
+  IpsiFr: { boneName: "Head", offset: [0.02, 0.11, 0.045] },
 
   // XFr — Frente-contra
-  XFr: { boneName: "Head", offset: [-0.02, 0.10, 0.025] },
+  XFr: { boneName: "Head", offset: [-0.02, 0.11, 0.045] },
 
   // Ci — Ceja ipsi (eyebrow)
-  Ci: { boneName: "Head", offset: [0.02, 0.10, 0.028] },
+  Ci: { boneName: "Head", offset: [0.02, 0.10, 0.05] },
 
   // Su — Ceja contra (eyebrow)
-  Su: { boneName: "Head", offset: [-0.02, 0.10, 0.028] },
+  Su: { boneName: "Head", offset: [-0.02, 0.10, 0.05] },
 
   // Cin — Entrecejo (brow ridge center)
-  Cin: { boneName: "Head", offset: [0, 0.10, 0.03] },
+  Cin: { boneName: "Head", offset: [0, 0.10, 0.05] },
 
   // Oc — Ojo (eye)
-  Oc: { boneName: "Head", offset: [0.02, 0.08, 0.05] },
+  Oc: { boneName: "Head", offset: [0.02, 0.08, 0.06] },
 
   // RapOc — Rabillo del ojo (outer eye corner)
-  RapOc: { boneName: "Head", offset: [0.04, 0.08, 0.04] },
+  RapOc: { boneName: "Head", offset: [0.04, 0.08, 0.05] },
 
   // OrbOc — Órbita ocular (above eye)
-  OrbOc: { boneName: "Head", offset: [0.02, 0.09, 0.04] },
+  OrbOc: { boneName: "Head", offset: [0.02, 0.09, 0.055] },
 
   // Na — Punta de nariz (nose tip)
-  Na: { boneName: "Head", offset: [0, 0.06, 0.06] },
+  Na: { boneName: "Head", offset: [0, 0.06, 0.075] },
 
   // Sep — Puente nasal (nose bridge)
-  Sep: { boneName: "Head", offset: [0, 0.07, 0.055] },
+  Sep: { boneName: "Head", offset: [0, 0.07, 0.065] },
 
   // AlNa — Alas nasales (nasal wings)
-  AlNa: { boneName: "Head", offset: [0.02, 0.06, 0.055] },
+  AlNa: { boneName: "Head", offset: [0.02, 0.06, 0.07] },
 
   // Po — Pómulo (cheekbone)
-  Po: { boneName: "Head", offset: [0.03, 0.06, 0.05] },
+  Po: { boneName: "Head", offset: [0.04, 0.06, 0.06] },
 
   // Ge — Mejilla (cheek)
-  Ge: { boneName: "Head", offset: [0.04, 0.04, 0.04] },
+  Ge: { boneName: "Head", offset: [0.05, 0.04, 0.055] },
 
   // Os — Boca (mouth center)
-  Os: { boneName: "Head", offset: [0, 0.04, 0.065] },
+  Os: { boneName: "Head", offset: [0, 0.04, 0.075] },
 
   // IpsiOs — Boca-ipsi
-  IpsiOs: { boneName: "Head", offset: [0.02, 0.04, 0.06] },
+  IpsiOs: { boneName: "Head", offset: [0.02, 0.04, 0.07] },
 
   // XOs — Boca-contra
-  XOs: { boneName: "Head", offset: [-0.02, 0.04, 0.06] },
+  XOs: { boneName: "Head", offset: [-0.02, 0.04, 0.07] },
 
   // La — Labio inferior (lower lip)
-  La: { boneName: "Head", offset: [0, 0.03, 0.065] },
+  La: { boneName: "Head", offset: [0, 0.03, 0.075] },
 
   // Lab — Labio superior (upper lip)
-  Lab: { boneName: "Head", offset: [0, 0.05, 0.06] },
+  Lab: { boneName: "Head", offset: [0, 0.05, 0.07] },
 
   // Lin — Lengua (tongue)
-  Lin: { boneName: "Head", offset: [0, 0.04, 0.055] },
+  Lin: { boneName: "Head", offset: [0, 0.04, 0.065] },
 
   // Den — Dientes (teeth)
-  Den: { boneName: "Head", offset: [0, 0.04, 0.055] },
+  Den: { boneName: "Head", offset: [0, 0.04, 0.065] },
 
   // Col — Colmillo (canine)
-  Col: { boneName: "Head", offset: [0.01, 0.04, 0.055] },
+  Col: { boneName: "Head", offset: [0.01, 0.04, 0.065] },
 
   // MedDen — Incisivos (front teeth)
-  MedDen: { boneName: "Head", offset: [0, 0.04, 0.06] },
+  MedDen: { boneName: "Head", offset: [0, 0.04, 0.07] },
 
   // Me — Mentón (chin)
-  Me: { boneName: "Head", offset: [0, 0.02, 0.065] },
+  Me: { boneName: "Head", offset: [0, 0.02, 0.075] },
 
   // ── NECK region ───────────────────────────────────────────────────
 
   // Ce — Nuca (back of neck)
-  Ce: { boneName: "Neck", offset: [0, 0.0, -0.04] },
+  Ce: { boneName: "Neck", offset: [0, 0.0, -0.05] },
 
   // Gu — Garganta (throat)
-  Gu: { boneName: "Head", offset: [0, -0.02, 0.04] },
+  Gu: { boneName: "Head", offset: [0, -0.02, 0.05] },
 
   // Co — Cuello (neck front)
-  Co: { boneName: "Neck", offset: [0, 0.0, 0.05] },
+  Co: { boneName: "Neck", offset: [0, 0.0, 0.06] },
 
   // IpsiCo — Cuello-ipsi
-  IpsiCo: { boneName: "Neck", offset: [0.03, 0.0, 0.04] },
+  IpsiCo: { boneName: "Neck", offset: [0.03, 0.0, 0.05] },
 
   // ── TRUNK region ──────────────────────────────────────────────────
 
   // Cla - Clavicle
-  Cla: { boneName: "LeftShoulder", offset: [-0.02, 0.0, 0.05] },
+  Cla: { boneName: "LeftShoulder", offset: [-0.02, 0.0, 0.06] },
 
   // Um - Shoulder [frequent]
   Um: { boneName: "LeftArm", offset: [0.0, 0.0, 0.0] },
 
   // Pe - Chest [frequent]
-  Pe: { boneName: "Spine2", offset: [0, 0.0, 0.06] },
+  Pe: { boneName: "Spine2", offset: [0, 0.0, 0.07] },
 
   // XPe - Chest-contra
-  XPe: { boneName: "Spine2", offset: [-0.03, 0.0, 0.06] },
+  XPe: { boneName: "Spine2", offset: [-0.04, 0.0, 0.07] },
 
   // IpsiPe - Chest-ipsi
-  IpsiPe: { boneName: "Spine2", offset: [0.03, 0.0, 0.06] },
+  IpsiPe: { boneName: "Spine2", offset: [0.04, 0.0, 0.07] },
 
   // Cor - Heart (contra side)
-  Cor: { boneName: "Spine2", offset: [-0.03, -0.01, 0.055] },
+  Cor: { boneName: "Spine2", offset: [-0.04, -0.01, 0.065] },
 
   // Es - Sternum
-  Es: { boneName: "Spine2", offset: [0, -0.02, 0.06] },
+  Es: { boneName: "Spine2", offset: [0, -0.02, 0.07] },
 
   // To - Thorax (lower chest)
-  To: { boneName: "Spine1", offset: [0, 0.02, 0.055] },
+  To: { boneName: "Spine1", offset: [0, 0.02, 0.065] },
 
   // Cos - Ribs (side of ribs, ipsi)
-  Cos: { boneName: "Spine1", offset: [0.04, 0.0, 0.04] },
+  Cos: { boneName: "Spine1", offset: [0.05, 0.0, 0.05] },
 
   // Dor - Back (behind trunk)
-  Dor: { boneName: "Spine2", offset: [0, 0.0, -0.05] },
+  Dor: { boneName: "Spine2", offset: [0, 0.0, -0.06] },
 
   // Ve - Stomach [frequent]
-  Ve: { boneName: "Spine", offset: [0, 0.0, 0.055] },
+  Ve: { boneName: "Spine", offset: [0, 0.0, 0.065] },
 
   // Abd - Abdomen (lower belly)
-  Abd: { boneName: "Hips", offset: [0, 0.02, 0.055] },
+  Abd: { boneName: "Hips", offset: [0, 0.02, 0.065] },
 
   // Je - Liver (ipsi side)
-  Je: { boneName: "Spine", offset: [0.03, -0.01, 0.05] },
+  Je: { boneName: "Spine", offset: [0.04, -0.01, 0.06] },
 
   // Cit - Waist
-  Cit: { boneName: "Hips", offset: [0.03, 0.01, 0.04] },
+  Cit: { boneName: "Hips", offset: [0.04, 0.01, 0.05] },
 
   // Cox - Hip
-  Cox: { boneName: "LeftUpLeg", offset: [0.0, 0.02, 0.05] },
+  Cox: { boneName: "LeftUpLeg", offset: [0.0, 0.02, 0.06] },
 
   // Fe - Thigh
-  Fe: { boneName: "LeftUpLeg", offset: [0.0, -0.06, 0.05] },
+  Fe: { boneName: "LeftUpLeg", offset: [0.0, -0.06, 0.06] },
 
   // Gen - Knee
-  Gen: { boneName: "LeftLeg", offset: [0.0, 0.01, 0.03] },
+  Gen: { boneName: "LeftLeg", offset: [0.0, 0.01, 0.04] },
 
   // ── ARM region ────────────────────────────────────────────────────
 
