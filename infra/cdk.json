@@ -1,0 +1,12 @@
+{
+  "app": "node dist/bin/signalab.js",
+  "watch": {
+    "include": ["**"],
+    "exclude": ["README.md", "dist", "node_modules", "cdk.out"]
+  },
+  "context": {
+    "prodOrigin": "https://lsm-recorder.vercel.app",
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:checkSecretUsage": true
+  }
+}

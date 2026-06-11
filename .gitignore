@@ -32,9 +32,16 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.local.example
 
 # vercel
 .vercel
+
+# aws cdk (infra/)
+infra/node_modules/
+infra/dist/
+infra/cdk.out/
+infra/cdk.context.json
 
 # typescript
 *.tsbuildinfo
