@@ -5,11 +5,14 @@ import { useRef, useState, useCallback, useEffect } from "react";
 interface CameraRecorderProps {
   onRecordingComplete: (blob: Blob, durationMs: number) => void;
   onError?: (error: string) => void;
+  /** Reports the active camera track settings (resolution, frame rate). */
+  onStreamReady?: (settings: MediaTrackSettings) => void;
 }
 
 export default function CameraRecorder({
   onRecordingComplete,
   onError,
+  onStreamReady,
 }: CameraRecorderProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -36,10 +39,12 @@ export default function CameraRecorder({
         videoRef.current.srcObject = stream;
         setIsStreaming(true);
       }
+      const track = stream.getVideoTracks()[0];
+      if (track) onStreamReady?.(track.getSettings());
     } catch {
       onError?.("Camera access denied. Please allow camera permissions.");
     }
-  }, [onError]);
+  }, [onError, onStreamReady]);
 
   // Stop camera stream
   const stopCamera = useCallback(() => {

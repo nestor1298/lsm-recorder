@@ -2,6 +2,8 @@ interface LSMVideoSlotProps {
   /** When provided, plays the LSM video; otherwise shows a labelled placeholder. */
   videoSrc?: string;
   caption?: string;
+  /** Shorter placeholder for inline use (e.g. next to each questionnaire item). */
+  compact?: boolean;
 }
 
 /**
@@ -9,7 +11,11 @@ interface LSMVideoSlotProps {
  * videos are recorded later, so until `videoSrc` is set this renders a clearly
  * marked placeholder.
  */
-export default function LSMVideoSlot({ videoSrc, caption }: LSMVideoSlotProps) {
+export default function LSMVideoSlot({
+  videoSrc,
+  caption,
+  compact = false,
+}: LSMVideoSlotProps) {
   if (videoSrc) {
     return (
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
@@ -22,11 +28,17 @@ export default function LSMVideoSlot({ videoSrc, caption }: LSMVideoSlotProps) {
   }
 
   return (
-    <div className="flex aspect-video w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-center">
+    <div
+      className={`flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 text-center ${
+        compact ? "h-20" : "aspect-video"
+      }`}
+    >
       <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
         video en LSM próximamente
       </span>
-      {caption && <p className="mt-2 px-4 text-sm text-gray-400">{caption}</p>}
+      {caption && !compact && (
+        <p className="mt-2 px-4 text-sm text-gray-400">{caption}</p>
+      )}
     </div>
   );
 }

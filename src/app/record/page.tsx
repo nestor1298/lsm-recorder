@@ -61,6 +61,11 @@ function RecordPageInner() {
   const [sessionName, setSessionName] = useState("");
   const [selectedTier, setSelectedTier] = useState<number | null>(1);
   const [shuffled, setShuffled] = useState(false);
+  const [lugar, setLugar] = useState("");
+
+  // Captured at session start, read at upload time (avoid stale closures).
+  const lugarRef = useRef("");
+  const cameraSettingsRef = useRef<MediaTrackSettings | null>(null);
 
   // ── Gate: require sign-in + granted consent ──────────────────────────────
   useEffect(() => {
@@ -126,10 +131,21 @@ function RecordPageInner() {
   const ensureRemoteSession = useCallback(
     async (s: RecordingSession): Promise<void> => {
       if (s.remote_session_created) return;
+      const settings = cameraSettingsRef.current;
       await postJson("/api/sessions", {
         sessionId: s.id,
         name: s.name,
         deviceInfo: { userAgent: navigator.userAgent },
+        sessionMetadata: {
+          user_agent: navigator.userAgent,
+          screen_width: window.screen?.width,
+          screen_height: window.screen?.height,
+          camera_width: settings?.width,
+          camera_height: settings?.height,
+          camera_frame_rate: settings?.frameRate,
+          lugar: lugarRef.current || undefined,
+          captured_at: new Date().toISOString(),
+        },
       });
       const fresh = getSession(s.id);
       if (fresh) {
@@ -378,6 +394,22 @@ function RecordPageInner() {
             <span className="text-sm text-gray-700">Mezclar el orden</span>
           </label>
 
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Lugar (opcional)
+            </label>
+            <input
+              type="text"
+              value={lugar}
+              onChange={(e) => {
+                setLugar(e.target.value);
+                lugarRef.current = e.target.value;
+              }}
+              placeholder="ej., Ciudad de México"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+
           <button
             onClick={handleCreateSession}
             className="w-full rounded-lg bg-indigo-600 py-3 text-lg font-semibold text-white transition-colors hover:bg-indigo-700"
@@ -522,7 +554,12 @@ function RecordPageInner() {
 
       <SignPrompt cm={currentCM} index={currentIndex} total={sessionCMs.length} />
 
-      <CameraRecorder onRecordingComplete={handleRecordingComplete} />
+      <CameraRecorder
+        onRecordingComplete={handleRecordingComplete}
+        onStreamReady={(s) => {
+          cameraSettingsRef.current = s;
+        }}
+      />
 
       <div className="flex items-center justify-between">
         <button
