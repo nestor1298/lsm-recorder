@@ -33,11 +33,17 @@ export type FingerGroup =
   | "D: Index Finger (1)"
   | "E: Pinky & Special";
 
+// Local draft sync state (the corpus of record lives in S3/DynamoDB; localStorage
+// is a draft layer). A recording is only "synced" once its DynamoDB item exists.
+export type SyncStatus = "local" | "uploading" | "synced" | "failed";
+
 export interface RecordingSession {
   id: string;
   name: string;
   created_at: string;
   signs: RecordedSign[];
+  // Set once the remote Session item has been created in DynamoDB.
+  remote_session_created?: boolean;
 }
 
 export interface RecordedSign {
@@ -47,6 +53,11 @@ export interface RecordedSign {
   duration_ms: number;
   status: "pending" | "recorded" | "approved" | "rejected";
   notes?: string;
+  // ── Remote sync (S3 + DynamoDB) ──
+  sync_status?: SyncStatus;
+  s3_key?: string;
+  remote_id?: string;
+  sync_error?: string;
 }
 
 // ── Annotation Types (LSM-PN) ──────────────────────────────────
