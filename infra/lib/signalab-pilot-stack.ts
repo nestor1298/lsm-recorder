@@ -110,11 +110,16 @@ export class SignalabPilotStack extends Stack {
     // Essentials feature plan. We set it through the L1 escape hatch so this
     // compiles across CDK minor versions and maps directly to the documented
     // CloudFormation properties.
+    //
+    // NOTE: Cognito's managed sign-in policy requires PASSWORD to be one of the
+    // allowed first-auth factors (it rejects EMAIL_OTP alone). PASSWORD is
+    // listed only to satisfy that constraint — the app authenticates with
+    // EMAIL_OTP exclusively, so the participant experience stays passwordless.
     const cfnUserPool = userPool.node.defaultChild as cognito.CfnUserPool;
     cfnUserPool.addPropertyOverride("UserPoolTier", "ESSENTIALS");
     cfnUserPool.addPropertyOverride(
       "Policies.SignInPolicy.AllowedFirstAuthFactors",
-      ["EMAIL_OTP"],
+      ["PASSWORD", "EMAIL_OTP"],
     );
 
     const userPoolClient = new cognito.UserPoolClient(this, "WebClient", {
