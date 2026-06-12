@@ -13,12 +13,11 @@ export async function GET(req: Request) {
     return authErrorResponse(err);
   }
 
-  await ensureParticipant(user.userId, user.email);
+  await ensureParticipant(user.userId);
   const participant = await getParticipant(user.userId);
 
   return Response.json({
     userId: user.userId,
-    email: user.email,
     consentStatus: participant?.consent_status ?? "none",
     defaultTier: participant?.default_access_tier ?? "restringido",
     hasMetadata: Boolean(participant?.metadata),

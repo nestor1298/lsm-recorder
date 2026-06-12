@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return authErrorResponse(err);
   }
 
-  await ensureParticipant(user.userId, user.email);
+  await ensureParticipant(user.userId);
   const key = `${user.userId}/consent.webm`;
   const url = await presignVideoPut(awsEnv.consentBucket(), key);
   return Response.json({ url, key, contentType: VIDEO_CONTENT_TYPE });

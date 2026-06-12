@@ -40,10 +40,7 @@ export async function getParticipant(
 }
 
 /** Idempotent: create the profile if absent, never clobbering existing consent. */
-export async function ensureParticipant(
-  userId: string,
-  email?: string,
-): Promise<void> {
+export async function ensureParticipant(userId: string): Promise<void> {
   await ddbDoc().send(
     new UpdateCommand({
       TableName: awsEnv.corpusTable(),
@@ -51,15 +48,13 @@ export async function ensureParticipant(
       UpdateExpression:
         "SET entity = :entity, user_id = :uid, created_at = if_not_exists(created_at, :now), " +
         "consent_status = if_not_exists(consent_status, :none), " +
-        "default_access_tier = if_not_exists(default_access_tier, :tier)" +
-        (email ? ", email = if_not_exists(email, :email)" : ""),
+        "default_access_tier = if_not_exists(default_access_tier, :tier)",
       ExpressionAttributeValues: {
         ":entity": "participant",
         ":uid": userId,
         ":now": now(),
         ":none": "none",
         ":tier": DEFAULT_ACCESS_TIER,
-        ...(email ? { ":email": email } : {}),
       },
     }),
   );
@@ -166,6 +161,8 @@ export async function putRecording(
     status?: RecordingStatus;
     accessTier: AccessTier;
     notes?: string;
+    // Re-recording a previously withdrawn sign must not silently un-withdraw it.
+    withdrawn?: boolean;
   },
 ): Promise<RecordingItem> {
   const recordedAt = now();
@@ -183,7 +180,7 @@ export async function putRecording(
     recorded_at: recordedAt,
     status: args.status ?? "approved",
     access_tier: args.accessTier,
-    withdrawn: false,
+    withdrawn: args.withdrawn ?? false,
     notes: args.notes,
   };
   await ddbDoc().send(

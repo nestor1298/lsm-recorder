@@ -81,9 +81,9 @@ export default function ConsentimientoPage() {
 
       {step === 1 && (
         <section className="space-y-4">
-          <LSMVideoSlot caption="Bienvenida a SignaLab" />
+          <LSMVideoSlot caption="Te damos la bienvenida a SignaLab" />
           <h1 className="text-2xl font-bold text-gray-900">
-            Bienvenida a SignaLab
+            Te damos la bienvenida a SignaLab
           </h1>
           <div className="space-y-3 text-gray-700">
             <p>

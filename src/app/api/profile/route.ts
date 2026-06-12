@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     >(body?.participacion_comunidad, COMMUNITY),
   };
 
-  await ensureParticipant(user.userId, user.email);
+  await ensureParticipant(user.userId);
   await setParticipantMetadata(
     user.userId,
     metadata as unknown as Record<string, unknown>,

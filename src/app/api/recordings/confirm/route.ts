@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { getParticipant, putRecording } from "@/lib/aws/repo";
+import {
+  getParticipant,
+  getOwnedRecording,
+  putRecording,
+} from "@/lib/aws/repo";
 import { recordingId } from "@/lib/aws/keys";
 
 export const runtime = "nodejs";
@@ -45,6 +49,9 @@ export async function POST(req: Request) {
     );
   }
 
+  // If this sign was previously withdrawn, re-recording must not resurrect it.
+  const existing = await getOwnedRecording(user.userId, sessionId, cmId);
+
   const recording = await putRecording(user.userId, {
     sessionId,
     cmId,
@@ -52,6 +59,7 @@ export async function POST(req: Request) {
     durationMs,
     status: "approved",
     accessTier: participant.default_access_tier,
+    withdrawn: existing?.withdrawn ?? false,
     notes: typeof body.notes === "string" ? body.notes : undefined,
   });
 

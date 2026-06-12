@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "videoKey inválida" }, { status: 400 });
   }
 
-  await ensureParticipant(user.userId, user.email);
+  await ensureParticipant(user.userId);
   await setConsent(user.userId, {
     mode,
     videoKey: mode === "video" ? videoKey : undefined,

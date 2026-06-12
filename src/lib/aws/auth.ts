@@ -9,7 +9,6 @@ import { awsEnv } from "./env";
  */
 export interface AuthedUser {
   userId: string;
-  email?: string;
 }
 
 export class AuthError extends Error {
@@ -42,11 +41,11 @@ export async function requireUser(req: Request): Promise<AuthedUser> {
   }
   const token = header.slice("Bearer ".length).trim();
   try {
+    // Access tokens carry `sub` (the stable user id) but not `email` — email
+    // lives in the ID token. We intentionally do not collect email server-side
+    // (PII minimization); Cognito holds it only for authentication.
     const payload = await verifier().verify(token);
-    const claims = payload as Record<string, unknown>;
-    const email =
-      typeof claims.email === "string" ? (claims.email as string) : undefined;
-    return { userId: payload.sub, email };
+    return { userId: payload.sub };
   } catch {
     throw new AuthError("Token inválido o expirado");
   }

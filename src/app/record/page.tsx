@@ -97,12 +97,35 @@ function RecordPageInner() {
     };
   }, [authState, router]);
 
+  // Signs stuck at "uploading" after a reload have no in-memory blob, so they
+  // can never finish. Mark them "failed" so they surface in the retry panel.
+  const reconcileOrphans = useCallback(
+    (s: RecordingSession): RecordingSession => {
+      let changed = false;
+      for (const sign of s.signs) {
+        if (
+          sign.status === "approved" &&
+          sign.sync_status === "uploading" &&
+          !blobsRef.current.has(sign.cm_id)
+        ) {
+          sign.sync_status = "failed";
+          sign.sync_error =
+            "La subida se interrumpió y el video ya no está en este navegador; vuelve a grabar esta seña.";
+          changed = true;
+        }
+      }
+      if (changed) saveSession(s);
+      return s;
+    },
+    [],
+  );
+
   // Load existing session if resuming
   useEffect(() => {
     if (resumeId) {
       const existing = getSession(resumeId);
       if (existing) {
-        setSession(existing);
+        setSession(reconcileOrphans(existing));
         const firstPending = existing.signs.findIndex(
           (s) => s.status === "pending",
         );
@@ -111,7 +134,7 @@ function RecordPageInner() {
       }
     }
     setSessions(getSessions());
-  }, [resumeId]);
+  }, [resumeId, reconcileOrphans]);
 
   const sessionCMs = useMemo(() => {
     if (!session) return [];
@@ -444,7 +467,7 @@ function RecordPageInner() {
                   >
                     <button
                       onClick={() => {
-                        setSession(s);
+                        setSession(reconcileOrphans(s));
                         const firstPending = s.signs.findIndex(
                           (sign) => sign.status === "pending",
                         );
@@ -609,8 +632,8 @@ function RecordPageInner() {
         ) && (
           <div className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
             <p className="text-sm font-medium text-amber-800">
-              Señas sin sincronizar (el video sigue en este dispositivo, no se
-              ha perdido):
+              Señas sin sincronizar. El video solo se conserva mientras esta
+              página esté abierta; si la recargas tendrás que volver a grabar.
             </p>
             {session.signs
               .filter(
