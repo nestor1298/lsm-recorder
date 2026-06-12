@@ -5,7 +5,7 @@
     "exclude": ["README.md", "dist", "node_modules", "cdk.out"]
   },
   "context": {
-    "prodOrigin": "https://lsm-recorder.vercel.app",
+    "prodOrigin": "https://signalab.other-ai.com",
     "@aws-cdk/aws-iam:minimizePolicies": true,
     "@aws-cdk/core:checkSecretUsage": true
   }

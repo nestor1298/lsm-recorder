@@ -51,7 +51,7 @@ npm run lint            # eslint        (must pass)
 npx cdk bootstrap aws://<ACCOUNT_ID>/<REGION>
 
 # Deploy. Pass the production origin used for S3 CORS:
-npx cdk deploy -c prodOrigin=https://lsm-recorder.vercel.app
+npx cdk deploy -c prodOrigin=https://signalab.other-ai.com
 ```
 
 On success, copy the stack outputs into the app's `.env.local`
