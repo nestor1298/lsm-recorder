@@ -33,11 +33,17 @@ export type FingerGroup =
   | "D: Index Finger (1)"
   | "E: Pinky & Special";
 
+// Local draft sync state (the corpus of record lives in S3/DynamoDB; localStorage
+// is a draft layer). A recording is only "synced" once its DynamoDB item exists.
+export type SyncStatus = "local" | "uploading" | "synced" | "failed";
+
 export interface RecordingSession {
   id: string;
   name: string;
   created_at: string;
   signs: RecordedSign[];
+  // Set once the remote Session item has been created in DynamoDB.
+  remote_session_created?: boolean;
 }
 
 export interface RecordedSign {
@@ -47,6 +53,62 @@ export interface RecordedSign {
   duration_ms: number;
   status: "pending" | "recorded" | "approved" | "rejected";
   notes?: string;
+  // ── Remote sync (S3 + DynamoDB) ──
+  sync_status?: SyncStatus;
+  s3_key?: string;
+  remote_id?: string;
+  sync_error?: string;
+}
+
+// ── Participant metadata (questionnaire at /perfil) ─────────────
+export type AgeBand = "18-30" | "31-45" | "46-60" | "60+";
+export type AcquisitionAge =
+  | "desde_nacimiento"
+  | "antes_de_7"
+  | "entre_7_y_12"
+  | "adolescencia"
+  | "adultez";
+export type LearnedHow =
+  | "familia"
+  | "escuela"
+  | "amistades"
+  | "asociacion"
+  | "otro";
+export type DeafFamily = "si" | "no" | "no_se";
+export type HearingStatus = "sorde" | "hipoacusique" | "oyente";
+export type CommunityParticipation = "frecuente" | "ocasional" | "poca";
+
+export interface ParticipantMetadata {
+  // Required
+  edad: AgeBand;
+  edad_adquisicion: AcquisitionAge;
+  // Optional
+  genero?: string; // texto libre o "prefiero no decir"
+  region_vive?: string;
+  anios_en_region?: number;
+  lugar_crecio?: string;
+  como_aprendio?: LearnedHow;
+  personas_sordas_familia?: DeafFamily;
+  lengua_casa?: string;
+  lengua_escuela?: string;
+  audicion?: HearingStatus;
+  participacion_comunidad?: CommunityParticipation;
+  // How consent was given (video, or the text-only skip path).
+  consent_mode?: "video" | "text";
+  // TODO(comunidad): escolaridad y ocupación deben definirse junto con la
+  // comunidad sorda antes de incluirse. No agregar estas categorías en este PR.
+}
+
+// Auto-captured session context (stored on the Session item).
+export interface SessionMetadata {
+  user_agent?: string;
+  screen_width?: number;
+  screen_height?: number;
+  camera_width?: number;
+  camera_height?: number;
+  camera_frame_rate?: number;
+  lugar?: string;
+  captured_at?: string;
 }
 
 // ── Annotation Types (LSM-PN) ──────────────────────────────────
