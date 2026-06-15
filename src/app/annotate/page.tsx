@@ -14,6 +14,7 @@ import HandVisualization from "@/components/HandVisualization";
 import PSHRTimeline from "@/components/PSHRTimeline";
 import AnnotationForm from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
+import HandLandmarkOverlay from "@/components/HandLandmarkOverlay";
 
 type View = "list" | "select_cm" | "annotate";
 
@@ -24,6 +25,7 @@ export default function AnnotatePage() {
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showHands, setShowHands] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -322,15 +324,20 @@ export default function AnnotatePage() {
         {/* Left: Video + Timeline */}
         <div className="space-y-4 lg:col-span-2">
           {/* Video player */}
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-black">
             {current.video_url ? (
-              <video
-                ref={videoRef}
-                src={current.video_url}
-                controls
-                className="aspect-video w-full"
-                style={{ transform: "scaleX(-1)" }}
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={current.video_url}
+                  controls
+                  className="aspect-video w-full"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                {showHands && (
+                  <HandLandmarkOverlay videoRef={videoRef} mirrored enabled />
+                )}
+              </>
             ) : (
               <div className="flex aspect-video items-center justify-center bg-gray-900">
                 <div className="text-center">
@@ -342,6 +349,18 @@ export default function AnnotatePage() {
               </div>
             )}
           </div>
+
+          {current.video_url && (
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={showHands}
+                onChange={(e) => setShowHands(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Detectar manos (overlay de landmarks)
+            </label>
+          )}
 
           {/* PSHR Timeline */}
           <div className="rounded-xl border border-gray-200 bg-white p-4">
