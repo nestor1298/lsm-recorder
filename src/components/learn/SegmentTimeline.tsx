@@ -50,7 +50,7 @@ export default function SegmentTimeline({
               className={`group relative flex flex-shrink-0 flex-col items-center rounded-lg border-2 px-2.5 py-1 transition-all ${
                 isActive
                   ? "scale-105 text-white shadow-lg"
-                  : "bg-white/50 text-gray-600 hover:shadow-md"
+                  : "bg-paper/50 text-gray-600 hover:shadow-md"
               }`}
               style={
                 isActive
@@ -58,7 +58,9 @@ export default function SegmentTimeline({
                   : { borderColor: `${color}40` }
               }
             >
-              <span className="text-[11px] font-bold leading-none">{label}</span>
+              <span className="text-[11px] font-bold leading-none">
+                {label}
+              </span>
               <span
                 className={`mt-0.5 text-[8px] leading-none ${
                   isActive ? "text-white/70" : "text-gray-400"
@@ -74,7 +76,7 @@ export default function SegmentTimeline({
                     e.stopPropagation();
                     onRemove(i);
                   }}
-                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] text-white shadow-sm group-hover:flex"
+                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-coral text-[8px] text-white shadow-sm group-hover:flex"
                 >
                   ✕
                 </button>
@@ -88,7 +90,7 @@ export default function SegmentTimeline({
       <div className="ml-2 flex flex-shrink-0 items-center gap-1">
         <button
           onClick={onAddHold}
-          className="rounded-lg border border-dashed border-indigo-400/50 px-2 py-1.5 text-[10px] font-bold text-indigo-600 transition-colors hover:border-indigo-400 hover:bg-indigo-500/10"
+          className="rounded-lg border border-dashed border-accent/50 px-2 py-1.5 text-[10px] font-bold text-accent-deep transition-colors hover:border-accent hover:bg-accent/10"
         >
           +D
         </button>

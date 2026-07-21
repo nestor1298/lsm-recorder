@@ -128,7 +128,7 @@ export default function PerfilPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tu perfil</h1>
+        <h1 className="text-2xl font-bold text-ink">Tu perfil</h1>
         <p className="text-sm text-gray-500">
           Estos datos ayudan a documentar el corpus. Solo la edad y la edad de
           adquisición de la LSM son obligatorias.
@@ -241,7 +241,7 @@ export default function PerfilPage() {
         </Field>
 
         {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="rounded-lg bg-coral-tint px-4 py-3 text-sm text-coral-deep">
             {error}
           </p>
         )}
@@ -249,7 +249,7 @@ export default function PerfilPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg bg-indigo-600 py-3 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full rounded-full bg-ink py-3 font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
         >
           {busy ? "Guardando..." : "Guardar y continuar"}
         </button>
@@ -259,7 +259,7 @@ export default function PerfilPage() {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+  "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent";
 
 function Field({
   label,
@@ -271,11 +271,11 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
+    <div className="space-y-2 rounded-xl border border-gray-200 bg-paper p-4">
       <LSMVideoSlot compact />
       <label className="block text-sm font-medium text-gray-700">
         {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
+        {required && <span className="ml-1 text-coral">*</span>}
       </label>
       {children}
     </div>

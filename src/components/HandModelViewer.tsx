@@ -2,7 +2,12 @@
 
 import { Suspense, useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment, ContactShadows } from "@react-three/drei";
+import {
+  OrbitControls,
+  useGLTF,
+  Environment,
+  ContactShadows,
+} from "@react-three/drei";
 import * as THREE from "three";
 
 /**
@@ -86,7 +91,10 @@ export default function HandModelViewer({
   height = "400px",
 }: HandModelViewerProps) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl ${className}`} style={{ height }}>
+    <div
+      className={`relative overflow-hidden rounded-2xl ${className}`}
+      style={{ height }}
+    >
       <Canvas
         camera={{ position: [0, 0.5, 3.5], fov: 35 }}
         gl={{ antialias: true, alpha: true }}
@@ -94,14 +102,32 @@ export default function HandModelViewer({
         shadows
       >
         {/* 3-point lighting rig */}
-        <directionalLight position={[4, 5, 4]} intensity={1.8} color="#fff5e6" castShadow />
-        <directionalLight position={[-3, 3, -2]} intensity={0.6} color="#c8d8ff" />
-        <directionalLight position={[0, 2, -5]} intensity={0.5} color="#a78bfa" />
+        <directionalLight
+          position={[4, 5, 4]}
+          intensity={1.8}
+          color="#fff5e6"
+          castShadow
+        />
+        <directionalLight
+          position={[-3, 3, -2]}
+          intensity={0.6}
+          color="#c8d8ff"
+        />
+        <directionalLight
+          position={[0, 2, -5]}
+          intensity={0.5}
+          color="#a78bfa"
+        />
         <ambientLight intensity={0.35} color="#f0e8f8" />
 
         <Suspense fallback={<LoadingFallback />}>
           <HandModel autoRotate={autoRotate} />
-          <ContactShadows position={[0, -1.2, 0]} opacity={0.25} scale={6} blur={2.5} />
+          <ContactShadows
+            position={[0, -1.2, 0]}
+            opacity={0.25}
+            scale={6}
+            blur={2.5}
+          />
           <Environment preset="studio" />
         </Suspense>
 
@@ -114,7 +140,7 @@ export default function HandModelViewer({
       </Canvas>
 
       {/* Bottom gradient */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-black/10" />
     </div>
   );
 }

@@ -20,7 +20,14 @@ interface BodySilhouetteProps {
   onLateralityChange: (laterality: Laterality | undefined) => void;
 }
 
-const CONTACT_TYPES: ContactType[] = ["TOUCHING", "GRASPED", "NEAR", "MEDIAL", "DISTANT", "BRUSHING"];
+const CONTACT_TYPES: ContactType[] = [
+  "TOUCHING",
+  "GRASPED",
+  "NEAR",
+  "MEDIAL",
+  "DISTANT",
+  "BRUSHING",
+];
 const LATERALITIES: Laterality[] = ["IPSILATERAL", "CONTRALATERAL", "MIDLINE"];
 
 // Viewbox settings for each zoom level
@@ -33,7 +40,16 @@ const VIEWBOX: Record<BodyZone, string> = {
 };
 
 const ZONE_REGIONS: Record<BodyZone, string[]> = {
-  full: ["HEAD", "FACE", "NECK", "TRUNK", "ARM", "FOREARM", "HAND", "NEUTRAL_SPACE"],
+  full: [
+    "HEAD",
+    "FACE",
+    "NECK",
+    "TRUNK",
+    "ARM",
+    "FOREARM",
+    "HAND",
+    "NEUTRAL_SPACE",
+  ],
   head: ["HEAD", "FACE", "NECK"],
   trunk: ["TRUNK", "NECK"],
   arm: ["ARM", "FOREARM"],
@@ -54,7 +70,7 @@ export default function BodySilhouette({
 
   const selectedLocation = useMemo(
     () => UB_LOCATIONS.find((loc) => loc.code === selectedCode) ?? null,
-    [selectedCode]
+    [selectedCode],
   );
 
   const visibleLocations = useMemo(() => {
@@ -65,8 +81,9 @@ export default function BodySilhouette({
   }, [zone, showFrequent]);
 
   const hoveredLocation = useMemo(
-    () => (hoveredCode ? UB_LOCATIONS.find((l) => l.code === hoveredCode) : null),
-    [hoveredCode]
+    () =>
+      hoveredCode ? UB_LOCATIONS.find((l) => l.code === hoveredCode) : null,
+    [hoveredCode],
   );
 
   return (
@@ -79,7 +96,7 @@ export default function BodySilhouette({
             onClick={() => setZone(z)}
             className={`rounded px-2 py-1 text-[10px] font-medium capitalize ${
               zone === z
-                ? "bg-indigo-600 text-white"
+                ? "bg-ink text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -91,7 +108,7 @@ export default function BodySilhouette({
           onClick={() => setShowFrequent(!showFrequent)}
           className={`rounded px-2 py-1 text-[10px] font-medium ${
             showFrequent
-              ? "bg-amber-100 text-amber-700"
+              ? "bg-gold-tint text-gold-deep"
               : "bg-gray-100 text-gray-500 hover:bg-gray-200"
           }`}
         >
@@ -103,7 +120,7 @@ export default function BodySilhouette({
       <div className="relative">
         <svg
           viewBox={VIEWBOX[zone]}
-          className="w-full rounded-xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50"
           style={{ maxHeight: 360 }}
         >
           {/* Body outline */}
@@ -180,20 +197,24 @@ export default function BodySilhouette({
 
       {/* Selected location info */}
       {selectedLocation && (
-        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-2.5">
+        <div className="rounded-lg border border-accent-tint bg-accent-tint p-2.5">
           <div className="flex items-center gap-2">
             <span
               className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: REGION_COLORS[selectedLocation.region] }}
+              style={{
+                backgroundColor: REGION_COLORS[selectedLocation.region],
+              }}
             />
-            <span className="text-xs font-semibold text-gray-900">
+            <span className="text-xs font-semibold text-ink">
               {selectedLocation.code} — {selectedLocation.name}
             </span>
             <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[9px] text-gray-600">
               {REGION_LABELS[selectedLocation.region]}
             </span>
             {selectedLocation.latin && (
-              <span className="text-[9px] italic text-gray-400">{selectedLocation.latin}</span>
+              <span className="text-[9px] italic text-gray-400">
+                {selectedLocation.latin}
+              </span>
             )}
           </div>
         </div>
@@ -211,7 +232,7 @@ export default function BodySilhouette({
               onClick={() => onContactChange(contact === ct ? undefined : ct)}
               className={`rounded px-2 py-1 text-[10px] font-medium ${
                 contact === ct
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-ink text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -230,10 +251,12 @@ export default function BodySilhouette({
           {LATERALITIES.map((lat) => (
             <button
               key={lat}
-              onClick={() => onLateralityChange(laterality === lat ? undefined : lat)}
+              onClick={() =>
+                onLateralityChange(laterality === lat ? undefined : lat)
+              }
               className={`rounded px-2 py-1 text-[10px] font-medium ${
                 laterality === lat
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-ink text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -252,11 +275,13 @@ export default function BodySilhouette({
           {FREQUENT_LOCATIONS.map((loc) => (
             <button
               key={loc.code}
-              onClick={() => onSelect(selectedCode === loc.code ? undefined : loc.code)}
+              onClick={() =>
+                onSelect(selectedCode === loc.code ? undefined : loc.code)
+              }
               className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
                 selectedCode === loc.code
                   ? "text-white"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-gray-600 hover:text-ink"
               }`}
               style={{
                 backgroundColor:
@@ -276,8 +301,13 @@ export default function BodySilhouette({
       <div className="flex flex-wrap gap-x-3 gap-y-1">
         {Object.entries(REGION_COLORS).map(([region, color]) => (
           <div key={region} className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-            <span className="text-[9px] text-gray-500">{region.toLowerCase().replace(/_/g, " ")}</span>
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-[9px] text-gray-500">
+              {region.toLowerCase().replace(/_/g, " ")}
+            </span>
           </div>
         ))}
       </div>
@@ -288,11 +318,33 @@ export default function BodySilhouette({
 /** SVG body silhouette outline */
 function BodyOutline() {
   return (
-    <g opacity={0.15} fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+    <g
+      opacity={0.15}
+      fill="none"
+      stroke="#374151"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       {/* Head */}
-      <ellipse cx={100} cy={38} rx={22} ry={28} fill="#d1d5db" stroke="#9ca3af" />
+      <ellipse
+        cx={100}
+        cy={38}
+        rx={22}
+        ry={28}
+        fill="#d1d5db"
+        stroke="#9ca3af"
+      />
       {/* Neck */}
-      <rect x={92} y={65} width={16} height={18} rx={4} fill="#d1d5db" stroke="#9ca3af" />
+      <rect
+        x={92}
+        y={65}
+        width={16}
+        height={18}
+        rx={4}
+        fill="#d1d5db"
+        stroke="#9ca3af"
+      />
       {/* Torso */}
       <path
         d="M68,88 Q66,86 68,84 L132,84 Q134,86 132,88 L138,165 Q138,180 120,182 L80,182 Q62,180 62,165 Z"
@@ -316,8 +368,20 @@ function BodyOutline() {
         opacity={0.4}
       />
       {/* Legs */}
-      <path d="M90,182 L85,240 Q82,260 80,275" stroke="#9ca3af" strokeWidth={14} fill="none" opacity={0.3} />
-      <path d="M110,182 L115,240 Q118,260 120,275" stroke="#9ca3af" strokeWidth={14} fill="none" opacity={0.3} />
+      <path
+        d="M90,182 L85,240 Q82,260 80,275"
+        stroke="#9ca3af"
+        strokeWidth={14}
+        fill="none"
+        opacity={0.3}
+      />
+      <path
+        d="M110,182 L115,240 Q118,260 120,275"
+        stroke="#9ca3af"
+        strokeWidth={14}
+        fill="none"
+        opacity={0.3}
+      />
     </g>
   );
 }

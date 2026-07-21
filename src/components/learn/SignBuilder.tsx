@@ -33,7 +33,8 @@ export interface ViewerState {
   /** Hand mode for avatar posing */
   handMode?: "dominant" | "both_symmetric";
   /** Movement interpolation data (during M segment playback) */
-  movementInterp?: import("@/components/Hand3D/AvatarModel").MovementInterpolation | null;
+  movementInterp?:
+    import("@/components/Hand3D/AvatarModel").MovementInterpolation | null;
 }
 
 interface SignBuilderProps {
@@ -46,16 +47,29 @@ interface SignBuilderProps {
 // ── Hold sub-tab config ──
 
 const HOLD_TABS = [
-  { id: "cm" as const, label: "CM", fullLabel: "Config. Manual", color: "#4f46e5" },
+  {
+    id: "cm" as const,
+    label: "CM",
+    fullLabel: "Config. manual",
+    color: "#4f46e5",
+  },
   { id: "ub" as const, label: "UB", fullLabel: "Ubicación", color: "#059669" },
-  { id: "or" as const, label: "OR", fullLabel: "Orientación", color: "#7c3aed" },
+  {
+    id: "or" as const,
+    label: "OR",
+    fullLabel: "Orientación",
+    color: "#7c3aed",
+  },
 ] as const;
 
 type HoldTabId = (typeof HOLD_TABS)[number]["id"];
 
 // ── Component ──
 
-export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilderProps) {
+export default function SignBuilder({
+  onViewerUpdate,
+  onSignChange,
+}: SignBuilderProps) {
   const [sign, setSign] = useState<SignConstruction>(createDefaultSign);
   const [activeIdx, setActiveIdx] = useState(0);
   const [holdTab, setHoldTab] = useState<HoldTabId>("cm");
@@ -87,7 +101,8 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
           rnm: sign.rnm as FaceState,
         };
       } else if (seg.type === "D") {
-        const channel = holdTab === "ub" ? "ub" : holdTab === "or" ? "or" : "cm";
+        const channel =
+          holdTab === "ub" ? "ub" : holdTab === "or" ? "or" : "cm";
         state = {
           activeChannel: channel,
           cm: seg.cm,
@@ -104,7 +119,11 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
           activeChannel: "mv",
           cm: null,
           orientation: undefined,
-          movement: { contour: seg.contour, local: seg.local, plane: seg.plane },
+          movement: {
+            contour: seg.contour,
+            local: seg.local,
+            plane: seg.plane,
+          },
           ubLocation: null,
           rnm: null,
         };
@@ -231,15 +250,12 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
     [updateMovement],
   );
 
-  const handleRNMChange = useCallback(
-    (face: FaceState) => {
-      setSign((s) => ({
-        ...s,
-        rnm: { eyebrows: face.eyebrows, mouth: face.mouth, head: face.head },
-      }));
-    },
-    [],
-  );
+  const handleRNMChange = useCallback((face: FaceState) => {
+    setSign((s) => ({
+      ...s,
+      rnm: { eyebrows: face.eyebrows, mouth: face.mouth, head: face.head },
+    }));
+  }, []);
 
   // ── Notation ──
 
@@ -261,7 +277,7 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
             value={sign.name}
             onChange={(e) => setSign((s) => ({ ...s, name: e.target.value }))}
             placeholder="Nombre / glosa..."
-            className="w-40 rounded-lg border border-black/10 bg-white/50 px-3 py-1.5 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+            className="w-40 rounded-lg border border-black/10 bg-paper/50 px-3 py-1.5 text-sm font-medium text-ink placeholder:text-gray-400 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
           <button
             onClick={resetSign}
@@ -284,14 +300,14 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
 
       {/* ─── Row 2: Segment summary card ─── */}
       {activeSegment.type === "D" && !showRNM && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-indigo-500/8 px-3 py-2">
-          <span className="rounded bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-accent/8 px-3 py-2">
+          <span className="rounded bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent-deep">
             Detención
           </span>
           <span
             className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
               activeSegment.cm
-                ? "bg-indigo-500/10 text-indigo-700"
+                ? "bg-accent/10 text-accent-deep"
                 : "bg-black/5 text-gray-400"
             }`}
           >
@@ -300,17 +316,21 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
           <span
             className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
               activeSegment.ub
-                ? "bg-emerald-500/10 text-emerald-700"
+                ? "bg-green/10 text-green-deep"
                 : "bg-black/5 text-gray-400"
             }`}
           >
-            UB: {activeSegment.ub ? `${activeSegment.ub.code} (${activeSegment.ub.name})` : "—"}
+            UB:{" "}
+            {activeSegment.ub
+              ? `${activeSegment.ub.code} (${activeSegment.ub.name})`
+              : "—"}
           </span>
-          <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
-            OR: {activeSegment.orientation.palm.toLowerCase()},{activeSegment.orientation.fingers.toLowerCase()}
+          <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-gray-700">
+            OR: {activeSegment.orientation.palm.toLowerCase()},
+            {activeSegment.orientation.fingers.toLowerCase()}
           </span>
           {activeSegment.handMode === "both_symmetric" && (
-            <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+            <span className="rounded bg-gold/10 px-1.5 py-0.5 text-[10px] font-medium text-gold-deep">
               2M
             </span>
           )}
@@ -337,12 +357,12 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
       )}
 
       {/* ─── Row 3: Controls ─── */}
-      <div className="rounded-xl border border-black/5 bg-white/40 p-3">
+      <div className="rounded-xl border border-black/5 bg-paper/40 p-3">
         {showRNM ? (
           <>
             <div className="mb-3 flex items-center justify-between">
               <span className="rounded bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                RNM — Rasgos No Manuales
+                RNM — Rasgos no manuales
               </span>
               <button
                 onClick={() => setShowRNM(false)}
@@ -352,7 +372,8 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
               </button>
             </div>
             <p className="mb-3 text-[10px] text-gray-500">
-              Los rasgos no manuales se aplican suprasegmentalmente a toda la seña.
+              Los rasgos no manuales se aplican suprasegmentalmente a toda la
+              seña.
             </p>
             <RNMControls
               key="rnm-builder"
@@ -364,13 +385,15 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
           <>
             {/* Hand mode toggle */}
             <div className="mb-2 flex items-center gap-1.5">
-              <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">Manos:</span>
+              <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">
+                Manos:
+              </span>
               <div className="flex rounded-lg bg-black/5 p-0.5">
                 <button
                   onClick={() => handleHandModeChange("dominant")}
                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition-all ${
                     (activeSegment.handMode ?? "dominant") === "dominant"
-                      ? "bg-white text-gray-900 shadow-sm"
+                      ? "bg-paper text-ink shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -380,7 +403,7 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
                   onClick={() => handleHandModeChange("both_symmetric")}
                   className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition-all ${
                     activeSegment.handMode === "both_symmetric"
-                      ? "bg-white text-gray-900 shadow-sm"
+                      ? "bg-paper text-ink shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -400,7 +423,9 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
                       ? "text-white shadow-sm"
                       : "text-gray-500 hover:bg-gray-100"
                   }`}
-                  style={holdTab === tab.id ? { backgroundColor: tab.color } : {}}
+                  style={
+                    holdTab === tab.id ? { backgroundColor: tab.color } : {}
+                  }
                 >
                   {tab.label}
                   <span className="ml-1 hidden text-[9px] font-medium opacity-70 sm:inline">
@@ -470,24 +495,24 @@ export default function SignBuilder({ onViewerUpdate, onSignChange }: SignBuilde
       <div className="rounded-xl bg-gray-900/80 p-3 backdrop-blur-sm">
         <div className="mb-1 flex items-center justify-between">
           <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-            Notación Segmental LSM-PN
+            Notación segmental LSM-PN
           </p>
           <div className="flex items-center gap-2">
             {sign.name && (
-              <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
+              <span className="rounded bg-paper/10 px-2 py-0.5 text-[10px] font-medium text-accent-tint">
                 {sign.name}
               </span>
             )}
             <button
               onClick={copyNotation}
-              className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-medium text-gray-400 transition-colors hover:bg-white/20 hover:text-white"
+              className="rounded bg-paper/10 px-2 py-0.5 text-[10px] font-medium text-gray-400 transition-colors hover:bg-paper/20 hover:text-white"
               title="Copiar notación"
             >
               Copiar
             </button>
           </div>
         </div>
-        <p className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-emerald-400 sm:text-sm">
+        <p className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-green sm:text-sm">
           {notation}
         </p>
       </div>

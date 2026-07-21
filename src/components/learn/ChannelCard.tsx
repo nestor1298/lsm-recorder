@@ -34,7 +34,11 @@ export default function ChannelCard({
           ? "border-transparent shadow-2xl"
           : "border-gray-200 hover:border-gray-300 hover:shadow-lg"
       }`}
-      style={isActive ? { borderColor: color, boxShadow: `0 20px 60px ${color}20` } : {}}
+      style={
+        isActive
+          ? { borderColor: color, boxShadow: `0 20px 60px ${color}20` }
+          : {}
+      }
     >
       {/* Header — always visible */}
       <button
@@ -58,7 +62,7 @@ export default function ChannelCard({
             >
               {label}
             </span>
-            <h3 className="text-lg font-semibold text-gray-900">{fullName}</h3>
+            <h3 className="text-lg font-semibold text-ink">{fullName}</h3>
           </div>
           <p className="mt-0.5 text-sm text-gray-500">
             <span className="italic">{spanishName}</span>
@@ -75,7 +79,11 @@ export default function ChannelCard({
           stroke="currentColor"
           strokeWidth={2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -85,8 +93,13 @@ export default function ChannelCard({
           isActive ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t px-5 pb-6 pt-4" style={{ borderColor: `${color}20` }}>
-          <p className="mb-5 text-sm leading-relaxed text-gray-600">{description}</p>
+        <div
+          className="border-t px-5 pb-6 pt-4"
+          style={{ borderColor: `${color}20` }}
+        >
+          <p className="mb-5 text-sm leading-relaxed text-gray-600">
+            {description}
+          </p>
           {children}
         </div>
       </div>

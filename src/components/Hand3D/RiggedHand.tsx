@@ -32,18 +32,24 @@ const skinMaterial = new THREE.MeshStandardMaterial({
 // ── Types ───────────────────────────────────────────────────────
 
 interface BoneRefs {
-  fingers: Record<FingerName, {
-    carpal: THREE.Bone;
-    bones: [THREE.Bone, THREE.Bone, THREE.Bone]; // MCP, PIP, DIP
-  }>;
+  fingers: Record<
+    FingerName,
+    {
+      carpal: THREE.Bone;
+      bones: [THREE.Bone, THREE.Bone, THREE.Bone]; // MCP, PIP, DIP
+    }
+  >;
   thumb: [THREE.Bone, THREE.Bone, THREE.Bone]; // CMC, MCP, IP
 }
 
 interface BindPoses {
-  fingers: Record<FingerName, {
-    carpal: THREE.Quaternion;
-    bones: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
-  }>;
+  fingers: Record<
+    FingerName,
+    {
+      carpal: THREE.Quaternion;
+      bones: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
+    }
+  >;
   thumb: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
 }
 
@@ -130,18 +136,15 @@ function contourOffset(
       break;
     case "ZIGZAG": {
       const p =
-        (((t * 1.5) % (Math.PI * 2)) + Math.PI * 2) %
-        (Math.PI * 2) /
+        ((((t * 1.5) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) /
         (Math.PI * 2);
-      u =
-        (p < 0.25 ? p * 4 : p < 0.75 ? 2 - p * 4 : p * 4 - 4) * A;
+      u = (p < 0.25 ? p * 4 : p < 0.75 ? 2 - p * 4 : p * 4 - 4) * A;
       v = Math.abs(Math.sin(t * 6)) * A * 0.3;
       break;
     }
     case "SEVEN": {
       const p =
-        (((t * 1.2) % (Math.PI * 2)) + Math.PI * 2) %
-        (Math.PI * 2) /
+        ((((t * 1.2) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) /
         (Math.PI * 2);
       if (p < 0.4) {
         u = ((p / 0.4) * 2 - 1) * A;
@@ -159,10 +162,23 @@ function contourOffset(
     py = 0,
     pz = 0;
   switch (plane) {
-    case "HORIZONTAL": px = u; pz = v; break;
-    case "VERTICAL":   px = u; py = v; break;
-    case "SAGITTAL":   pz = u; py = v; break;
-    case "OBLIQUE":    px = u * 0.7; py = v * 0.7; pz = u * 0.5; break;
+    case "HORIZONTAL":
+      px = u;
+      pz = v;
+      break;
+    case "VERTICAL":
+      px = u;
+      py = v;
+      break;
+    case "SAGITTAL":
+      pz = u;
+      py = v;
+      break;
+    case "OBLIQUE":
+      px = u * 0.7;
+      py = v * 0.7;
+      pz = u * 0.5;
+      break;
   }
 
   return [px, py, pz];
@@ -175,7 +191,12 @@ interface RiggedHandProps {
   movement?: MovementTarget;
 }
 
-export default function RiggedHand({ cm, autoRotate = false, orientation, movement }: RiggedHandProps) {
+export default function RiggedHand({
+  cm,
+  autoRotate = false,
+  orientation,
+  movement,
+}: RiggedHandProps) {
   const { scene } = useGLTF(MODEL_PATH);
   const groupRef = useRef<THREE.Group>(null);
 
@@ -262,11 +283,11 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
 
   // Animation state — current interpolated pose
   const animState = useRef<AnimState>({
-    index:  { ...RESTING_POSE.index },
+    index: { ...RESTING_POSE.index },
     middle: { ...RESTING_POSE.middle },
-    ring:   { ...RESTING_POSE.ring },
-    pinky:  { ...RESTING_POSE.pinky },
-    thumb:  { ...RESTING_POSE.thumb },
+    ring: { ...RESTING_POSE.ring },
+    pinky: { ...RESTING_POSE.pinky },
+    thumb: { ...RESTING_POSE.thumb },
   });
 
   // Compute target pose
@@ -317,7 +338,13 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
     ts.mcpFlex += (tt.mcpFlex - ts.mcpFlex) * factor;
     ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
-    applyPose(boneRefs.thumb[0], bindPoses.thumb[0], ts.cmcOpposition, ts.cmcRotation, 0);
+    applyPose(
+      boneRefs.thumb[0],
+      bindPoses.thumb[0],
+      ts.cmcOpposition,
+      ts.cmcRotation,
+      0,
+    );
     applyPose(boneRefs.thumb[1], bindPoses.thumb[1], -ts.mcpFlex, 0, 0);
     applyPose(boneRefs.thumb[2], bindPoses.thumb[2], -ts.ipFlex, 0, 0);
 
@@ -328,7 +355,11 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
       const t = rs.clock.elapsedTime;
 
       // ─ Contour: move hand along trajectory path ─
-      const [cpx, cpy, cpz] = contourOffset(movement.contour, movement.plane, t);
+      const [cpx, cpy, cpz] = contourOffset(
+        movement.contour,
+        movement.plane,
+        t,
+      );
       _mvPos.set(cpx, cpy, cpz);
 
       // Vibrate / Rub: add jitter on top of contour
@@ -343,12 +374,23 @@ export default function RiggedHand({ cm, autoRotate = false, orientation, moveme
       groupRef.current.position.lerp(_mvPos, factor * 4);
 
       // ─ Group rotation from wrist-level local movements ─
-      let lrx = 0, lry = 0, lrz = 0;
+      let lrx = 0,
+        lry = 0,
+        lrz = 0;
       switch (movement.local) {
-        case "CIRCULAR": lrx = Math.sin(t * 3) * 0.15; lrz = Math.cos(t * 3) * 0.15; break;
-        case "TWIST":    lrz = Math.sin(t * 3) * 0.4; break;
-        case "NOD":      lrx = Math.sin(t * 3) * 0.3; break;
-        case "OSCILLATE": lry = Math.sin(t * 4) * 0.25; break;
+        case "CIRCULAR":
+          lrx = Math.sin(t * 3) * 0.15;
+          lrz = Math.cos(t * 3) * 0.15;
+          break;
+        case "TWIST":
+          lrz = Math.sin(t * 3) * 0.4;
+          break;
+        case "NOD":
+          lrx = Math.sin(t * 3) * 0.3;
+          break;
+        case "OSCILLATE":
+          lry = Math.sin(t * 4) * 0.25;
+          break;
       }
       _mvEuler.set(lrx, lry, lrz, "XYZ");
       _mvQuat.setFromEuler(_mvEuler);

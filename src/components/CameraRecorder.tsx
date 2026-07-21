@@ -42,7 +42,7 @@ export default function CameraRecorder({
       const track = stream.getVideoTracks()[0];
       if (track) onStreamReady?.(track.getSettings());
     } catch {
-      onError?.("Camera access denied. Please allow camera permissions.");
+      onError?.("No se pudo acceder a la cámara. Permite el acceso en tu navegador.");
     }
   }, [onError, onStreamReady]);
 
@@ -145,9 +145,9 @@ export default function CameraRecorder({
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
             <button
               onClick={startCamera}
-              className="rounded-xl bg-indigo-600 px-6 py-3 text-lg font-semibold text-white transition-colors hover:bg-indigo-700"
+              className="rounded-full bg-ink px-6 py-3 text-lg font-semibold text-white transition-colors hover:bg-gray-800"
             >
-              Start Camera
+              Iniciar cámara
             </button>
           </div>
         )}
@@ -155,14 +155,16 @@ export default function CameraRecorder({
         {/* Countdown overlay */}
         {countdown !== null && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <span className="text-8xl font-bold text-white animate-pulse">{countdown}</span>
+            <span className="text-8xl font-bold text-white animate-pulse">
+              {countdown}
+            </span>
           </div>
         )}
 
         {/* Recording indicator */}
         {isRecording && (
-          <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-red-600 px-3 py-1">
-            <span className="h-3 w-3 animate-pulse rounded-full bg-white" />
+          <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-coral-deep px-3 py-1">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-paper" />
             <span className="font-mono text-sm font-medium text-white">
               REC {formatTime(elapsed)}
             </span>
@@ -176,7 +178,7 @@ export default function CameraRecorder({
           <>
             <button
               onClick={startRecording}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-red-700"
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-coral-deep text-white shadow-lg transition-transform hover:scale-105 hover:bg-coral"
             >
               <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="8" />
@@ -184,16 +186,16 @@ export default function CameraRecorder({
             </button>
             <button
               onClick={stopCamera}
-              className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
             >
-              Stop Camera
+              Detener cámara
             </button>
           </>
         )}
         {isRecording && (
           <button
             onClick={stopRecording}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform hover:scale-105"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-coral-deep text-white shadow-lg transition-transform hover:scale-105"
           >
             <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
               <rect x="6" y="6" width="12" height="12" rx="2" />

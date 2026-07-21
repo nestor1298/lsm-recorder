@@ -94,7 +94,9 @@ export default function MisGrabacionesPage() {
       );
       setPlayUrl(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al obtener el video");
+      setError(
+        err instanceof Error ? err.message : "Error al obtener el video",
+      );
     }
   }
 
@@ -102,14 +104,14 @@ export default function MisGrabacionesPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mis grabaciones</h1>
+          <h1 className="text-2xl font-bold text-ink">Mis grabaciones</h1>
           <p className="text-sm text-gray-500">
             Cambia el nivel de acceso o retira cualquier video cuando quieras.
           </p>
         </div>
         <Link
           href="/record"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
         >
           Grabar
         </Link>
@@ -117,7 +119,12 @@ export default function MisGrabacionesPage() {
 
       {playUrl && (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
-          <video src={playUrl} controls autoPlay className="aspect-video w-full" />
+          <video
+            src={playUrl}
+            controls
+            autoPlay
+            className="aspect-video w-full"
+          />
         </div>
       )}
 
@@ -135,16 +142,16 @@ export default function MisGrabacionesPage() {
               className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${
                 r.withdrawn
                   ? "border-gray-200 bg-gray-50 opacity-70"
-                  : "border-gray-200 bg-white"
+                  : "border-gray-200 bg-paper"
               }`}
             >
               <div>
-                <p className="font-semibold text-gray-900">Seña #{r.cmId}</p>
+                <p className="font-semibold text-ink">Seña #{r.cmId}</p>
                 <p className="text-xs text-gray-500">
                   {new Date(r.recordedAt).toLocaleString()}
                 </p>
                 {r.withdrawn && (
-                  <p className="mt-1 text-xs text-amber-700">
+                  <p className="mt-1 text-xs text-gold-deep">
                     Retirada. Se elimina del corpus en el siguiente ciclo de
                     procesamiento.
                   </p>
@@ -157,7 +164,7 @@ export default function MisGrabacionesPage() {
                   onChange={(e) =>
                     changeTier(r.id, e.target.value as AccessTier)
                   }
-                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none disabled:opacity-50"
+                  className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-accent focus:outline-none disabled:opacity-50"
                 >
                   {ACCESS_TIERS.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -174,7 +181,7 @@ export default function MisGrabacionesPage() {
                 {!r.withdrawn && (
                   <button
                     onClick={() => withdrawOne(r.id)}
-                    className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                    className="rounded-lg px-3 py-1.5 text-sm font-medium text-coral-deep hover:bg-coral-tint"
                   >
                     Retirar
                   </button>
@@ -186,7 +193,7 @@ export default function MisGrabacionesPage() {
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg bg-coral-tint px-4 py-3 text-sm text-coral-deep">
           {error}
         </p>
       )}
@@ -194,7 +201,7 @@ export default function MisGrabacionesPage() {
       <div className="border-t border-gray-200 pt-6">
         <button
           onClick={withdrawAll}
-          className="rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-50"
+          className="rounded-full border border-coral px-4 py-2.5 text-sm font-medium text-coral-deep hover:bg-coral-tint"
         >
           Retirar todo mi consentimiento
         </button>

@@ -14,86 +14,91 @@ export default function Dashboard() {
   }, []);
 
   const tierCounts = [1, 2, 3, 4].map(
-    (t) => getCMsByTier(t as 1 | 2 | 3 | 4).length
+    (t) => getCMsByTier(t as 1 | 2 | 3 | 4).length,
   );
 
   const totalRecorded = sessions.reduce(
-    (acc, s) => acc + s.signs.filter((sign) => sign.status !== "pending").length,
-    0
+    (acc, s) =>
+      acc + s.signs.filter((sign) => sign.status !== "pending").length,
+    0,
   );
 
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-white">
-        <h1 className="text-3xl font-bold">LSM Recording Studio</h1>
-        <p className="mt-2 text-lg text-indigo-100">
-          Record Mexican Sign Language videos for the 101 Cruz Aldrete handshape
-          configurations
+    <div className="space-y-10">
+      {/* Hero: tinta plana, voz de misión */}
+      <div className="rounded-2xl bg-ink p-10 text-paper">
+        <p className="overline-label text-gray-400">Corpus de LSM</p>
+        <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-[-0.02em]">
+          Tu lengua, documentada contigo.
+        </h1>
+        <p className="mt-3 max-w-xl text-lg text-gray-300">
+          SignaLab graba y anota un corpus de Lengua de Señas Mexicana — las
+          101 configuraciones de mano de Cruz Aldrete — junto con la comunidad
+          sorda.
         </p>
-        <div className="mt-6 flex gap-4">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/record"
-            className="rounded-lg bg-white px-6 py-3 font-semibold text-indigo-700 shadow transition-colors hover:bg-indigo-50"
+            className="rounded-full bg-paper px-7 py-3 font-semibold text-ink transition-colors hover:bg-gray-100"
           >
-            Start Recording
+            Empezar a grabar
           </Link>
           <Link
             href="/catalog"
-            className="rounded-lg border border-white/30 px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10"
+            className="rounded-full border-[1.5px] border-paper/40 px-7 py-3 font-semibold text-paper transition-colors hover:bg-paper/10"
           >
-            Browse Catalog
+            Explorar el catálogo
           </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Métricas */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label="Total Handshapes"
+          label="Configuraciones de mano"
           value={CM_INVENTORY.length}
-          color="text-indigo-600"
+          color="text-ink"
         />
         <StatCard
-          label="Signs Recorded"
+          label="Señas grabadas"
           value={totalRecorded}
-          color="text-green-600"
+          color="text-green-deep"
         />
         <StatCard
-          label="Sessions"
+          label="Sesiones"
           value={sessions.length}
-          color="text-purple-600"
+          color="text-accent-deep"
         />
         <StatCard
-          label="Completion"
+          label="Avance"
           value={`${CM_INVENTORY.length > 0 ? Math.round((totalRecorded / CM_INVENTORY.length) * 100) : 0}%`}
-          color="text-amber-600"
+          color="text-gold-deep"
         />
       </div>
 
-      {/* Tier Breakdown */}
+      {/* Inventario por frecuencia */}
       <div>
-        <h2 className="mb-4 text-xl font-bold text-gray-900">
-          Inventory by Frequency Tier
+        <h2 className="mb-4 text-xl font-bold text-ink">
+          Inventario por nivel de frecuencia
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { tier: 1, label: "High Frequency", color: "bg-green-500" },
-            { tier: 2, label: "Medium Frequency", color: "bg-blue-500" },
-            { tier: 3, label: "Low Frequency", color: "bg-yellow-500" },
-            { tier: 4, label: "Rare", color: "bg-red-500" },
+            { tier: 1, label: "Frecuencia alta", color: "bg-green" },
+            { tier: 2, label: "Frecuencia media", color: "bg-accent" },
+            { tier: 3, label: "Frecuencia baja", color: "bg-gold" },
+            { tier: 4, label: "Poco frecuentes", color: "bg-coral" },
           ].map(({ tier, label, color }, i) => (
             <div
               key={tier}
-              className="rounded-xl border border-gray-200 bg-white p-4"
+              className="rounded-2xl border border-gray-200 bg-paper p-4 shadow-card"
             >
               <div className="flex items-center gap-2">
                 <span className={`h-3 w-3 rounded-full ${color}`} />
                 <span className="text-sm font-medium text-gray-600">
-                  Tier {tier}
+                  Nivel {tier}
                 </span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-gray-900">
+              <p className="mt-1 text-2xl font-bold text-ink">
                 {tierCounts[i]}
               </p>
               <p className="text-xs text-gray-500">{label}</p>
@@ -102,40 +107,41 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Sessions */}
+      {/* Sesiones recientes */}
       {sessions.length > 0 && (
         <div>
-          <h2 className="mb-4 text-xl font-bold text-gray-900">
-            Recent Sessions
+          <h2 className="mb-4 text-xl font-bold text-ink">
+            Sesiones recientes
           </h2>
           <div className="space-y-3">
-            {sessions.slice(-5).reverse().map((session) => {
-              const recorded = session.signs.filter(
-                (s) => s.status !== "pending"
-              ).length;
-              return (
-                <Link
-                  key={session.id}
-                  href={`/record?session=${session.id}`}
-                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {session.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(session.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-indigo-600">
-                      {recorded}/{session.signs.length}
-                    </p>
-                    <p className="text-xs text-gray-500">recorded</p>
-                  </div>
-                </Link>
-              );
-            })}
+            {sessions
+              .slice(-5)
+              .reverse()
+              .map((session) => {
+                const recorded = session.signs.filter(
+                  (s) => s.status !== "pending",
+                ).length;
+                return (
+                  <Link
+                    key={session.id}
+                    href={`/record?session=${session.id}`}
+                    className="flex items-center justify-between rounded-2xl border border-gray-200 bg-paper p-4 shadow-card transition-colors hover:border-ink"
+                  >
+                    <div>
+                      <p className="font-semibold text-ink">{session.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(session.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-accent-deep">
+                        {recorded}/{session.signs.length}
+                      </p>
+                      <p className="text-xs text-gray-500">grabadas</p>
+                    </div>
+                  </Link>
+                );
+              })}
           </div>
         </div>
       )}
@@ -153,9 +159,9 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-2xl border border-gray-200 bg-paper p-4 shadow-card">
       <p className="text-sm text-gray-500">{label}</p>
-      <p className={`text-3xl font-bold ${color}`}>{value}</p>
+      <p className={`font-display text-3xl font-bold ${color}`}>{value}</p>
     </div>
   );
 }

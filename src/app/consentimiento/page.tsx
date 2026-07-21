@@ -82,7 +82,7 @@ export default function ConsentimientoPage() {
       {step === 1 && (
         <section className="space-y-4">
           <LSMVideoSlot caption="Te damos la bienvenida a SignaLab" />
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-ink">
             Te damos la bienvenida a SignaLab
           </h1>
           <div className="space-y-3 text-gray-700">
@@ -96,8 +96,8 @@ export default function ConsentimientoPage() {
               lengua. Tú decides quién puede ver cada video.
             </p>
             <p>
-              Antes de grabar te pedimos tu consentimiento y unos datos
-              básicos. Puedes cambiar de opinión cuando quieras.
+              Antes de grabar te pedimos tu consentimiento y unos datos básicos.
+              Puedes cambiar de opinión cuando quieras.
             </p>
           </div>
           <NavButtons onNext={() => setStep(2)} />
@@ -107,7 +107,7 @@ export default function ConsentimientoPage() {
       {step === 2 && (
         <section className="space-y-4">
           <LSMVideoSlot caption="Niveles de acceso" />
-          <h1 className="text-2xl font-bold text-gray-900">Niveles de acceso</h1>
+          <h1 className="text-2xl font-bold text-ink">Niveles de acceso</h1>
           <p className="text-gray-700">
             Elige quién puede ver tus videos de forma predeterminada. Cada video
             se puede cambiar individualmente después.
@@ -118,8 +118,8 @@ export default function ConsentimientoPage() {
                 key={t.value}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                   tier === t.value
-                    ? "border-indigo-500 bg-indigo-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? "border-accent bg-accent-tint"
+                    : "border-gray-200 bg-paper hover:border-gray-300"
                 }`}
               >
                 <input
@@ -127,10 +127,10 @@ export default function ConsentimientoPage() {
                   name="tier"
                   checked={tier === t.value}
                   onChange={() => setTier(t.value)}
-                  className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                  className="mt-1 h-4 w-4 text-accent-deep focus:ring-accent"
                 />
                 <span>
-                  <span className="block font-semibold text-gray-900">
+                  <span className="block font-semibold text-ink">
                     {t.label}
                   </span>
                   <span className="block text-sm text-gray-600">
@@ -140,7 +140,7 @@ export default function ConsentimientoPage() {
               </label>
             ))}
           </div>
-          <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="rounded-lg bg-gold-tint px-4 py-3 text-sm text-gold-deep">
             Tu rostro es parte de tu lengua. No podemos difuminarlo sin borrar
             lo que señas. Por eso tú decides quién ve cada video.
           </p>
@@ -151,7 +151,7 @@ export default function ConsentimientoPage() {
       {step === 3 && (
         <section className="space-y-4">
           <LSMVideoSlot caption="Consentimiento en video" />
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-ink">
             Consentimiento en video
           </h1>
           <p className="text-gray-700">
@@ -162,7 +162,9 @@ export default function ConsentimientoPage() {
             <li>La fecha de hoy</li>
             <li>
               Que aceptas participar con el nivel de acceso{" "}
-              <strong>{ACCESS_TIERS.find((t) => t.value === tier)?.label}</strong>
+              <strong>
+                {ACCESS_TIERS.find((t) => t.value === tier)?.label}
+              </strong>
             </li>
           </ul>
 
@@ -171,8 +173,9 @@ export default function ConsentimientoPage() {
           />
 
           {consentBlob && (
-            <p className="text-sm text-green-700">
-              Video listo para enviar ({Math.round(consentBlob.size / 1024)} KB).
+            <p className="text-sm text-green-deep">
+              Video listo para enviar ({Math.round(consentBlob.size / 1024)}{" "}
+              KB).
             </p>
           )}
 
@@ -180,14 +183,14 @@ export default function ConsentimientoPage() {
             <button
               onClick={grantWithVideo}
               disabled={!consentBlob || busy}
-              className="w-full rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              className="w-full rounded-full bg-green py-3 font-semibold text-white transition-colors hover:bg-green-deep disabled:opacity-50"
             >
               {busy ? "Guardando..." : "Enviar consentimiento en video"}
             </button>
             <button
               onClick={grantTextOnly}
               disabled={busy}
-              className="w-full rounded-lg border border-gray-300 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
+              className="w-full rounded-full border border-gray-300 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
               Continuar solo con texto
             </button>
@@ -204,7 +207,7 @@ export default function ConsentimientoPage() {
       {step === 4 && (
         <section className="space-y-4">
           <LSMVideoSlot caption="Tus derechos" />
-          <h1 className="text-2xl font-bold text-gray-900">Tus derechos</h1>
+          <h1 className="text-2xl font-bold text-ink">Tus derechos</h1>
           <div className="space-y-3 text-gray-700">
             <p>
               Puedes ver, cambiar el nivel de acceso o retirar cualquier video
@@ -214,7 +217,7 @@ export default function ConsentimientoPage() {
               Para hacerlo, entra a{" "}
               <Link
                 href="/mis-grabaciones"
-                className="font-medium text-indigo-600 hover:underline"
+                className="font-medium text-accent-deep hover:underline"
               >
                 mis grabaciones
               </Link>
@@ -224,13 +227,13 @@ export default function ConsentimientoPage() {
           <div className="flex gap-3">
             <button
               onClick={() => router.push("/perfil")}
-              className="flex-1 rounded-lg bg-indigo-600 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+              className="flex-1 rounded-full bg-ink py-3 font-semibold text-white transition-colors hover:bg-gray-800"
             >
               Continuar
             </button>
             <Link
               href="/mis-grabaciones"
-              className="flex-1 rounded-lg border border-gray-300 py-3 text-center font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="flex-1 rounded-full border border-gray-300 py-3 text-center font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               Mis grabaciones
             </Link>
@@ -239,7 +242,7 @@ export default function ConsentimientoPage() {
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg bg-coral-tint px-4 py-3 text-sm text-coral-deep">
           {error}
         </p>
       )}
@@ -260,9 +263,9 @@ function StepHeader({ step }: { step: Step }) {
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 active
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-ink text-white"
                   : done
-                    ? "bg-green-500 text-white"
+                    ? "bg-green text-white"
                     : "bg-gray-200 text-gray-500"
               }`}
             >
@@ -295,7 +298,7 @@ function NavButtons({
       )}
       <button
         onClick={onNext}
-        className="flex-1 rounded-lg bg-indigo-600 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
+        className="flex-1 rounded-full bg-ink py-2.5 font-semibold text-white transition-colors hover:bg-gray-800"
       >
         Continuar
       </button>

@@ -28,10 +28,10 @@ export default function GlassPanel({
   return (
     <div
       className={`
-        rounded-2xl border border-white/20
-        bg-white/75 backdrop-blur-xl
-        shadow-2xl
-        transition-all duration-500
+ rounded-2xl border border-white/20
+ bg-paper/75 backdrop-blur-xl
+ shadow-2xl
+ transition-all duration-500
         ${isActive ? "opacity-100 translate-y-0" : "opacity-50 translate-y-3"}
         ${className}
       `}
@@ -48,11 +48,16 @@ export default function GlassPanel({
           <div className="flex items-center gap-2">
             <span
               className="rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider"
-              style={{ backgroundColor: `${channelColor}15`, color: channelColor }}
+              style={{
+                backgroundColor: `${channelColor}15`,
+                color: channelColor,
+              }}
             >
               {channelLabel}
             </span>
-            <h3 className="text-base font-bold text-gray-900 truncate">{channelName}</h3>
+            <h3 className="text-base font-bold text-ink truncate">
+              {channelName}
+            </h3>
           </div>
         </div>
       </div>
@@ -70,7 +75,7 @@ export default function GlassPanel({
           onClick={() => setDescExpanded(!descExpanded)}
           className="mt-0.5 text-[10px] font-medium text-gray-400 hover:text-gray-600"
         >
-          {descExpanded ? "Menos" : "Leer mas..."}
+          {descExpanded ? "Menos" : "Leer más"}
         </button>
       </div>
 

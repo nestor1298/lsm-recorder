@@ -95,7 +95,7 @@ export default function UBControls({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar punto UB..."
-          className="w-full rounded-lg border border-black/10 bg-white/50 py-1.5 pl-8 pr-3 text-[11px] text-gray-900 placeholder:text-gray-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+          className="w-full rounded-lg border border-black/10 bg-paper/50 py-1.5 pl-8 pr-3 text-[11px] text-ink placeholder:text-gray-400 focus:border-green focus:outline-none focus:ring-2 focus:ring-green/20"
         />
       </div>
 
@@ -109,7 +109,7 @@ export default function UBControls({
               onClick={() => handleRegionClick(region)}
               className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-medium transition-colors ${
                 selectedRegion === region
-                  ? "bg-white shadow ring-1 ring-gray-200"
+                  ? "bg-paper shadow ring-1 ring-gray-200"
                   : "hover:bg-gray-100"
               }`}
             >
@@ -144,11 +144,15 @@ export default function UBControls({
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                   }`}
                   style={
-                    isActive ? { backgroundColor: color } : { borderLeft: `2px solid ${color}40` }
+                    isActive
+                      ? { backgroundColor: color }
+                      : { borderLeft: `2px solid ${color}40` }
                   }
                 >
                   {loc.code}
-                  <span className={`ml-0.5 text-[8px] ${isActive ? "text-white/70" : "text-gray-400"}`}>
+                  <span
+                    className={`ml-0.5 text-[8px] ${isActive ? "text-white/70" : "text-gray-400"}`}
+                  >
                     {loc.name}
                   </span>
                 </button>
@@ -159,7 +163,7 @@ export default function UBControls({
       )}
 
       {/* Location list grouped by region */}
-      <div className="max-h-[30vh] space-y-2 overflow-y-auto rounded-lg border border-black/5 bg-white/30 p-2">
+      <div className="max-h-[30vh] space-y-2 overflow-y-auto rounded-lg border border-black/5 bg-paper/30 p-2">
         {filteredLocations.length === 0 ? (
           <p className="py-4 text-center text-[10px] text-gray-400">
             No se encontraron puntos UB
@@ -220,13 +224,13 @@ export default function UBControls({
           }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-900">
+            <span className="text-sm font-bold text-ink">
               {selectedLoc.code}
             </span>
             <span className="text-sm text-gray-600">{selectedLoc.name}</span>
             {selectedLoc.frequent && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
-                Alta Freq.
+              <span className="rounded bg-gold-tint px-1.5 py-0.5 text-[9px] font-medium text-gold-deep">
+                Alta frec.
               </span>
             )}
           </div>

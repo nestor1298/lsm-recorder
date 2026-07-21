@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { CM_INVENTORY, FINGER_GROUPS, TIER_COLORS, getFingerGroup } from "@/lib/data";
+import {
+  CM_INVENTORY,
+  FINGER_GROUPS,
+  TIER_COLORS,
+  getFingerGroup,
+} from "@/lib/data";
 import type { CMEntry, FlexionLevel } from "@/lib/types";
 import { MiniHand, FLEXION_COLOR } from "./MiniHand";
 
@@ -13,9 +18,9 @@ const FLEXION_LABEL_ES: Record<FlexionLevel, string> = {
 };
 
 const TIER_LABELS_ES: Record<number, string> = {
-  1: "Alta Frecuencia",
-  2: "Media Frecuencia",
-  3: "Baja Frecuencia",
+  1: "Alta frecuencia",
+  2: "Media frecuencia",
+  3: "Baja frecuencia",
   4: "Raro",
 };
 
@@ -26,17 +31,25 @@ interface CMControlsProps {
   className?: string;
 }
 
-export default function CMControls({ onCMChange, defaultCM, className = "" }: CMControlsProps) {
+export default function CMControls({
+  onCMChange,
+  defaultCM,
+  className = "",
+}: CMControlsProps) {
   const [selectedTier, setSelectedTier] = useState<number | null>(1);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-  const [selectedCM, setSelectedCM] = useState<CMEntry | null>(defaultCM ?? null);
+  const [selectedCM, setSelectedCM] = useState<CMEntry | null>(
+    defaultCM ?? null,
+  );
 
   const activeCM = selectedCM;
 
   const filtered = useMemo(() => {
     let items = CM_INVENTORY;
-    if (selectedTier) items = items.filter((cm) => cm.frequency_tier === selectedTier);
-    if (selectedGroup) items = items.filter((cm) => getFingerGroup(cm) === selectedGroup);
+    if (selectedTier)
+      items = items.filter((cm) => cm.frequency_tier === selectedTier);
+    if (selectedGroup)
+      items = items.filter((cm) => getFingerGroup(cm) === selectedGroup);
     return items;
   }, [selectedTier, selectedGroup]);
 
@@ -49,13 +62,17 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
     <div className={`space-y-3 ${className}`}>
       {/* Selected CM detail (at top) */}
       {activeCM && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-3">
+        <div className="rounded-xl border border-accent-tint bg-accent-tint/80 p-3">
           <div className="flex items-start gap-3">
             <MiniHand cm={activeCM} size={52} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-900">CM #{activeCM.cm_id}</span>
-                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}>
+                <span className="text-sm font-bold text-ink">
+                  CM #{activeCM.cm_id}
+                </span>
+                <span
+                  className={`rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}
+                >
                   {TIER_LABELS_ES[activeCM.frequency_tier]}
                 </span>
                 {selectedCM && (
@@ -68,27 +85,42 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
                 )}
               </div>
               {activeCM.cruz_aldrete_notation && (
-                <p className="mt-0.5 font-mono text-[11px] text-gray-600">{activeCM.cruz_aldrete_notation}</p>
+                <p className="mt-0.5 font-mono text-[11px] text-gray-600">
+                  {activeCM.cruz_aldrete_notation}
+                </p>
               )}
               {activeCM.example_sign && (
                 <p className="text-[11px] text-gray-500">
-                  Ej: <span className="font-medium text-gray-700">{activeCM.example_sign}</span>
+                  Ej:{" "}
+                  <span className="font-medium text-gray-700">
+                    {activeCM.example_sign}
+                  </span>
                 </p>
               )}
               <div className="mt-1 flex flex-wrap gap-1">
-                {(["index", "middle", "ring", "pinky"] as const).map((finger) => {
-                  const labels = { index: "Índ", middle: "Med", ring: "Anu", pinky: "Meñ" };
-                  const flexion = activeCM[finger];
-                  return (
-                    <span
-                      key={finger}
-                      className="rounded px-1 py-0.5 text-[9px] font-medium"
-                      style={{ backgroundColor: `${FLEXION_COLOR[flexion]}15`, color: FLEXION_COLOR[flexion] }}
-                    >
-                      {labels[finger]}: {FLEXION_LABEL_ES[flexion]}
-                    </span>
-                  );
-                })}
+                {(["index", "middle", "ring", "pinky"] as const).map(
+                  (finger) => {
+                    const labels = {
+                      index: "Índ",
+                      middle: "Med",
+                      ring: "Anu",
+                      pinky: "Meñ",
+                    };
+                    const flexion = activeCM[finger];
+                    return (
+                      <span
+                        key={finger}
+                        className="rounded px-1 py-0.5 text-[9px] font-medium"
+                        style={{
+                          backgroundColor: `${FLEXION_COLOR[flexion]}15`,
+                          color: FLEXION_COLOR[flexion],
+                        }}
+                      >
+                        {labels[finger]}: {FLEXION_LABEL_ES[flexion]}
+                      </span>
+                    );
+                  },
+                )}
               </div>
             </div>
           </div>
@@ -97,19 +129,30 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
 
       {/* Flexion legend */}
       <div className="flex items-center gap-3">
-        {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map((level) => (
-          <div key={level} className="flex items-center gap-1">
-            <div
-              className="rounded-sm"
-              style={{
-                width: 3,
-                height: level === "EXTENDED" ? 16 : level === "CURVED" ? 13 : level === "BENT" ? 10 : 5,
-                backgroundColor: FLEXION_COLOR[level],
-              }}
-            />
-            <span className="text-[10px] text-gray-500">{FLEXION_LABEL_ES[level]}</span>
-          </div>
-        ))}
+        {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map(
+          (level) => (
+            <div key={level} className="flex items-center gap-1">
+              <div
+                className="rounded-sm"
+                style={{
+                  width: 3,
+                  height:
+                    level === "EXTENDED"
+                      ? 16
+                      : level === "CURVED"
+                        ? 13
+                        : level === "BENT"
+                          ? 10
+                          : 5,
+                  backgroundColor: FLEXION_COLOR[level],
+                }}
+              />
+              <span className="text-[10px] text-gray-500">
+                {FLEXION_LABEL_ES[level]}
+              </span>
+            </div>
+          ),
+        )}
       </div>
 
       {/* Tier filter */}
@@ -117,7 +160,9 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
         <button
           onClick={() => setSelectedTier(null)}
           className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
-            selectedTier === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            selectedTier === null
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
           Todos
@@ -142,7 +187,9 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
         <button
           onClick={() => setSelectedGroup(null)}
           className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
-            selectedGroup === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            selectedGroup === null
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
           Todos
@@ -150,9 +197,13 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
         {FINGER_GROUPS.map((group) => (
           <button
             key={group}
-            onClick={() => setSelectedGroup(selectedGroup === group ? null : group)}
+            onClick={() =>
+              setSelectedGroup(selectedGroup === group ? null : group)
+            }
             className={`rounded-lg px-2 py-1 text-[10px] font-medium transition-colors ${
-              selectedGroup === group ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              selectedGroup === group
+                ? "bg-accent text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             {group}
@@ -161,28 +212,30 @@ export default function CMControls({ onCMChange, defaultCM, className = "" }: CM
       </div>
 
       {/* CM grid (scrollable) */}
-      <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-gray-100 bg-white/50 p-2">
+      <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-gray-100 bg-paper/50 p-2">
         <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5">
           {filtered.map((cm) => {
             const isSelected = selectedCM?.cm_id === cm.cm_id;
             return (
               <div
                 key={cm.cm_id}
-                className={`group relative cursor-pointer rounded-lg border bg-white p-1 transition-all hover:shadow-md ${
+                className={`group relative cursor-pointer rounded-lg border bg-paper p-1 transition-all hover:shadow-md ${
                   isSelected
-                    ? "border-indigo-500 ring-2 ring-indigo-400/50 shadow-lg"
+                    ? "border-accent ring-2 ring-accent/50 shadow-lg"
                     : "border-gray-200"
                 }`}
                 onClick={() => setSelectedCM(isSelected ? null : cm)}
               >
                 <MiniHand cm={cm} size={48} />
                 <div className="text-center">
-                  <span className={`text-[8px] font-bold ${isSelected ? "text-indigo-600" : "text-gray-600"}`}>
+                  <span
+                    className={`text-[8px] font-bold ${isSelected ? "text-accent-deep" : "text-gray-600"}`}
+                  >
                     #{cm.cm_id}
                   </span>
                 </div>
                 {isSelected && (
-                  <div className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-indigo-500 text-[7px] text-white shadow">
+                  <div className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent text-[7px] text-white shadow">
                     ✓
                   </div>
                 )}

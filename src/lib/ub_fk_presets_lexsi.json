@@ -1,0 +1,752 @@
+[
+  {
+    "code": "MedDen",
+    "dist": 0.9,
+    "angles": {
+      "clavShrug": 17,
+      "clavProtract": 0,
+      "shoulderSwing": 67,
+      "shoulderElev": -50,
+      "shoulderTwist": 10,
+      "elbowFlex": 79,
+      "forearmTwist": -80,
+      "wristFlex": -8,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "IpsiCo",
+    "dist": 0.9,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 74,
+      "shoulderElev": -29,
+      "shoulderTwist": 11,
+      "elbowFlex": 70,
+      "forearmTwist": 26,
+      "wristFlex": 47,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Par",
+    "dist": 1.1,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": -17,
+      "shoulderElev": 39,
+      "shoulderTwist": -62,
+      "elbowFlex": 119,
+      "forearmTwist": 50,
+      "wristFlex": 45,
+      "wristDeviation": -2
+    }
+  },
+  {
+    "code": "XOs",
+    "dist": 1.1,
+    "angles": {
+      "clavShrug": 2,
+      "clavProtract": 0,
+      "shoulderSwing": -49,
+      "shoulderElev": 150,
+      "shoulderTwist": 45,
+      "elbowFlex": 4,
+      "forearmTwist": 0,
+      "wristFlex": 0,
+      "wristDeviation": 0
+    }
+  },
+  {
+    "code": "Ci",
+    "dist": 1.2,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 47,
+      "shoulderElev": -27,
+      "shoulderTwist": 6,
+      "elbowFlex": 80,
+      "forearmTwist": 59,
+      "wristFlex": 40,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Su",
+    "dist": 1.2,
+    "angles": {
+      "clavShrug": 8,
+      "clavProtract": 1,
+      "shoulderSwing": -43,
+      "shoulderElev": 150,
+      "shoulderTwist": 39,
+      "elbowFlex": 0,
+      "forearmTwist": -39,
+      "wristFlex": -49,
+      "wristDeviation": -17
+    }
+  },
+  {
+    "code": "OrbOc",
+    "dist": 1.2,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 1,
+      "shoulderSwing": 56,
+      "shoulderElev": -41,
+      "shoulderTwist": 12,
+      "elbowFlex": 74,
+      "forearmTwist": 39,
+      "wristFlex": 15,
+      "wristDeviation": -12
+    }
+  },
+  {
+    "code": "Lab",
+    "dist": 1.2,
+    "angles": {
+      "clavShrug": 16,
+      "clavProtract": 1,
+      "shoulderSwing": 61,
+      "shoulderElev": -50,
+      "shoulderTwist": 20,
+      "elbowFlex": 78,
+      "forearmTwist": -80,
+      "wristFlex": -2,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "XFr",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": 10,
+      "clavProtract": 1,
+      "shoulderSwing": -46,
+      "shoulderElev": 150,
+      "shoulderTwist": 36,
+      "elbowFlex": 0,
+      "forearmTwist": -44,
+      "wristFlex": -51,
+      "wristDeviation": -17
+    }
+  },
+  {
+    "code": "Oc",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 1,
+      "shoulderSwing": 61,
+      "shoulderElev": -46,
+      "shoulderTwist": 5,
+      "elbowFlex": 72,
+      "forearmTwist": 34,
+      "wristFlex": 9,
+      "wristDeviation": -7
+    }
+  },
+  {
+    "code": "Ge",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 62,
+      "shoulderElev": -2,
+      "shoulderTwist": 10,
+      "elbowFlex": 98,
+      "forearmTwist": 36,
+      "wristFlex": 11,
+      "wristDeviation": -11
+    }
+  },
+  {
+    "code": "Ce",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": 4,
+      "clavProtract": 4,
+      "shoulderSwing": -50,
+      "shoulderElev": -50,
+      "shoulderTwist": -64,
+      "elbowFlex": 84,
+      "forearmTwist": -80,
+      "wristFlex": 4,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Co",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": 10,
+      "clavProtract": 0,
+      "shoulderSwing": 78,
+      "shoulderElev": -50,
+      "shoulderTwist": 11,
+      "elbowFlex": 86,
+      "forearmTwist": -80,
+      "wristFlex": -4,
+      "wristDeviation": -16
+    }
+  },
+  {
+    "code": "To",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": 10,
+      "clavProtract": 1,
+      "shoulderSwing": 94,
+      "shoulderElev": -50,
+      "shoulderTwist": 15,
+      "elbowFlex": 85,
+      "forearmTwist": -80,
+      "wristFlex": -3,
+      "wristDeviation": -17
+    }
+  },
+  {
+    "code": "Cos",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 118,
+      "shoulderElev": -32,
+      "shoulderTwist": 5,
+      "elbowFlex": 43,
+      "forearmTwist": 13,
+      "wristFlex": 60,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Dor",
+    "dist": 1.3,
+    "angles": {
+      "clavShrug": 6,
+      "clavProtract": 6,
+      "shoulderSwing": -50,
+      "shoulderElev": -49,
+      "shoulderTwist": -84,
+      "elbowFlex": 66,
+      "forearmTwist": -80,
+      "wristFlex": 8,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Au",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 7,
+      "clavProtract": 0,
+      "shoulderSwing": -8,
+      "shoulderElev": 51,
+      "shoulderTwist": 31,
+      "elbowFlex": 107,
+      "forearmTwist": -5,
+      "wristFlex": 44,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Fa",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 16,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -50,
+      "shoulderTwist": 20,
+      "elbowFlex": 78,
+      "forearmTwist": -79,
+      "wristFlex": -4,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "IpsiFr",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 43,
+      "shoulderElev": -29,
+      "shoulderTwist": 2,
+      "elbowFlex": 72,
+      "forearmTwist": 49,
+      "wristFlex": 60,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Na",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 16,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -50,
+      "shoulderTwist": 20,
+      "elbowFlex": 78,
+      "forearmTwist": -79,
+      "wristFlex": -4,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "La",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 18,
+      "clavProtract": 2,
+      "shoulderSwing": 72,
+      "shoulderElev": -50,
+      "shoulderTwist": 0,
+      "elbowFlex": 76,
+      "forearmTwist": -80,
+      "wristFlex": -10,
+      "wristDeviation": -18
+    }
+  },
+  {
+    "code": "Lin",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 15,
+      "clavProtract": 1,
+      "shoulderSwing": 61,
+      "shoulderElev": -49,
+      "shoulderTwist": 20,
+      "elbowFlex": 83,
+      "forearmTwist": -80,
+      "wristFlex": -3,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Den",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 15,
+      "clavProtract": 1,
+      "shoulderSwing": 61,
+      "shoulderElev": -49,
+      "shoulderTwist": 20,
+      "elbowFlex": 83,
+      "forearmTwist": -80,
+      "wristFlex": -3,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Gu",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 7,
+      "clavProtract": 1,
+      "shoulderSwing": 78,
+      "shoulderElev": -50,
+      "shoulderTwist": 15,
+      "elbowFlex": 89,
+      "forearmTwist": -80,
+      "wristFlex": 0,
+      "wristDeviation": -11
+    }
+  },
+  {
+    "code": "IpsiPe",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 1,
+      "shoulderSwing": 94,
+      "shoulderElev": -39,
+      "shoulderTwist": 5,
+      "elbowFlex": 60,
+      "forearmTwist": 45,
+      "wristFlex": 20,
+      "wristDeviation": -19
+    }
+  },
+  {
+    "code": "Cit",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": -4,
+      "clavProtract": 0,
+      "shoulderSwing": 128,
+      "shoulderElev": -49,
+      "shoulderTwist": 10,
+      "elbowFlex": 45,
+      "forearmTwist": 0,
+      "wristFlex": 8,
+      "wristDeviation": -9
+    }
+  },
+  {
+    "code": "Cox",
+    "dist": 1.4,
+    "angles": {
+      "clavShrug": 18,
+      "clavProtract": 6,
+      "shoulderSwing": 122,
+      "shoulderElev": -49,
+      "shoulderTwist": 10,
+      "elbowFlex": 62,
+      "forearmTwist": -80,
+      "wristFlex": -3,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Ca",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 6,
+      "clavProtract": 1,
+      "shoulderSwing": 50,
+      "shoulderElev": -50,
+      "shoulderTwist": 22,
+      "elbowFlex": 89,
+      "forearmTwist": -80,
+      "wristFlex": 0,
+      "wristDeviation": -5
+    }
+  },
+  {
+    "code": "Te",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 56,
+      "shoulderElev": 18,
+      "shoulderTwist": 16,
+      "elbowFlex": 102,
+      "forearmTwist": 34,
+      "wristFlex": 20,
+      "wristDeviation": -18
+    }
+  },
+  {
+    "code": "LobAu",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 11,
+      "clavProtract": 1,
+      "shoulderSwing": -14,
+      "shoulderElev": 47,
+      "shoulderTwist": 22,
+      "elbowFlex": 107,
+      "forearmTwist": -11,
+      "wristFlex": 56,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Fr",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 5,
+      "clavProtract": 2,
+      "shoulderSwing": 56,
+      "shoulderElev": -50,
+      "shoulderTwist": 10,
+      "elbowFlex": 89,
+      "forearmTwist": -80,
+      "wristFlex": 0,
+      "wristDeviation": -3
+    }
+  },
+  {
+    "code": "Cin",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 5,
+      "clavProtract": 0,
+      "shoulderSwing": 56,
+      "shoulderElev": -50,
+      "shoulderTwist": 15,
+      "elbowFlex": 89,
+      "forearmTwist": -80,
+      "wristFlex": 0,
+      "wristDeviation": 0
+    }
+  },
+  {
+    "code": "Sep",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 15,
+      "clavProtract": 1,
+      "shoulderSwing": 61,
+      "shoulderElev": -49,
+      "shoulderTwist": 15,
+      "elbowFlex": 82,
+      "forearmTwist": -80,
+      "wristFlex": -7,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "AlNa",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": -3,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -48,
+      "shoulderTwist": 10,
+      "elbowFlex": 70,
+      "forearmTwist": 31,
+      "wristFlex": 5,
+      "wristDeviation": -4
+    }
+  },
+  {
+    "code": "Po",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -34,
+      "shoulderTwist": 5,
+      "elbowFlex": 73,
+      "forearmTwist": 50,
+      "wristFlex": 20,
+      "wristDeviation": -15
+    }
+  },
+  {
+    "code": "IpsiOs",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": -1,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -50,
+      "shoulderTwist": 15,
+      "elbowFlex": 74,
+      "forearmTwist": -53,
+      "wristFlex": 0,
+      "wristDeviation": 0
+    }
+  },
+  {
+    "code": "Col",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 1,
+      "clavProtract": 0,
+      "shoulderSwing": 61,
+      "shoulderElev": -50,
+      "shoulderTwist": 15,
+      "elbowFlex": 78,
+      "forearmTwist": -56,
+      "wristFlex": -3,
+      "wristDeviation": 1
+    }
+  },
+  {
+    "code": "Me",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 18,
+      "clavProtract": 2,
+      "shoulderSwing": 67,
+      "shoulderElev": -49,
+      "shoulderTwist": 10,
+      "elbowFlex": 77,
+      "forearmTwist": -79,
+      "wristFlex": -8,
+      "wristDeviation": -19
+    }
+  },
+  {
+    "code": "Pe",
+    "dist": 1.5,
+    "angles": {
+      "clavShrug": 15,
+      "clavProtract": 0,
+      "shoulderSwing": 94,
+      "shoulderElev": -49,
+      "shoulderTwist": 15,
+      "elbowFlex": 80,
+      "forearmTwist": -80,
+      "wristFlex": -6,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Vx",
+    "dist": 1.6,
+    "angles": {
+      "clavShrug": -4,
+      "clavProtract": 3,
+      "shoulderSwing": 150,
+      "shoulderElev": 150,
+      "shoulderTwist": -41,
+      "elbowFlex": 44,
+      "forearmTwist": 59,
+      "wristFlex": 47,
+      "wristDeviation": 30
+    }
+  },
+  {
+    "code": "RapOc",
+    "dist": 1.8,
+    "angles": {
+      "clavShrug": -5,
+      "clavProtract": 0,
+      "shoulderSwing": 53,
+      "shoulderElev": -24,
+      "shoulderTwist": 5,
+      "elbowFlex": 60,
+      "forearmTwist": 34,
+      "wristFlex": 60,
+      "wristDeviation": -20
+    }
+  },
+  {
+    "code": "Os",
+    "dist": 2,
+    "angles": {
+      "clavShrug": 18,
+      "clavProtract": 1,
+      "shoulderSwing": 67,
+      "shoulderElev": -48,
+      "shoulderTwist": 10,
+      "elbowFlex": 77,
+      "forearmTwist": -80,
+      "wristFlex": -7,
+      "wristDeviation": -16
+    }
+  },
+  {
+    "code": "Es",
+    "dist": 2.2,
+    "angles": {
+      "clavShrug": 0,
+      "clavProtract": 0,
+      "shoulderSwing": -50,
+      "shoulderElev": 148,
+      "shoulderTwist": 15,
+      "elbowFlex": 44,
+      "forearmTwist": 80,
+      "wristFlex": -1,
+      "wristDeviation": 0
+    }
+  },
+  {
+    "code": "Je",
+    "dist": 2.4,
+    "angles": {
+      "clavShrug": 5,
+      "clavProtract": 0,
+      "shoulderSwing": 128,
+      "shoulderElev": -50,
+      "shoulderTwist": 10,
+      "elbowFlex": 47,
+      "forearmTwist": -80,
+      "wristFlex": -3,
+      "wristDeviation": -11
+    }
+  },
+  {
+    "code": "Abd",
+    "dist": 4.3,
+    "angles": {
+      "clavShrug": 2,
+      "clavProtract": 0,
+      "shoulderSwing": -50,
+      "shoulderElev": 144,
+      "shoulderTwist": 5,
+      "elbowFlex": 44,
+      "forearmTwist": 73,
+      "wristFlex": -2,
+      "wristDeviation": 1
+    }
+  },
+  {
+    "code": "Ve",
+    "dist": 6.9,
+    "angles": {
+      "clavShrug": 5,
+      "clavProtract": 0,
+      "shoulderSwing": -49,
+      "shoulderElev": 138,
+      "shoulderTwist": 4,
+      "elbowFlex": 38,
+      "forearmTwist": 16,
+      "wristFlex": 3,
+      "wristDeviation": -2
+    }
+  },
+  {
+    "code": "XPe",
+    "dist": 7.4,
+    "angles": {
+      "clavShrug": 10,
+      "clavProtract": 0,
+      "shoulderSwing": -48,
+      "shoulderElev": 145,
+      "shoulderTwist": 21,
+      "elbowFlex": 9,
+      "forearmTwist": 49,
+      "wristFlex": 6,
+      "wristDeviation": -6
+    }
+  },
+  {
+    "code": "Cor",
+    "dist": 8.1,
+    "angles": {
+      "clavShrug": 9,
+      "clavProtract": 2,
+      "shoulderSwing": -49,
+      "shoulderElev": 144,
+      "shoulderTwist": 15,
+      "elbowFlex": 9,
+      "forearmTwist": 56,
+      "wristFlex": 6,
+      "wristDeviation": -6
+    }
+  },
+  {
+    "code": "Gen",
+    "dist": 42.9,
+    "angles": {
+      "clavShrug": 18,
+      "clavProtract": 3,
+      "shoulderSwing": -28,
+      "shoulderElev": 108,
+      "shoulderTwist": -8,
+      "elbowFlex": 21,
+      "forearmTwist": 9,
+      "wristFlex": 1,
+      "wristDeviation": 2
+    }
+  },
+  {
+    "code": "Fe",
+    "dist": 48.7,
+    "angles": {
+      "clavShrug": 14,
+      "clavProtract": 9,
+      "shoulderSwing": -22,
+      "shoulderElev": 108,
+      "shoulderTwist": 5,
+      "elbowFlex": 17,
+      "forearmTwist": 17,
+      "wristFlex": 5,
+      "wristDeviation": 1
+    }
+  }
+]

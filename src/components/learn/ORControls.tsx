@@ -14,7 +14,11 @@ const PALM_DIRECTIONS: { value: PalmFacing; label: string; icon: string }[] = [
   { value: "RIGHT", label: "Derecha", icon: "→" },
 ];
 
-const FINGER_DIRECTIONS: { value: FingerPointing; label: string; icon: string }[] = [
+const FINGER_DIRECTIONS: {
+  value: FingerPointing;
+  label: string;
+  icon: string;
+}[] = [
   { value: "UP", label: "Arriba", icon: "↑" },
   { value: "DOWN", label: "Abajo", icon: "↓" },
   { value: "FORWARD", label: "Frente", icon: "↗" },
@@ -31,9 +35,18 @@ interface ORControlsProps {
   className?: string;
 }
 
-export default function ORControls({ onOrientationChange, defaultPalm, defaultFingers, className = "" }: ORControlsProps) {
-  const [palm, setPalm] = useState<PalmFacing>((defaultPalm as PalmFacing) ?? "FORWARD");
-  const [fingers, setFingers] = useState<FingerPointing>((defaultFingers as FingerPointing) ?? "UP");
+export default function ORControls({
+  onOrientationChange,
+  defaultPalm,
+  defaultFingers,
+  className = "",
+}: ORControlsProps) {
+  const [palm, setPalm] = useState<PalmFacing>(
+    (defaultPalm as PalmFacing) ?? "FORWARD",
+  );
+  const [fingers, setFingers] = useState<FingerPointing>(
+    (defaultFingers as FingerPointing) ?? "UP",
+  );
 
   useEffect(() => {
     onOrientationChange({ palm, fingers });
@@ -44,7 +57,7 @@ export default function ORControls({ onOrientationChange, defaultPalm, defaultFi
       {/* Palm facing */}
       <div>
         <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-          Dirección de la Palma
+          Dirección de la palma
         </label>
         <div className="grid grid-cols-3 gap-1.5">
           {PALM_DIRECTIONS.map((dir) => (
@@ -53,7 +66,7 @@ export default function ORControls({ onOrientationChange, defaultPalm, defaultFi
               onClick={() => setPalm(dir.value)}
               className={`rounded-lg px-2 py-2 text-center text-xs font-medium transition-all ${
                 palm === dir.value
-                  ? "bg-violet-600 text-white shadow-md shadow-violet-500/25"
+                  ? "bg-accent text-white shadow-md shadow-accent/25"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -68,7 +81,7 @@ export default function ORControls({ onOrientationChange, defaultPalm, defaultFi
       {/* Finger pointing */}
       <div>
         <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-          Dirección de los Dedos
+          Dirección de los dedos
         </label>
         <div className="grid grid-cols-3 gap-1.5">
           {FINGER_DIRECTIONS.map((dir) => (
@@ -77,7 +90,7 @@ export default function ORControls({ onOrientationChange, defaultPalm, defaultFi
               onClick={() => setFingers(dir.value)}
               className={`rounded-lg px-2 py-2 text-center text-xs font-medium transition-all ${
                 fingers === dir.value
-                  ? "bg-violet-600 text-white shadow-md shadow-violet-500/25"
+                  ? "bg-accent text-white shadow-md shadow-accent/25"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -94,7 +107,7 @@ export default function ORControls({ onOrientationChange, defaultPalm, defaultFi
         <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
           Notación LSM-PN
         </p>
-        <p className="font-mono text-sm text-emerald-400">
+        <p className="font-mono text-sm text-green">
           OR: palma={palm.toLowerCase()}, dedos={fingers.toLowerCase()}
         </p>
       </div>

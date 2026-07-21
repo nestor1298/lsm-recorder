@@ -25,7 +25,13 @@ function darken(hex: string, amount = 0.3): string {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   const f = 1 - amount;
-  return `#${Math.round(r * f).toString(16).padStart(2, "0")}${Math.round(g * f).toString(16).padStart(2, "0")}${Math.round(b * f).toString(16).padStart(2, "0")}`;
+  return `#${Math.round(r * f)
+    .toString(16)
+    .padStart(2, "0")}${Math.round(g * f)
+    .toString(16)
+    .padStart(2, "0")}${Math.round(b * f)
+    .toString(16)
+    .padStart(2, "0")}`;
 }
 
 // ── Curl angles ─────────────────────────────────────────────────────
@@ -133,7 +139,9 @@ function fingerSilhouettePath(pts: JointPoint[]): string {
  * Build joint divider lines (thin lines across the finger at joint boundaries).
  * Returns lines for joints 1 and 2 (MCP/PIP and PIP/DIP boundaries).
  */
-function jointDividers(pts: JointPoint[]): { x1: number; y1: number; x2: number; y2: number }[] {
+function jointDividers(
+  pts: JointPoint[],
+): { x1: number; y1: number; x2: number; y2: number }[] {
   const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
   // Joint dividers at points 1 (MCP/PIP) and 2 (PIP/DIP)
   for (let i = 1; i <= 2; i++) {
@@ -198,10 +206,10 @@ export function MiniHand({ cm, size = 64, className }: MiniHandProps) {
   const fingerStates: FlexionLevel[] = [cm.index, cm.middle, cm.ring, cm.pinky];
 
   const BASES = [
-    { x: 25, y: 27, angle: -24 },   // Index
-    { x: 30, y: 24, angle: -10 },   // Middle
+    { x: 25, y: 27, angle: -24 }, // Index
+    { x: 30, y: 24, angle: -10 }, // Middle
     { x: 35.5, y: 25.5, angle: 4 }, // Ring
-    { x: 40, y: 28.5, angle: 17 },  // Pinky
+    { x: 40, y: 28.5, angle: 17 }, // Pinky
   ];
 
   // Compute finger geometry
@@ -240,8 +248,10 @@ export function MiniHand({ cm, size = 64, className }: MiniHandProps) {
       {jointDividers(thumbPts).map((line, i) => (
         <line
           key={`thd-${i}`}
-          x1={line.x1.toFixed(1)} y1={line.y1.toFixed(1)}
-          x2={line.x2.toFixed(1)} y2={line.y2.toFixed(1)}
+          x1={line.x1.toFixed(1)}
+          y1={line.y1.toFixed(1)}
+          x2={line.x2.toFixed(1)}
+          y2={line.y2.toFixed(1)}
           stroke={darken(FLEXION_COLOR[cm.thumb_flexion], 0.4)}
           strokeWidth="0.6"
         />
@@ -249,9 +259,7 @@ export function MiniHand({ cm, size = 64, className }: MiniHandProps) {
 
       {/* Fingers — filled silhouettes */}
       {fingers.map((finger, fi) => {
-        const color = finger.selected
-          ? FLEXION_COLOR[finger.state]
-          : "#d4d4d4";
+        const color = finger.selected ? FLEXION_COLOR[finger.state] : "#d4d4d4";
         const strokeColor = finger.selected
           ? darken(FLEXION_COLOR[finger.state])
           : "#b0b0b0";
@@ -271,8 +279,10 @@ export function MiniHand({ cm, size = 64, className }: MiniHandProps) {
               jointDividers(finger.pts).map((line, ji) => (
                 <line
                   key={`jd${fi}-${ji}`}
-                  x1={line.x1.toFixed(1)} y1={line.y1.toFixed(1)}
-                  x2={line.x2.toFixed(1)} y2={line.y2.toFixed(1)}
+                  x1={line.x1.toFixed(1)}
+                  y1={line.y1.toFixed(1)}
+                  x2={line.x2.toFixed(1)}
+                  y2={line.y2.toFixed(1)}
                   stroke={darken(FLEXION_COLOR[finger.state], 0.4)}
                   strokeWidth="0.6"
                 />

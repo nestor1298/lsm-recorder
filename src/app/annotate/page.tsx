@@ -16,13 +16,21 @@ import AnnotationForm from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
 import HandLandmarkOverlay from "@/components/HandLandmarkOverlay";
 
+const STATUS_ES: Record<string, string> = {
+  draft: "borrador",
+  complete: "completa",
+  reviewed: "revisada",
+};
+
 type View = "list" | "select_cm" | "annotate";
 
 export default function AnnotatePage() {
   const [view, setView] = useState<View>("list");
   const [annotations, setAnnotations] = useState<SignAnnotation[]>([]);
   const [current, setCurrent] = useState<SignAnnotation | null>(null);
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(
+    null,
+  );
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showHands, setShowHands] = useState(false);
@@ -33,13 +41,16 @@ export default function AnnotatePage() {
   }, []);
 
   const selectedCM = useMemo(
-    () => (current ? CM_INVENTORY.find((cm) => cm.cm_id === current.cm_id) ?? null : null),
-    [current]
+    () =>
+      current
+        ? (CM_INVENTORY.find((cm) => cm.cm_id === current.cm_id) ?? null)
+        : null,
+    [current],
   );
 
   const selectedSegment = useMemo(
     () => current?.segments.find((s) => s.id === selectedSegmentId) ?? null,
-    [current, selectedSegmentId]
+    [current, selectedSegmentId],
   );
 
   // Video time sync
@@ -63,14 +74,16 @@ export default function AnnotatePage() {
       if (!current) return;
       const updated = {
         ...current,
-        segments: [...current.segments, segment].sort((a, b) => a.start_ms - b.start_ms),
+        segments: [...current.segments, segment].sort(
+          (a, b) => a.start_ms - b.start_ms,
+        ),
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
       saveAnnotation(updated);
       setSelectedSegmentId(segment.id);
     },
-    [current]
+    [current],
   );
 
   const handleSegmentUpdate = useCallback(
@@ -78,13 +91,15 @@ export default function AnnotatePage() {
       if (!current) return;
       const updated = {
         ...current,
-        segments: current.segments.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+        segments: current.segments.map((s) =>
+          s.id === id ? { ...s, ...updates } : s,
+        ),
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
       saveAnnotation(updated);
     },
-    [current]
+    [current],
   );
 
   const handleSegmentDelete = useCallback(
@@ -98,23 +113,22 @@ export default function AnnotatePage() {
       setCurrent(updated);
       saveAnnotation(updated);
     },
-    [current]
+    [current],
   );
 
-  const handleCreateAnnotation = useCallback(
-    (cm: CMEntry) => {
-      const ann = createAnnotation(cm.cm_id, cm.example_sign);
-      setCurrent(ann);
-      setAnnotations(getAnnotations());
-      setView("annotate");
-    },
-    []
-  );
+  const handleCreateAnnotation = useCallback((cm: CMEntry) => {
+    const ann = createAnnotation(cm.cm_id, cm.example_sign);
+    setCurrent(ann);
+    setAnnotations(getAnnotations());
+    setView("annotate");
+  }, []);
 
   const handleExportJSON = useCallback(() => {
     if (!current) return;
     const lsmPn = exportAnnotationAsLSMPN(current);
-    const blob = new Blob([JSON.stringify(lsmPn, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(lsmPn, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -131,7 +145,7 @@ export default function AnnotatePage() {
         cm.example_sign.toLowerCase().includes(q) ||
         cm.cruz_aldrete_notation.toLowerCase().includes(q) ||
         (cm.alpha_code?.toLowerCase().includes(q) ?? false) ||
-        cm.cm_id.toString() === q
+        cm.cm_id.toString() === q,
     );
   }, [searchQuery]);
 
@@ -141,30 +155,32 @@ export default function AnnotatePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Annotations</h1>
+            <h1 className="text-2xl font-bold text-ink">Anotaciones</h1>
             <p className="text-sm text-gray-500">
-              LSM-PN phonological annotations with PSHR timeline
+              Anotaciones fonológicas LSM-PN con línea de tiempo PSHR
             </p>
           </div>
           <button
             onClick={() => setView("select_cm")}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
           >
-            New Annotation
+            Nueva anotación
           </button>
         </div>
 
         {annotations.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-300 p-12 text-center">
-            <p className="text-lg font-medium text-gray-500">No annotations yet</p>
+            <p className="text-lg font-medium text-gray-500">
+              Todavía no hay anotaciones
+            </p>
             <p className="mt-1 text-sm text-gray-400">
-              Create your first LSM-PN annotation by selecting a handshape
+              Crea tu primera anotación LSM-PN eligiendo una configuración de mano
             </p>
             <button
               onClick={() => setView("select_cm")}
-              className="mt-4 rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+              className="mt-4 rounded-full bg-ink px-6 py-2 text-sm font-semibold text-white hover:bg-gray-800"
             >
-              Get Started
+              Comenzar
             </button>
           </div>
         ) : (
@@ -174,7 +190,7 @@ export default function AnnotatePage() {
               return (
                 <div
                   key={ann.id}
-                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 hover:border-indigo-300"
+                  className="flex items-center justify-between rounded-xl border border-gray-200 bg-paper p-4 hover:border-accent"
                 >
                   <button
                     onClick={() => {
@@ -183,23 +199,23 @@ export default function AnnotatePage() {
                     }}
                     className="flex items-center gap-4 text-left"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-sm font-bold text-indigo-700">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-tint text-sm font-bold text-accent-deep">
                       #{ann.cm_id}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{ann.gloss}</p>
+                      <p className="font-semibold text-ink">{ann.gloss}</p>
                       <p className="text-xs text-gray-500">
-                        {ann.segments.length} segments &middot;{" "}
+                        {ann.segments.length} segmentos &middot;{" "}
                         <span
                           className={
                             ann.status === "complete"
-                              ? "text-green-600"
+                              ? "text-green-deep"
                               : ann.status === "reviewed"
-                                ? "text-blue-600"
+                                ? "text-accent-deep"
                                 : "text-gray-400"
                           }
                         >
-                          {ann.status}
+                          {STATUS_ES[ann.status] ?? ann.status}
                         </span>{" "}
                         &middot; {new Date(ann.updated_at).toLocaleDateString()}
                       </p>
@@ -210,9 +226,9 @@ export default function AnnotatePage() {
                       deleteAnnotation(ann.id);
                       setAnnotations(getAnnotations());
                     }}
-                    className="rounded px-3 py-1 text-xs text-red-600 hover:bg-red-50"
+                    className="rounded px-3 py-1 text-xs text-coral-deep hover:bg-coral-tint"
                   >
-                    Delete
+                    Eliminar
                   </button>
                 </div>
               );
@@ -228,21 +244,21 @@ export default function AnnotatePage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Select Handshape</h1>
+          <h1 className="text-2xl font-bold text-ink">Elige una configuración de mano</h1>
           <button
             onClick={() => setView("list")}
-            className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+            className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
           >
-            Cancel
+            Cancelar
           </button>
         </div>
 
         <input
           type="text"
-          placeholder="Search by gloss, notation, or code..."
+          placeholder="Busca por glosa, notación o código..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
         />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -263,9 +279,12 @@ export default function AnnotatePage() {
   if (!current || !selectedCM) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Annotation not found.</p>
-        <button onClick={() => setView("list")} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white">
-          Back
+        <p className="text-gray-500">No se encontró la anotación.</p>
+        <button
+          onClick={() => setView("list")}
+          className="mt-4 rounded-full bg-ink px-4 py-2 text-sm text-white"
+        >
+          Volver
         </button>
       </div>
     );
@@ -285,36 +304,42 @@ export default function AnnotatePage() {
               setView("list");
               setAnnotations(getAnnotations());
             }}
-            className="rounded-lg bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+            className="rounded-full bg-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
           >
-            Back
+            Volver
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-ink">
               {current.gloss}{" "}
-              <span className="text-sm font-normal text-gray-500">CM #{current.cm_id}</span>
+              <span className="text-sm font-normal text-gray-500">
+                CM #{current.cm_id}
+              </span>
             </h1>
             <p className="text-xs text-gray-500">
-              {current.segments.length} segments &middot; {current.status}
+              {current.segments.length} segmentos &middot; {STATUS_ES[current.status] ?? current.status}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleExportJSON}
-            className="rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+            className="rounded-full border border-accent bg-accent-tint px-4 py-2 text-sm font-medium text-accent-deep hover:bg-accent-tint"
           >
-            Export LSM-PN
+            Exportar LSM-PN
           </button>
           <button
             onClick={() => {
-              const updated = { ...current, status: "complete" as const, updated_at: new Date().toISOString() };
+              const updated = {
+                ...current,
+                status: "complete" as const,
+                updated_at: new Date().toISOString(),
+              };
               setCurrent(updated);
               saveAnnotation(updated);
             }}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+            className="rounded-full bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-deep"
           >
-            Mark Complete
+            Marcar completa
           </button>
         </div>
       </div>
@@ -341,9 +366,9 @@ export default function AnnotatePage() {
             ) : (
               <div className="flex aspect-video items-center justify-center bg-gray-900">
                 <div className="text-center">
-                  <p className="text-sm text-gray-400">No video attached</p>
+                  <p className="text-sm text-gray-400">Sin video adjunto</p>
                   <p className="mt-1 text-xs text-gray-500">
-                    Use the timeline below to define PSHR segments
+                    Usa la línea de tiempo para definir segmentos PSHR
                   </p>
                 </div>
               </div>
@@ -356,16 +381,16 @@ export default function AnnotatePage() {
                 type="checkbox"
                 checked={showHands}
                 onChange={(e) => setShowHands(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-gray-300 text-accent-deep focus:ring-accent"
               />
               Detectar manos (overlay de landmarks)
             </label>
           )}
 
           {/* PSHR Timeline */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-900">
-              PSHR Timeline
+          <div className="rounded-xl border border-gray-200 bg-paper p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink">
+              Línea de tiempo PSHR
             </h3>
             <PSHRTimeline
               segments={current.segments}
@@ -382,13 +407,15 @@ export default function AnnotatePage() {
 
           {/* Segment Annotation Form */}
           {selectedSegment && (
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">
-                Segment Annotation
+            <div className="rounded-xl border border-accent-tint bg-accent-tint/50 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-ink">
+                Anotación del segmento
               </h3>
               <AnnotationForm
                 segment={selectedSegment}
-                onUpdate={(updates) => handleSegmentUpdate(selectedSegment.id, updates)}
+                onUpdate={(updates) =>
+                  handleSegmentUpdate(selectedSegment.id, updates)
+                }
               />
             </div>
           )}
@@ -397,9 +424,9 @@ export default function AnnotatePage() {
         {/* Right: Hand viz + Global props */}
         <div className="space-y-4">
           {/* Hand Visualization */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-900">
-              Handshape (CM)
+          <div className="rounded-xl border border-gray-200 bg-paper p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink">
+              Configuración de mano (CM)
             </h3>
             <div className="flex justify-center">
               <HandVisualization cm={selectedCM} size={240} />
@@ -407,29 +434,33 @@ export default function AnnotatePage() {
           </div>
 
           {/* Global Properties */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-gray-900">Properties</h3>
+          <div className="rounded-xl border border-gray-200 bg-paper p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-ink">Propiedades</h3>
 
             <div>
               <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
-                Dominant Hand
+                Mano dominante
               </label>
               <div className="flex gap-2">
                 {(["RIGHT", "LEFT"] as const).map((hand) => (
                   <button
-                    key={hand}
+                    key={hand === "RIGHT" ? "Derecha" : "Izquierda"}
                     onClick={() => {
-                      const updated = { ...current, dominant_hand: hand, updated_at: new Date().toISOString() };
+                      const updated = {
+                        ...current,
+                        dominant_hand: hand,
+                        updated_at: new Date().toISOString(),
+                      };
                       setCurrent(updated);
                       saveAnnotation(updated);
                     }}
                     className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium ${
                       current.dominant_hand === hand
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-ink text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
-                    {hand}
+                    {hand === "RIGHT" ? "Derecha" : "Izquierda"}
                   </button>
                 ))}
               </div>
@@ -440,13 +471,17 @@ export default function AnnotatePage() {
                 type="checkbox"
                 checked={current.two_handed}
                 onChange={(e) => {
-                  const updated = { ...current, two_handed: e.target.checked, updated_at: new Date().toISOString() };
+                  const updated = {
+                    ...current,
+                    two_handed: e.target.checked,
+                    updated_at: new Date().toISOString(),
+                  };
                   setCurrent(updated);
                   saveAnnotation(updated);
                 }}
-                className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                className="h-4 w-4 rounded border-gray-300 text-accent-deep"
               />
-              <span className="text-xs text-gray-700">Two-handed sign</span>
+              <span className="text-xs text-gray-700">Seña bimanual</span>
             </label>
 
             {current.two_handed && (
@@ -455,36 +490,44 @@ export default function AnnotatePage() {
                   type="checkbox"
                   checked={current.symmetrical}
                   onChange={(e) => {
-                    const updated = { ...current, symmetrical: e.target.checked, updated_at: new Date().toISOString() };
+                    const updated = {
+                      ...current,
+                      symmetrical: e.target.checked,
+                      updated_at: new Date().toISOString(),
+                    };
                     setCurrent(updated);
                     saveAnnotation(updated);
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                  className="h-4 w-4 rounded border-gray-300 text-accent-deep"
                 />
-                <span className="text-xs text-gray-700">Symmetrical</span>
+                <span className="text-xs text-gray-700">Simétrica</span>
               </label>
             )}
 
             <div>
               <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
-                Notes
+                Notas
               </label>
               <textarea
                 value={current.notes}
                 onChange={(e) => {
-                  const updated = { ...current, notes: e.target.value, updated_at: new Date().toISOString() };
+                  const updated = {
+                    ...current,
+                    notes: e.target.value,
+                    updated_at: new Date().toISOString(),
+                  };
                   setCurrent(updated);
                   saveAnnotation(updated);
                 }}
-                className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs focus:border-accent focus:outline-none"
                 rows={3}
-                placeholder="Additional notes about this sign..."
+                placeholder="Notas adicionales sobre esta seña..."
               />
             </div>
           </div>
 
           {/* Sign details */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-xl border border-gray-200 bg-paper p-4">
             <SignCard cm={selectedCM} />
           </div>
         </div>

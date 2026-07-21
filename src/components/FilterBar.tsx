@@ -25,41 +25,41 @@ export default function FilterBar({
   filteredCount,
 }: FilterBarProps) {
   return (
-    <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
+    <div className="space-y-4 rounded-xl border border-gray-200 bg-paper p-4">
       {/* Search */}
       <div>
         <input
           type="text"
-          placeholder="Search by gloss, notation, or code..."
+          placeholder="Busca por glosa, notación o código..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
         />
       </div>
 
       {/* Frequency Tiers */}
       <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-          Frequency Tier
+        <p className="mb-2 text-xs font-medium overline-label text-gray-500">
+          Nivel de frecuencia
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onTierChange(null)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
               selectedTier === null
-                ? "bg-indigo-600 text-white"
+                ? "bg-ink text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            All
+            Todas
           </button>
           {[1, 2, 3, 4].map((tier) => (
             <button
               key={tier}
               onClick={() => onTierChange(selectedTier === tier ? null : tier)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 selectedTier === tier
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-ink text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -71,27 +71,29 @@ export default function FilterBar({
 
       {/* Finger Groups */}
       <div>
-        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-          Finger Group
+        <p className="mb-2 text-xs font-medium overline-label text-gray-500">
+          Grupo de dedos
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onGroupChange(null)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
               selectedGroup === null
-                ? "bg-indigo-600 text-white"
+                ? "bg-ink text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            All
+            Todas
           </button>
           {FINGER_GROUPS.map((group) => (
             <button
               key={group}
-              onClick={() => onGroupChange(selectedGroup === group ? null : group)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              onClick={() =>
+                onGroupChange(selectedGroup === group ? null : group)
+              }
+              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                 selectedGroup === group
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-ink text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -103,8 +105,8 @@ export default function FilterBar({
 
       {/* Count */}
       <p className="text-sm text-gray-500">
-        Showing <span className="font-medium text-gray-900">{filteredCount}</span> of{" "}
-        {totalCount} handshapes
+        Mostrando <span className="font-medium text-ink">{filteredCount}</span> de{" "}
+        {totalCount} configuraciones
       </p>
     </div>
   );

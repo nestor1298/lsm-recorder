@@ -2,17 +2,23 @@
 
 import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { CM_INVENTORY, FINGER_GROUPS, TIER_LABELS, TIER_COLORS, getFingerGroup } from "@/lib/data";
+import {
+  CM_INVENTORY,
+  FINGER_GROUPS,
+  TIER_LABELS,
+  TIER_COLORS,
+  getFingerGroup,
+} from "@/lib/data";
 import type { CMEntry, FlexionLevel } from "@/lib/types";
 import { MiniHand, FLEXION_COLOR } from "./MiniHand";
 
 const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center rounded-2xl bg-gradient-to-b from-indigo-950/50 to-slate-900/50">
+    <div className="flex h-full items-center justify-center rounded-2xl bg-ink/50">
       <div className="text-center">
-        <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-        <p className="text-xs text-indigo-300">Cargando 3D...</p>
+        <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        <p className="text-xs text-accent-tint">Cargando 3D...</p>
       </div>
     </div>
   ),
@@ -26,9 +32,9 @@ const FLEXION_LABEL_ES: Record<FlexionLevel, string> = {
 };
 
 const TIER_LABELS_ES: Record<number, string> = {
-  1: "Alta Frecuencia",
-  2: "Media Frecuencia",
-  3: "Baja Frecuencia",
+  1: "Alta frecuencia",
+  2: "Media frecuencia",
+  3: "Baja frecuencia",
   4: "Raro",
 };
 
@@ -43,8 +49,10 @@ export default function CMExplorer() {
 
   const filtered = useMemo(() => {
     let items = CM_INVENTORY;
-    if (selectedTier) items = items.filter((cm) => cm.frequency_tier === selectedTier);
-    if (selectedGroup) items = items.filter((cm) => getFingerGroup(cm) === selectedGroup);
+    if (selectedTier)
+      items = items.filter((cm) => cm.frequency_tier === selectedTier);
+    if (selectedGroup)
+      items = items.filter((cm) => getFingerGroup(cm) === selectedGroup);
     return items;
   }, [selectedTier, selectedGroup]);
 
@@ -52,13 +60,17 @@ export default function CMExplorer() {
     <div className="space-y-4">
       {/* Stats bar */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="rounded-lg bg-indigo-50 px-3 py-1.5">
-          <span className="text-2xl font-bold text-indigo-600">101</span>
-          <span className="ml-1.5 text-xs text-indigo-600/70">configuraciones</span>
+        <div className="rounded-lg bg-accent-tint px-3 py-1.5">
+          <span className="text-2xl font-bold text-accent-deep">101</span>
+          <span className="ml-1.5 text-xs text-accent-deep/70">
+            configuraciones
+          </span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">4</span>
-          <span className="ml-1.5 text-xs text-gray-500">niveles de frecuencia</span>
+          <span className="ml-1.5 text-xs text-gray-500">
+            niveles de frecuencia
+          </span>
         </div>
         <div className="rounded-lg bg-gray-50 px-3 py-1.5">
           <span className="text-2xl font-bold text-gray-700">5</span>
@@ -69,24 +81,35 @@ export default function CMExplorer() {
       {/* Flexion legend */}
       <div className="rounded-xl bg-gray-50 p-3">
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
-          Niveles de Flexión de Dedos
+          Niveles de flexión de dedos
         </p>
         <div className="flex items-center gap-4">
-          {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map((level) => (
-            <div key={level} className="flex items-center gap-2">
-              <div className="flex items-end gap-0.5">
-                <div
-                  className="rounded-sm"
-                  style={{
-                    width: 4,
-                    height: level === "EXTENDED" ? 20 : level === "CURVED" ? 16 : level === "BENT" ? 12 : 6,
-                    backgroundColor: FLEXION_COLOR[level],
-                  }}
-                />
+          {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map(
+            (level) => (
+              <div key={level} className="flex items-center gap-2">
+                <div className="flex items-end gap-0.5">
+                  <div
+                    className="rounded-sm"
+                    style={{
+                      width: 4,
+                      height:
+                        level === "EXTENDED"
+                          ? 20
+                          : level === "CURVED"
+                            ? 16
+                            : level === "BENT"
+                              ? 12
+                              : 6,
+                      backgroundColor: FLEXION_COLOR[level],
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-gray-600">
+                  {FLEXION_LABEL_ES[level]}
+                </span>
               </div>
-              <span className="text-xs text-gray-600">{FLEXION_LABEL_ES[level]}</span>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       </div>
 
@@ -95,10 +118,12 @@ export default function CMExplorer() {
         <button
           onClick={() => setSelectedTier(null)}
           className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            selectedTier === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            selectedTier === null
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          Todos los Niveles
+          Todos los niveles
         </button>
         {[1, 2, 3, 4].map((tier) => (
           <button
@@ -120,18 +145,22 @@ export default function CMExplorer() {
         <button
           onClick={() => setSelectedGroup(null)}
           className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-            selectedGroup === null ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            selectedGroup === null
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
-          Todos los Grupos
+          Todos los grupos
         </button>
         {FINGER_GROUPS.map((group) => (
           <button
             key={group}
-            onClick={() => setSelectedGroup(selectedGroup === group ? null : group)}
+            onClick={() =>
+              setSelectedGroup(selectedGroup === group ? null : group)
+            }
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
               selectedGroup === group
-                ? "bg-violet-600 text-white"
+                ? "bg-accent text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -146,16 +175,22 @@ export default function CMExplorer() {
         <div className="space-y-4">
           {/* 3D hand — mobile: above grid */}
           <div className="lg:hidden">
-            <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-indigo-950 to-slate-900">
-              <Hand3DViewer cm={activeCM} height="280px" autoRotate={!activeCM} />
+            <div className="overflow-hidden rounded-2xl bg-ink">
+              <Hand3DViewer
+                cm={activeCM}
+                height="280px"
+                autoRotate={!activeCM}
+              />
               {activeCM && (
-                <div className="border-t border-white/10 bg-white/5 px-4 py-2 backdrop-blur">
+                <div className="border-t border-white/10 bg-paper/5 px-4 py-2 backdrop-blur">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-white">CM #{activeCM.cm_id}</span>
+                    <span className="text-sm font-bold text-white">
+                      CM #{activeCM.cm_id}
+                    </span>
                     {selectedCM && (
                       <button
                         onClick={() => setSelectedCM(null)}
-                        className="rounded-md bg-white/10 px-2 py-0.5 text-xs text-white/70 hover:bg-white/20"
+                        className="rounded-md bg-paper/10 px-2 py-0.5 text-xs text-white/70 hover:bg-paper/20"
                       >
                         ✕ Deseleccionar
                       </button>
@@ -173,11 +208,11 @@ export default function CMExplorer() {
               return (
                 <div
                   key={cm.cm_id}
-                  className={`group relative cursor-pointer rounded-xl border bg-white p-1 transition-all hover:shadow-md ${
+                  className={`group relative cursor-pointer rounded-xl border bg-paper p-1 transition-all hover:shadow-md ${
                     isSelected
-                      ? "border-indigo-500 ring-2 ring-indigo-400/50 shadow-lg"
+                      ? "border-accent ring-2 ring-accent/50 shadow-lg"
                       : isHovered
-                        ? "border-indigo-400 shadow-lg"
+                        ? "border-accent shadow-lg"
                         : "border-gray-200"
                   }`}
                   onMouseEnter={() => setHoveredCM(cm)}
@@ -186,12 +221,14 @@ export default function CMExplorer() {
                 >
                   <MiniHand cm={cm} size={56} />
                   <div className="px-0.5 pb-0.5 text-center">
-                    <span className={`text-[9px] font-bold ${isSelected ? "text-indigo-600" : "text-gray-700"}`}>
+                    <span
+                      className={`text-[9px] font-bold ${isSelected ? "text-accent-deep" : "text-gray-700"}`}
+                    >
                       #{cm.cm_id}
                     </span>
                   </div>
                   {isSelected && (
-                    <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-[8px] text-white shadow">
+                    <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[8px] text-white shadow">
                       ✓
                     </div>
                   )}
@@ -204,63 +241,86 @@ export default function CMExplorer() {
         {/* Right: Sticky 3D hand panel — desktop only */}
         <div className="hidden lg:block">
           <div className="sticky top-4 space-y-3">
-            <div className="overflow-hidden rounded-2xl bg-gradient-to-b from-indigo-950 to-slate-900 shadow-xl">
-              <Hand3DViewer cm={activeCM} height="340px" autoRotate={!activeCM} />
+            <div className="overflow-hidden rounded-2xl bg-ink shadow-xl">
+              <Hand3DViewer
+                cm={activeCM}
+                height="340px"
+                autoRotate={!activeCM}
+              />
 
               {/* Info overlay */}
-              <div className="border-t border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
+              <div className="border-t border-white/10 bg-paper/5 px-4 py-3 backdrop-blur">
                 {activeCM ? (
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-white">CM #{activeCM.cm_id}</span>
-                        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}>
+                        <span className="text-lg font-bold text-white">
+                          CM #{activeCM.cm_id}
+                        </span>
+                        <span
+                          className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}
+                        >
                           {TIER_LABELS_ES[activeCM.frequency_tier]}
                         </span>
                       </div>
                       {selectedCM && (
                         <button
                           onClick={() => setSelectedCM(null)}
-                          className="rounded-md bg-white/10 px-2 py-0.5 text-xs text-white/70 hover:bg-white/20 transition-colors"
+                          className="rounded-md bg-paper/10 px-2 py-0.5 text-xs text-white/70 hover:bg-paper/20 transition-colors"
                         >
                           ✕
                         </button>
                       )}
                     </div>
                     {activeCM.cruz_aldrete_notation && (
-                      <p className="mt-1 font-mono text-xs text-indigo-300">
+                      <p className="mt-1 font-mono text-xs text-accent-tint">
                         {activeCM.cruz_aldrete_notation}
                       </p>
                     )}
                     {activeCM.example_sign && (
-                      <p className="mt-1 text-xs text-indigo-200/70">
-                        Ejemplo: <span className="text-indigo-100 font-medium">{activeCM.example_sign}</span>
+                      <p className="mt-1 text-xs text-accent-tint/70">
+                        Ejemplo:{" "}
+                        <span className="text-gray-300 font-medium">
+                          {activeCM.example_sign}
+                        </span>
                       </p>
                     )}
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {(["index", "middle", "ring", "pinky"] as const).map((finger) => {
-                        const labels = { index: "Índ", middle: "Med", ring: "Anu", pinky: "Meñ" };
-                        const flexion = activeCM[finger];
-                        return (
-                          <span
-                            key={finger}
-                            className="rounded px-1.5 py-0.5 text-[10px] font-medium"
-                            style={{
-                              backgroundColor: `${FLEXION_COLOR[flexion]}20`,
-                              color: FLEXION_COLOR[flexion],
-                            }}
-                          >
-                            {labels[finger]}: {FLEXION_LABEL_ES[flexion]}
-                          </span>
-                        );
-                      })}
-                      <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-200">
-                        Pulgar: {activeCM.thumb_opposition === "OPPOSED" ? "opuesto" : activeCM.thumb_opposition === "PARALLEL" ? "paralelo" : "cruzado"}
+                      {(["index", "middle", "ring", "pinky"] as const).map(
+                        (finger) => {
+                          const labels = {
+                            index: "Índ",
+                            middle: "Med",
+                            ring: "Anu",
+                            pinky: "Meñ",
+                          };
+                          const flexion = activeCM[finger];
+                          return (
+                            <span
+                              key={finger}
+                              className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                              style={{
+                                backgroundColor: `${FLEXION_COLOR[flexion]}20`,
+                                color: FLEXION_COLOR[flexion],
+                              }}
+                            >
+                              {labels[finger]}: {FLEXION_LABEL_ES[flexion]}
+                            </span>
+                          );
+                        },
+                      )}
+                      <span className="rounded bg-paper/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-tint">
+                        Pulgar:{" "}
+                        {activeCM.thumb_opposition === "OPPOSED"
+                          ? "opuesto"
+                          : activeCM.thumb_opposition === "PARALLEL"
+                            ? "paralelo"
+                            : "cruzado"}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-center text-xs text-indigo-300/60">
+                  <p className="text-center text-xs text-accent-tint/60">
                     Pasa el cursor o haz clic en una CM
                   </p>
                 )}
@@ -268,9 +328,10 @@ export default function CMExplorer() {
             </div>
 
             {/* Instruction hint */}
-            <div className="rounded-xl bg-indigo-50 px-3 py-2 text-center">
-              <p className="text-[10px] text-indigo-600/70">
-                💡 <b>Clic</b> para fijar una CM · <b>Hover</b> para previsualizar · <b>Arrastra</b> para rotar el modelo 3D
+            <div className="rounded-xl bg-accent-tint px-3 py-2 text-center">
+              <p className="text-[10px] text-accent-deep/70">
+                <b>Clic</b> para fijar una CM · <b>cursor encima</b> para
+                previsualizar · <b>arrastra</b> para rotar el modelo 3D
               </p>
             </div>
           </div>
@@ -279,13 +340,17 @@ export default function CMExplorer() {
 
       {/* Detail panel — shown below grid when a CM is active (replaces old hover-only panel) */}
       {activeCM && (
-        <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 p-4 lg:hidden">
+        <div className="rounded-xl border border-accent-tint bg-accent-tint p-4 lg:hidden">
           <div className="flex items-start gap-4">
             <MiniHand cm={activeCM} size={80} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h4 className="text-lg font-bold text-gray-900">CM #{activeCM.cm_id}</h4>
-                <span className={`rounded-md border px-2 py-0.5 text-xs font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}>
+                <h4 className="text-lg font-bold text-ink">
+                  CM #{activeCM.cm_id}
+                </h4>
+                <span
+                  className={`rounded-md border px-2 py-0.5 text-xs font-medium ${TIER_COLORS[activeCM.frequency_tier]}`}
+                >
                   {TIER_LABELS_ES[activeCM.frequency_tier]}
                 </span>
               </div>
@@ -296,24 +361,50 @@ export default function CMExplorer() {
               )}
               {activeCM.example_sign && (
                 <p className="mt-1 text-sm text-gray-500">
-                  Ejemplo: <span className="font-medium text-gray-700">{activeCM.example_sign}</span>
+                  Ejemplo:{" "}
+                  <span className="font-medium text-gray-700">
+                    {activeCM.example_sign}
+                  </span>
                 </p>
               )}
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Índice: <b style={{ color: FLEXION_COLOR[activeCM.index] }}>{FLEXION_LABEL_ES[activeCM.index]}</b>
+                <span className="rounded bg-paper/80 px-2 py-0.5 text-gray-600">
+                  Índice:{" "}
+                  <b style={{ color: FLEXION_COLOR[activeCM.index] }}>
+                    {FLEXION_LABEL_ES[activeCM.index]}
+                  </b>
                 </span>
-                <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Medio: <b style={{ color: FLEXION_COLOR[activeCM.middle] }}>{FLEXION_LABEL_ES[activeCM.middle]}</b>
+                <span className="rounded bg-paper/80 px-2 py-0.5 text-gray-600">
+                  Medio:{" "}
+                  <b style={{ color: FLEXION_COLOR[activeCM.middle] }}>
+                    {FLEXION_LABEL_ES[activeCM.middle]}
+                  </b>
                 </span>
-                <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Anular: <b style={{ color: FLEXION_COLOR[activeCM.ring] }}>{FLEXION_LABEL_ES[activeCM.ring]}</b>
+                <span className="rounded bg-paper/80 px-2 py-0.5 text-gray-600">
+                  Anular:{" "}
+                  <b style={{ color: FLEXION_COLOR[activeCM.ring] }}>
+                    {FLEXION_LABEL_ES[activeCM.ring]}
+                  </b>
                 </span>
-                <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Meñique: <b style={{ color: FLEXION_COLOR[activeCM.pinky] }}>{FLEXION_LABEL_ES[activeCM.pinky]}</b>
+                <span className="rounded bg-paper/80 px-2 py-0.5 text-gray-600">
+                  Meñique:{" "}
+                  <b style={{ color: FLEXION_COLOR[activeCM.pinky] }}>
+                    {FLEXION_LABEL_ES[activeCM.pinky]}
+                  </b>
                 </span>
-                <span className="rounded bg-white/80 px-2 py-0.5 text-gray-600">
-                  Pulgar: <b>{activeCM.thumb_opposition === "OPPOSED" ? "opuesto" : activeCM.thumb_opposition === "PARALLEL" ? "paralelo" : "cruzado"}</b> / <b style={{ color: FLEXION_COLOR[activeCM.thumb_flexion] }}>{FLEXION_LABEL_ES[activeCM.thumb_flexion]}</b>
+                <span className="rounded bg-paper/80 px-2 py-0.5 text-gray-600">
+                  Pulgar:{" "}
+                  <b>
+                    {activeCM.thumb_opposition === "OPPOSED"
+                      ? "opuesto"
+                      : activeCM.thumb_opposition === "PARALLEL"
+                        ? "paralelo"
+                        : "cruzado"}
+                  </b>{" "}
+                  /{" "}
+                  <b style={{ color: FLEXION_COLOR[activeCM.thumb_flexion] }}>
+                    {FLEXION_LABEL_ES[activeCM.thumb_flexion]}
+                  </b>
                 </span>
               </div>
             </div>

@@ -12,11 +12,11 @@ import {
 // ── Group config for visual separation ──────────────────────────
 
 const GROUP_COLORS: Record<string, string> = {
-  "Clavícula":  "#6366f1", // indigo
-  "Hombro":     "#8b5cf6", // violet
-  "Codo":       "#0ea5e9", // sky
-  "Antebrazo":  "#14b8a6", // teal
-  "Muñeca":     "#f59e0b", // amber
+  Clavícula: "#6366f1", // indigo
+  Hombro: "#8b5cf6", // violet
+  Codo: "#0ea5e9", // sky
+  Antebrazo: "#14b8a6", // teal
+  Muñeca: "#f59e0b", // amber
 };
 
 // ── Props ────────────────────────────────────────────────────────
@@ -91,7 +91,9 @@ export default function ArmControls({
 
   // ── Copy captures as JSON ──
   const copyCaptures = useCallback(() => {
-    navigator.clipboard.writeText(JSON.stringify(captures, null, 2)).catch(() => {});
+    navigator.clipboard
+      .writeText(JSON.stringify(captures, null, 2))
+      .catch(() => {});
   }, [captures]);
 
   // ── Derive group structure ──
@@ -114,23 +116,31 @@ export default function ArmControls({
       <div
         className={`flex items-center justify-between rounded-xl px-3 py-2 ${
           reached
-            ? "bg-emerald-500/15 ring-1 ring-emerald-500/30"
+            ? "bg-green/15 ring-1 ring-green/30"
             : "bg-gray-100"
         }`}
       >
         <div className="flex items-center gap-2">
           <div
             className={`h-3 w-3 rounded-full ${
-              reached ? "bg-emerald-500 shadow-md shadow-emerald-500/50" : "bg-gray-400"
+              reached
+                ? "bg-green shadow-md shadow-green/50"
+                : "bg-gray-400"
             }`}
           />
           <div>
-            <p className={`text-xs font-bold ${reached ? "text-emerald-700" : "text-gray-500"}`}>
+            <p
+              className={`text-xs font-bold ${reached ? "text-green-deep" : "text-gray-500"}`}
+            >
               {reached ? "Alcanzado" : "No alcanzado"}
             </p>
             <p className="text-[10px] text-gray-400">
               {ubCode ? (
-                <>UB: <span className="font-medium text-gray-600">{ubCode}</span> · {distCm} cm</>
+                <>
+                  UB:{" "}
+                  <span className="font-medium text-gray-600">{ubCode}</span> ·{" "}
+                  {distCm} cm
+                </>
               ) : (
                 "Selecciona un UB en la pestaña UB"
               )}
@@ -143,7 +153,7 @@ export default function ArmControls({
           disabled={!reached || !ubCode}
           className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${
             reached && ubCode
-              ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+              ? "bg-green-deep text-white shadow-sm hover:bg-green-deep"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
         >
@@ -184,11 +194,13 @@ export default function ArmControls({
                       max={rom.max}
                       step={1}
                       value={value}
-                      onChange={(e) => handleSlider(key, Number(e.target.value))}
-                      className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-indigo-600
+                      onChange={(e) =>
+                        handleSlider(key, Number(e.target.value))
+                      }
+                      className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-gray-200 accent-accent-deep
                         [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5
                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-indigo-600 [&::-webkit-slider-thumb]:shadow-md"
+                        [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:shadow-md"
                     />
                     <span
                       className={`w-[36px] shrink-0 text-right font-mono text-[10px] font-bold ${
@@ -210,7 +222,7 @@ export default function ArmControls({
         onClick={onReset}
         className="w-full rounded-lg bg-gray-100 py-1.5 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-200"
       >
-        Resetear (Pose Bind)
+        Restablecer (pose bind)
       </button>
 
       {/* ── Auto-solve all button ── */}
@@ -219,13 +231,13 @@ export default function ArmControls({
         disabled={autoSolveRunning}
         className={`w-full rounded-lg py-2 text-[10px] font-bold transition-colors ${
           autoSolveRunning
-            ? "bg-amber-100 text-amber-700 cursor-wait animate-pulse"
-            : "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+            ? "bg-gold-tint text-gold-deep cursor-wait animate-pulse"
+            : "bg-gold text-white hover:bg-gold shadow-sm"
         }`}
       >
         {autoSolveRunning
           ? `Resolviendo… (${autoSolveCount} capturados)`
-          : "⚡ Auto-capturar todos (excl. brazo/mano)"}
+          : "Auto-capturar todos (excl. brazo/mano)"}
       </button>
 
       {/* ── Hand Orientation Readout ── */}
@@ -234,7 +246,7 @@ export default function ArmControls({
           <p className="mb-0.5 text-[9px] font-medium uppercase tracking-wide text-gray-400">
             Cuaternión de mano (mundo)
           </p>
-          <p className="font-mono text-[10px] text-emerald-400">
+          <p className="font-mono text-[10px] text-green">
             ({fkState.handWorldQuat.map((v) => v.toFixed(3)).join(", ")})
           </p>
         </div>
@@ -256,8 +268,11 @@ export default function ArmControls({
           </div>
           <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-gray-900/80 px-3 py-2">
             {captures.map((cap, i) => (
-              <div key={cap.timestamp} className="flex items-center gap-2 text-[9px]">
-                <span className="font-bold text-emerald-400">#{i + 1}</span>
+              <div
+                key={cap.timestamp}
+                className="flex items-center gap-2 text-[9px]"
+              >
+                <span className="font-bold text-green">#{i + 1}</span>
                 <span className="text-gray-400">
                   UB={cap.ubCode} · {(cap.distanceToUB * 100).toFixed(1)}cm
                 </span>

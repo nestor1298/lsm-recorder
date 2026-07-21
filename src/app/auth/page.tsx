@@ -97,7 +97,7 @@ export default function AuthPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Acceso</h1>
+        <h1 className="text-2xl font-bold text-ink">Acceso</h1>
         <p className="text-sm text-gray-500">
           Te enviamos un código por correo. No usamos contraseñas.
         </p>
@@ -110,14 +110,14 @@ export default function AuthPage() {
       )}
 
       {phase === "session_error" && (
-        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-paper p-6">
           <p className="text-sm text-gray-700">
             Tu sesión está activa, pero no se pudo cargar tu perfil.
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => window.location.reload()}
-              className="flex-1 rounded-lg bg-indigo-600 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
+              className="flex-1 rounded-full bg-ink py-2.5 font-semibold text-white transition-colors hover:bg-gray-800"
             >
               Reintentar
             </button>
@@ -127,7 +127,7 @@ export default function AuthPage() {
                 setError(null);
                 setPhase("email");
               }}
-              className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+              className="flex-1 rounded-full border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
             >
               Cerrar sesión
             </button>
@@ -138,7 +138,7 @@ export default function AuthPage() {
       {phase === "email" && (
         <form
           onSubmit={handleSendCode}
-          className="space-y-4 rounded-xl border border-gray-200 bg-white p-6"
+          className="space-y-4 rounded-xl border border-gray-200 bg-paper p-6"
         >
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -150,13 +150,13 @@ export default function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@correo.com"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
             />
           </div>
           <button
             type="submit"
             disabled={busy || !email.trim()}
-            className="w-full rounded-lg bg-indigo-600 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full rounded-full bg-ink py-2.5 font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
           >
             {busy ? "Enviando..." : "Enviar código"}
           </button>
@@ -166,7 +166,7 @@ export default function AuthPage() {
       {phase === "code" && (
         <form
           onSubmit={handleConfirm}
-          className="space-y-4 rounded-xl border border-gray-200 bg-white p-6"
+          className="space-y-4 rounded-xl border border-gray-200 bg-paper p-6"
         >
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -178,13 +178,13 @@ export default function AuthPage() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="123456"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-lg tracking-widest focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-lg tracking-widest focus:border-accent focus:outline-none focus:ring-accent"
             />
           </div>
           <button
             type="submit"
             disabled={busy || !code.trim()}
-            className="w-full rounded-lg bg-indigo-600 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+            className="w-full rounded-full bg-ink py-2.5 font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
           >
             {busy ? "Verificando..." : "Entrar"}
           </button>
@@ -203,7 +203,7 @@ export default function AuthPage() {
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg bg-coral-tint px-4 py-3 text-sm text-coral-deep">
           {error}
         </p>
       )}
