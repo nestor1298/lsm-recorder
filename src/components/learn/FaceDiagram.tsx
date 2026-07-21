@@ -4,9 +4,10 @@ import type { FaceState } from "./RNMControls";
 
 /**
  * Cara SVG animada para los rasgos no manuales (RNM).
- * El avatar 3D (lexsi.glb) no tiene blendshapes faciales, así que este
- * diagrama es la vista canónica de cejas y boca; la cabeza sí se anima
- * por huesos en el avatar.
+ * Complementa al avatar 3D: lexsi.glb tiene 28 blendshapes transferidos de
+ * wscharacter (scripts/transfer_face_blendshapes.py) — la boca se ve bien en
+ * 3D, pero las cejas son sutiles (la malla de Lexsi casi no tiene geometría
+ * de ceja), así que esta vista las hace siempre legibles.
  */
 export default function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
   // Eyebrow positions

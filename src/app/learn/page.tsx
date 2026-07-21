@@ -591,8 +591,8 @@ export default function LearnPage() {
       )}
 
       {/* ─── Vista facial (RNM) ───
-          El avatar 3D (lexsi.glb) no tiene blendshapes faciales: cejas y boca
-          se muestran aquí; la cabeza sí se anima por huesos en el avatar. */}
+          Complemento del avatar: los 28 blendshapes transferidos animan la boca
+          en 3D, pero las cejas de Lexsi son sutiles — aquí siempre se leen. */}
       {avatarRNMTarget && (
         <div className="pointer-events-none absolute right-3 top-14 z-20 w-44 overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-2xl ring-1 ring-white/5 backdrop-blur-2xl lg:right-5 lg:top-20">
           <div className="border-b border-white/10 px-3 py-1.5">
