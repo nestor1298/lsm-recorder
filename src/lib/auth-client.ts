@@ -37,13 +37,26 @@ export async function startEmailOtp(email: string): Promise<void> {
     if (name !== "UsernameExistsException") throw err;
   }
 
-  await signIn({
-    username: email,
-    options: {
-      authFlowType: "USER_AUTH",
-      preferredChallenge: "EMAIL_OTP",
-    },
-  });
+  const doSignIn = () =>
+    signIn({
+      username: email,
+      options: {
+        authFlowType: "USER_AUTH",
+        preferredChallenge: "EMAIL_OTP",
+      },
+    });
+
+  try {
+    await doSignIn();
+  } catch (err) {
+    // A leftover session ("There is already a signed in user") blocks signIn.
+    // The participant explicitly asked to authenticate, so drop the old
+    // session and retry once instead of dead-ending on the email form.
+    const name = (err as { name?: string }).name;
+    if (name !== "UserAlreadyAuthenticatedException") throw err;
+    await amplifySignOut();
+    await doSignIn();
+  }
 }
 
 /** Complete sign-in with the emailed OTP code. */
