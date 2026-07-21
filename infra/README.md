@@ -65,13 +65,15 @@ On success, copy the stack outputs into the app's `.env.local`
 | `CorpusTableName` | `SIGNALAB_CORPUS_TABLE` |
 | `RecordingsBucketName` | `SIGNALAB_RECORDINGS_BUCKET` |
 | `ConsentBucketName` | `SIGNALAB_CONSENT_BUCKET` |
-| `AppRuntimePolicyArn` | attach to the IAM user/role for `AWS_ACCESS_KEY_ID` |
+| `AppRuntimePolicyArn` | attach to the IAM user/role for `SIGNALAB_AWS_ACCESS_KEY_ID` |
 
 ### Runtime credentials
 
 Create (or reuse) an IAM user/role, attach the `signalab-app-runtime` managed
 policy (`AppRuntimePolicyArn` output), and put its access keys in the Vercel
-project env as `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`. These are
+project env as `SIGNALAB_AWS_ACCESS_KEY_ID` / `SIGNALAB_AWS_SECRET_ACCESS_KEY`
+(the unprefixed `AWS_*` names are reserved by Vercel's Lambda runtime and may be
+stripped or shadowed). These are
 server-only; they are never shipped to the browser.
 
 ## Deuda / out of scope (intentional)

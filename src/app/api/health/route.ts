@@ -26,8 +26,19 @@ export async function GET() {
     error = e instanceof Error ? e.name : "UnknownError";
   }
 
+  // Which credential source is in play (booleans only, never values):
+  // explicit SIGNALAB_-prefixed vars beat the Lambda-reserved AWS_* names.
+  const creds = Boolean(
+    process.env.SIGNALAB_AWS_ACCESS_KEY_ID?.trim() &&
+      process.env.SIGNALAB_AWS_SECRET_ACCESS_KEY?.trim(),
+  )
+    ? "explicit"
+    : process.env.AWS_ACCESS_KEY_ID
+      ? "reserved-name"
+      : "default-chain";
+
   return Response.json(
-    { ok: dynamo, dynamo, ...(error ? { error } : {}) },
+    { ok: dynamo, dynamo, creds, ...(error ? { error } : {}) },
     { status: dynamo ? 200 : 500 },
   );
 }
