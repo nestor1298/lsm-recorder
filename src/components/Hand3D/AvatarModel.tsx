@@ -33,8 +33,21 @@ import {
   getRightFingerBones,
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
-import { measureArmLengths, solveArmIKNatural, composeForearmTwist, composeShoulderTwist, type ArmLengths } from "@/lib/arm_ik";
-import { applyArmFK, solveFKCoordinateDescent, type ArmJointAngles, type ArmFKState, type AutoSolveRequest, type CapturedPose } from "@/lib/arm_fk";
+import {
+  measureArmLengths,
+  solveArmIKNatural,
+  composeForearmTwist,
+  composeShoulderTwist,
+  type ArmLengths,
+} from "@/lib/arm_ik";
+import {
+  applyArmFK,
+  solveFKCoordinateDescent,
+  type ArmJointAngles,
+  type ArmFKState,
+  type AutoSolveRequest,
+  type CapturedPose,
+} from "@/lib/arm_fk";
 import { UB_FK_PRESETS } from "@/lib/ub_fk_presets";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
@@ -81,7 +94,14 @@ export interface UBTarget {
 export interface RNMTarget {
   eyebrows: "NEUTRAL" | "RAISED" | "FURROWED";
   mouth: "NEUTRAL" | "OPEN" | "CLOSED" | "ROUNDED" | "STRETCHED";
-  head: "NONE" | "NOD" | "SHAKE" | "TILT_LEFT" | "TILT_RIGHT" | "TILT_BACK" | "TILT_DOWN";
+  head:
+    | "NONE"
+    | "NOD"
+    | "SHAKE"
+    | "TILT_LEFT"
+    | "TILT_RIGHT"
+    | "TILT_BACK"
+    | "TILT_DOWN";
 }
 
 interface AvatarModelProps {
@@ -261,7 +281,14 @@ interface UBPointProps {
   mirrored?: boolean;
 }
 
-function UBPoint({ code, region, isSelected, boneMap, onClick, mirrored = false }: UBPointProps) {
+function UBPoint({
+  code,
+  region,
+  isSelected,
+  boneMap,
+  onClick,
+  mirrored = false,
+}: UBPointProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
@@ -359,7 +386,12 @@ interface UBPointCloudProps {
 // Regions that are on the left arm and should be mirrored to the right
 const MIRRORED_REGIONS = new Set(["ARM", "FOREARM", "HAND"]);
 
-function UBPointCloud({ boneMap, selectedCode, regionFilter, onMarkerClick }: UBPointCloudProps) {
+function UBPointCloud({
+  boneMap,
+  selectedCode,
+  regionFilter,
+  onMarkerClick,
+}: UBPointCloudProps) {
   const filteredLocations = useMemo(() => {
     if (!regionFilter) return UB_LOCATIONS;
     return UB_LOCATIONS.filter((loc) => loc.region === regionFilter);
@@ -404,8 +436,18 @@ const _neutralDelta = new THREE.Quaternion();
 const _neutralTarget = new THREE.Quaternion();
 
 function poseArmDown(
-  refs: { clavicle: THREE.Bone; upperArm: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
-  bind: { clavicle: THREE.Quaternion; upperArm: THREE.Quaternion; foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  refs: {
+    clavicle: THREE.Bone;
+    upperArm: THREE.Bone;
+    foreArm: THREE.Bone;
+    hand: THREE.Bone;
+  },
+  bind: {
+    clavicle: THREE.Quaternion;
+    upperArm: THREE.Quaternion;
+    foreArm: THREE.Quaternion;
+    hand: THREE.Quaternion;
+  },
   isLeftArm: boolean,
   factor: number,
 ) {
@@ -420,9 +462,9 @@ function poseArmDown(
   // Upper arm: rotate down from T-pose using YXZ (Mixamo shoulder convention)
   // Positive X = adduction (arm DOWN from T-pose toward body)
   _neutralEuler.set(
-    88 * (Math.PI / 180),             // X: adduction → bring arm down from T-pose
-    5 * (Math.PI / 180) * sign,       // Y: slight forward swing
-    0,                                // Z: no axial twist
+    88 * (Math.PI / 180), // X: adduction → bring arm down from T-pose
+    5 * (Math.PI / 180) * sign, // Y: slight forward swing
+    0, // Z: no axial twist
     "YXZ",
   );
   _neutralDelta.setFromEuler(_neutralEuler);
@@ -451,14 +493,24 @@ const _fkTarget = new THREE.Quaternion();
  */
 function poseArmPreset(
   angles: ArmJointAngles,
-  refs: { clavicle: THREE.Bone; upperArm: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
-  bind: { clavicle: THREE.Quaternion; upperArm: THREE.Quaternion; foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  refs: {
+    clavicle: THREE.Bone;
+    upperArm: THREE.Bone;
+    foreArm: THREE.Bone;
+    hand: THREE.Bone;
+  },
+  bind: {
+    clavicle: THREE.Quaternion;
+    upperArm: THREE.Quaternion;
+    foreArm: THREE.Quaternion;
+    hand: THREE.Quaternion;
+  },
   isLeftArm: boolean,
   factor: number,
 ) {
   const DEG = Math.PI / 180;
   const sign = isLeftArm ? 1 : -1;
-  const rate = factor * 3;               // smooth convergence rate (matches poseArmDown)
+  const rate = factor * 3; // smooth convergence rate (matches poseArmDown)
 
   // Clavicle: 2 DOF — (shrug around Z, protraction around Y)
   _fkEuler.set(
@@ -473,9 +525,9 @@ function poseArmPreset(
 
   // Upper Arm: 3 DOF — YXZ matching FK/IK shoulder convention
   _fkEuler.set(
-    angles.shoulderElev * DEG,            // X: adduction/abduction
-    angles.shoulderSwing * DEG * sign,    // Y: flexion/extension
-    angles.shoulderTwist * DEG * sign,    // Z: int/ext rotation
+    angles.shoulderElev * DEG, // X: adduction/abduction
+    angles.shoulderSwing * DEG * sign, // Y: flexion/extension
+    angles.shoulderTwist * DEG * sign, // Z: int/ext rotation
     "YXZ",
   );
   _fkDelta.setFromEuler(_fkEuler);
@@ -484,8 +536,8 @@ function poseArmPreset(
 
   // Forearm: 2 DOF — (elbow flex on X, supination on Y)
   _fkEuler.set(
-    -angles.elbowFlex * DEG,             // X: flexion (negative = bend)
-    angles.forearmTwist * DEG * sign,     // Y: pro/supination
+    -angles.elbowFlex * DEG, // X: flexion (negative = bend)
+    angles.forearmTwist * DEG * sign, // Y: pro/supination
     0,
     "XYZ",
   );
@@ -495,9 +547,9 @@ function poseArmPreset(
 
   // Hand: 2 DOF — (wrist flex on X, ulnar deviation on Z)
   _fkEuler.set(
-    -angles.wristFlex * DEG,             // X: wrist flexion
+    -angles.wristFlex * DEG, // X: wrist flexion
     0,
-    angles.wristDeviation * DEG * sign,  // Z: radial/ulnar
+    angles.wristDeviation * DEG * sign, // Z: radial/ulnar
     "XYZ",
   );
   _fkDelta.setFromEuler(_fkEuler);
@@ -518,8 +570,18 @@ const _orientHand = new THREE.Quaternion();
 
 function applyOrientationOverFK(
   orient: SplitOrientation,
-  refs: { clavicle: THREE.Bone; upperArm: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
-  bind: { clavicle: THREE.Quaternion; upperArm: THREE.Quaternion; foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  refs: {
+    clavicle: THREE.Bone;
+    upperArm: THREE.Bone;
+    foreArm: THREE.Bone;
+    hand: THREE.Bone;
+  },
+  bind: {
+    clavicle: THREE.Quaternion;
+    upperArm: THREE.Quaternion;
+    foreArm: THREE.Quaternion;
+    hand: THREE.Quaternion;
+  },
   isLeftArm: boolean,
   factor: number,
 ) {
@@ -531,7 +593,9 @@ function applyOrientationOverFK(
 
   // Compose hand orientation: undo forearm twist propagation, apply full orient
   // targetHand = inv(forearmTwist) * bindHand * fullOrient
-  _orientHand.copy(orient.forearmTwist).invert()
+  _orientHand
+    .copy(orient.forearmTwist)
+    .invert()
     .multiply(bind.hand)
     .multiply(orient.fullOrient);
   clampWristRotation(_orientHand, bind.hand);
@@ -661,10 +725,13 @@ function createAnimState(): AnimState {
 // ── Finger bone refs + bind poses for one hand ───────────────────
 
 interface HandBoneRefs {
-  fingers: Record<FingerName, {
-    carpal: THREE.Bone;
-    bones: [THREE.Bone, THREE.Bone, THREE.Bone];
-  }>;
+  fingers: Record<
+    FingerName,
+    {
+      carpal: THREE.Bone;
+      bones: [THREE.Bone, THREE.Bone, THREE.Bone];
+    }
+  >;
   thumb: [THREE.Bone, THREE.Bone, THREE.Bone];
   armChain: {
     clavicle: THREE.Bone;
@@ -675,10 +742,13 @@ interface HandBoneRefs {
 }
 
 interface HandBindPoses {
-  fingers: Record<FingerName, {
-    carpal: THREE.Quaternion;
-    bones: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
-  }>;
+  fingers: Record<
+    FingerName,
+    {
+      carpal: THREE.Quaternion;
+      bones: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
+    }
+  >;
   thumb: [THREE.Quaternion, THREE.Quaternion, THREE.Quaternion];
   armChain: {
     clavicle: THREE.Quaternion;
@@ -692,8 +762,10 @@ function collectHandBones(
   boneMap: Map<string, THREE.Bone>,
   side: "left" | "right",
 ): HandBoneRefs | null {
-  const fingerMapping = side === "left" ? AVATAR_FINGER_BONES : getRightFingerBones();
-  const thumbBoneNames = side === "left" ? AVATAR_THUMB_BONES : AVATAR_RIGHT_THUMB_BONES;
+  const fingerMapping =
+    side === "left" ? AVATAR_FINGER_BONES : getRightFingerBones();
+  const thumbBoneNames =
+    side === "left" ? AVATAR_THUMB_BONES : AVATAR_RIGHT_THUMB_BONES;
   const chain = ARM_CHAINS[side];
 
   const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
@@ -869,9 +941,9 @@ function animateFingers(
 
     // Mixamo FBX: finger bones flex with positive X toward palm
     applyPose(boneRefs.carpal, bind.carpal, s.carpalFlex, -s.carpalSpread, 0);
-    applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0);      // MCP
-    applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0);      // PIP
-    applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0);      // DIP
+    applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0); // MCP
+    applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0); // PIP
+    applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0); // DIP
   }
 
   // Thumb — Mixamo uses flipped X/Y for opposition
@@ -882,7 +954,13 @@ function animateFingers(
   ts.mcpFlex += (tt.mcpFlex - ts.mcpFlex) * factor;
   ts.ipFlex += (tt.ipFlex - ts.ipFlex) * factor;
 
-  applyPose(refs.thumb[0], bindPoses.thumb[0], -ts.cmcOpposition, -ts.cmcRotation, 0);
+  applyPose(
+    refs.thumb[0],
+    bindPoses.thumb[0],
+    -ts.cmcOpposition,
+    -ts.cmcRotation,
+    0,
+  );
   applyPose(refs.thumb[1], bindPoses.thumb[1], ts.mcpFlex, 0, 0);
   applyPose(refs.thumb[2], bindPoses.thumb[2], ts.ipFlex, 0, 0);
 }
@@ -909,8 +987,12 @@ function blendHandPoses(from: HandPose, to: HandPose, t: number): HandPose {
     ring: result.ring,
     pinky: result.pinky,
     thumb: {
-      cmcOpposition: from.thumb.cmcOpposition + (to.thumb.cmcOpposition - from.thumb.cmcOpposition) * t,
-      cmcRotation: from.thumb.cmcRotation + (to.thumb.cmcRotation - from.thumb.cmcRotation) * t,
+      cmcOpposition:
+        from.thumb.cmcOpposition +
+        (to.thumb.cmcOpposition - from.thumb.cmcOpposition) * t,
+      cmcRotation:
+        from.thumb.cmcRotation +
+        (to.thumb.cmcRotation - from.thumb.cmcRotation) * t,
       mcpFlex: from.thumb.mcpFlex + (to.thumb.mcpFlex - from.thumb.mcpFlex) * t,
       ipFlex: from.thumb.ipFlex + (to.thumb.ipFlex - from.thumb.ipFlex) * t,
     },
@@ -947,7 +1029,9 @@ function applyLocalMovement(
   switch (local) {
     case "WIGGLE":
       // Sequential finger wave
-      for (const [i, name] of (["index", "middle", "ring", "pinky"] as FingerName[]).entries()) {
+      for (const [i, name] of (
+        ["index", "middle", "ring", "pinky"] as FingerName[]
+      ).entries()) {
         const wave = Math.sin(elapsedTime * 10 + i * 1.2) * 0.3;
         refs.fingers[name].bones[2].rotateX(wave);
       }
@@ -987,7 +1071,9 @@ function applyLocalMovement(
       break;
     case "PROGRESSIVE":
       // Sequential finger closure with phase offset
-      for (const [i, name] of (["index", "middle", "ring", "pinky"] as FingerName[]).entries()) {
+      for (const [i, name] of (
+        ["index", "middle", "ring", "pinky"] as FingerName[]
+      ).entries()) {
         const phase = Math.max(0, Math.sin(elapsedTime * 2.5 - i * 0.6));
         refs.fingers[name].bones[0].rotateX(phase * 0.5);
         refs.fingers[name].bones[1].rotateX(phase * 0.4);
@@ -1021,9 +1107,9 @@ const _yAxisUp = new THREE.Vector3(0, 1, 0);
 
 /** Debug info filled by animateArmIK for rendering debug spheres */
 interface DebugIKInfo {
-  ikTarget: THREE.Vector3;       // green: centroid-adjusted IK target
-  ubTarget: THREE.Vector3;       // blue: raw UB target
-  handWorldPos: THREE.Vector3;   // red: actual hand bone world pos
+  ikTarget: THREE.Vector3; // green: centroid-adjusted IK target
+  ubTarget: THREE.Vector3; // blue: raw UB target
+  handWorldPos: THREE.Vector3; // red: actual hand bone world pos
   active: boolean;
 }
 
@@ -1049,7 +1135,9 @@ function animateArmIK(
     // Pull the target back toward the shoulder by that amount.
     refs.armChain.upperArm.getWorldPosition(_shoulderPosIK);
     _reachDirIK.copy(targetWorldPos).sub(_shoulderPosIK).normalize();
-    _adjustedTarget.copy(targetWorldPos).addScaledVector(_reachDirIK, -centroidDist);
+    _adjustedTarget
+      .copy(targetWorldPos)
+      .addScaledVector(_reachDirIK, -centroidDist);
     ikTarget = _adjustedTarget;
     ikFactor = factor;
     orient = splitOrient;
@@ -1108,11 +1196,13 @@ function animateArmIK(
 
     // Hand: compensate for BOTH shoulder twist AND forearm twist propagating
     // through the bone hierarchy. Both are Y-axis rotations, so compose:
-    //   totalAxialTwist = shoulderTwistQuat * forearmTwist
-    //   targetHand = inv(totalAxialTwist) * bindHand * fullOrient
+    // totalAxialTwist = shoulderTwistQuat * forearmTwist
+    // targetHand = inv(totalAxialTwist) * bindHand * fullOrient
     _shoulderYTwist.setFromAxisAngle(_yAxisUp, orient.shoulderTwist);
     _totalAxialTwist.copy(_shoulderYTwist).multiply(orient.forearmTwist);
-    const targetHandQuat = _totalAxialTwist.clone().invert()
+    const targetHandQuat = _totalAxialTwist
+      .clone()
+      .invert()
       .multiply(bindPoses.armChain.hand)
       .multiply(orient.fullOrient);
 
@@ -1138,7 +1228,13 @@ function animateArmIK(
 // Uses useFrame to continuously sync with the mutated Vector3 ref,
 // since R3F only copies the position prop on mount/reconciliation.
 
-function DebugSphere({ position, color }: { position: THREE.Vector3; color: string }) {
+function DebugSphere({
+  position,
+  color,
+}: {
+  position: THREE.Vector3;
+  color: string;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame(() => {
     if (meshRef.current) {
@@ -1148,7 +1244,12 @@ function DebugSphere({ position, color }: { position: THREE.Vector3; color: stri
   return (
     <mesh ref={meshRef} renderOrder={10}>
       <sphereGeometry args={[0.04, 12, 12]} />
-      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
+      <meshBasicMaterial
+        color={color}
+        depthTest={false}
+        transparent
+        opacity={0.95}
+      />
     </mesh>
   );
 }
@@ -1174,7 +1275,10 @@ export default function AvatarModel({
   // Load GLB model
   const gltf = useLoader(GLTFLoader, AVATAR_PATH, (loader) => {
     // MeshoptDecoder only needed for meshopt-compressed models (original wscharacter.glb)
-    if (AVATAR_PATH.includes("wscharacter.glb") && !AVATAR_PATH.includes("_new")) {
+    if (
+      AVATAR_PATH.includes("wscharacter.glb") &&
+      !AVATAR_PATH.includes("_new")
+    ) {
       loader.setMeshoptDecoder(MeshoptDecoder);
     }
   });
@@ -1263,8 +1367,14 @@ export default function AvatarModel({
 
   // ── Hand bone refs + bind poses ──
 
-  const leftHandRefs = useMemo(() => collectHandBones(boneMap, "left"), [boneMap]);
-  const rightHandRefs = useMemo(() => collectHandBones(boneMap, "right"), [boneMap]);
+  const leftHandRefs = useMemo(
+    () => collectHandBones(boneMap, "left"),
+    [boneMap],
+  );
+  const rightHandRefs = useMemo(
+    () => collectHandBones(boneMap, "right"),
+    [boneMap],
+  );
 
   const leftHandBindPoses = useMemo(
     () => (leftHandRefs ? snapshotHandBindPoses(leftHandRefs) : null),
@@ -1403,7 +1513,11 @@ export default function AvatarModel({
           // Use surface-offset target so the hand touches the surface
           // instead of the centroid penetrating through the mesh.
           // 0.08 = 8cm outward along approximate surface normal.
-          const ubWorldPos = computeUBWorldPositionWithSurfaceOffset(code, boneMap, 0.08);
+          const ubWorldPos = computeUBWorldPositionWithSurfaceOffset(
+            code,
+            boneMap,
+            0.08,
+          );
           if (ubWorldPos) {
             const applyAndMeasure = (testAngles: ArmJointAngles): number => {
               applyArmFK(testAngles, armRefs, armBind, true);
@@ -1412,7 +1526,8 @@ export default function AvatarModel({
               return centroid.distanceTo(ubWorldPos);
             };
 
-            const { angles: solvedAngles, distance } = solveFKCoordinateDescent(applyAndMeasure);
+            const { angles: solvedAngles, distance } =
+              solveFKCoordinateDescent(applyAndMeasure);
 
             // Read hand world quaternion
             leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
@@ -1420,7 +1535,12 @@ export default function AvatarModel({
             autoSolveResultsRef.current.push({
               ubCode: code,
               angles: { ...solvedAngles },
-              handWorldQuat: [_handWorldQ.x, _handWorldQ.y, _handWorldQ.z, _handWorldQ.w],
+              handWorldQuat: [
+                _handWorldQ.x,
+                _handWorldQ.y,
+                _handWorldQ.z,
+                _handWorldQ.w,
+              ],
               distanceToUB: distance,
               timestamp: Date.now(),
             });
@@ -1519,17 +1639,51 @@ export default function AvatarModel({
       // If a UB point is selected, articulate the arm toward it using FK preset
       const browseFKPreset = ubLocation ? UB_FK_PRESETS[ubLocation.code] : null;
       if (browseFKPreset) {
-        poseArmPreset(browseFKPreset, leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
-        animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
+        poseArmPreset(
+          browseFKPreset,
+          leftHandRefs.armChain,
+          leftHandBindPoses.armChain,
+          true,
+          factor,
+        );
+        animateFingers(
+          leftAnimState.current,
+          targetPose,
+          leftHandRefs,
+          leftHandBindPoses,
+          factor,
+        );
       } else {
-        poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
-        animateFingers(leftAnimState.current, RESTING_POSE, leftHandRefs, leftHandBindPoses, factor);
+        poseArmDown(
+          leftHandRefs.armChain,
+          leftHandBindPoses.armChain,
+          true,
+          factor,
+        );
+        animateFingers(
+          leftAnimState.current,
+          RESTING_POSE,
+          leftHandRefs,
+          leftHandBindPoses,
+          factor,
+        );
       }
       debugIK.current.active = false;
 
       if (rightHandRefs && rightHandBindPoses) {
-        poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
-        animateFingers(rightAnimState.current, RESTING_POSE, rightHandRefs, rightHandBindPoses, factor);
+        poseArmDown(
+          rightHandRefs.armChain,
+          rightHandBindPoses.armChain,
+          false,
+          factor,
+        );
+        animateFingers(
+          rightAnimState.current,
+          RESTING_POSE,
+          rightHandRefs,
+          rightHandBindPoses,
+          factor,
+        );
       }
     }
     // ─ LEFT ARM: FK mode (manual joint angles) ─
@@ -1539,85 +1693,134 @@ export default function AvatarModel({
 
       if (!fkHasInput) {
         // All sliders at zero → same arms-down neutral as other modes
-        poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
-        animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
+        poseArmDown(
+          leftHandRefs.armChain,
+          leftHandBindPoses.armChain,
+          true,
+          factor,
+        );
+        animateFingers(
+          leftAnimState.current,
+          targetPose,
+          leftHandRefs,
+          leftHandBindPoses,
+          factor,
+        );
         debugIK.current.active = false;
       } else {
-      // 1. Apply FK angles directly to arm bones
-      applyArmFK(
-        armAngles,
-        {
-          clavicle: leftHandRefs.armChain.clavicle,
-          upperArm: leftHandRefs.armChain.upperArm,
-          foreArm: leftHandRefs.armChain.foreArm,
-          hand: leftHandRefs.armChain.hand,
-        },
-        {
-          clavicle: leftHandBindPoses.armChain.clavicle,
-          upperArm: leftHandBindPoses.armChain.upperArm,
-          foreArm: leftHandBindPoses.armChain.foreArm,
-          hand: leftHandBindPoses.armChain.hand,
-        },
-        true, // isLeftArm
-      );
+        // 1. Apply FK angles directly to arm bones
+        applyArmFK(
+          armAngles,
+          {
+            clavicle: leftHandRefs.armChain.clavicle,
+            upperArm: leftHandRefs.armChain.upperArm,
+            foreArm: leftHandRefs.armChain.foreArm,
+            hand: leftHandRefs.armChain.hand,
+          },
+          {
+            clavicle: leftHandBindPoses.armChain.clavicle,
+            upperArm: leftHandBindPoses.armChain.upperArm,
+            foreArm: leftHandBindPoses.armChain.foreArm,
+            hand: leftHandBindPoses.armChain.hand,
+          },
+          true, // isLeftArm
+        );
 
-      // 2. Animate fingers normally
-      animateFingers(leftAnimState.current, targetPose, leftHandRefs, leftHandBindPoses, factor);
+        // 2. Animate fingers normally
+        animateFingers(
+          leftAnimState.current,
+          targetPose,
+          leftHandRefs,
+          leftHandBindPoses,
+          factor,
+        );
 
-      // 3. Force full world matrix update from clavicle down through fingers
-      leftHandRefs.armChain.clavicle.updateWorldMatrix(true, true);
+        // 3. Force full world matrix update from clavicle down through fingers
+        leftHandRefs.armChain.clavicle.updateWorldMatrix(true, true);
 
-      // 4. Compute FK state, debug spheres, and write to shared ref
-      const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
-      const ubWorldPos = ubLocation ? computeUBWorldPosition(ubLocation.code, boneMap) : null;
-      const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
+        // 4. Compute FK state, debug spheres, and write to shared ref
+        const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
+        const ubWorldPos = ubLocation
+          ? computeUBWorldPosition(ubLocation.code, boneMap)
+          : null;
+        const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
 
-      leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
+        leftHandRefs.armChain.hand.getWorldQuaternion(_handWorldQ);
 
-      if (armFKStateRef) {
-        armFKStateRef.current = {
-          centroidWorldPos: [centroidPos.x, centroidPos.y, centroidPos.z],
-          ubWorldPos: ubWorldPos ? [ubWorldPos.x, ubWorldPos.y, ubWorldPos.z] : null,
-          distanceToUB: dist,
-          reached: dist < 0.05, // 5cm threshold
-          handWorldQuat: [_handWorldQ.x, _handWorldQ.y, _handWorldQ.z, _handWorldQ.w],
-        };
-      }
+        if (armFKStateRef) {
+          armFKStateRef.current = {
+            centroidWorldPos: [centroidPos.x, centroidPos.y, centroidPos.z],
+            ubWorldPos: ubWorldPos
+              ? [ubWorldPos.x, ubWorldPos.y, ubWorldPos.z]
+              : null,
+            distanceToUB: dist,
+            reached: dist < 0.05, // 5cm threshold
+            handWorldQuat: [
+              _handWorldQ.x,
+              _handWorldQ.y,
+              _handWorldQ.z,
+              _handWorldQ.w,
+            ],
+          };
+        }
 
-      // Debug spheres: Blue=UB (if selected), Green=centroid (always in FK mode)
-      debugIK.current.ikTarget.copy(centroidPos);
-      debugIK.current.active = true;
-      if (ubWorldPos) {
-        debugIK.current.ubTarget.copy(ubWorldPos);
-      } else {
-        // No UB selected — hide blue sphere by placing it far off-screen
-        debugIK.current.ubTarget.set(0, -100, 0);
-      }
-
+        // Debug spheres: Blue=UB (if selected), Green=centroid (always in FK mode)
+        debugIK.current.ikTarget.copy(centroidPos);
+        debugIK.current.active = true;
+        if (ubWorldPos) {
+          debugIK.current.ubTarget.copy(ubWorldPos);
+        } else {
+          // No UB selected — hide blue sphere by placing it far off-screen
+          debugIK.current.ubTarget.set(0, -100, 0);
+        }
       } // end fkHasInput else
-
     } else if (leftHandRefs && leftHandBindPoses) {
-    // ─ LEFT ARM: Finger posing + Arm IK (dominant hand) ─
-      if (movementInterp && movementInterp.fromUBCode && movementInterp.toUBCode) {
+      // ─ LEFT ARM: Finger posing + Arm IK (dominant hand) ─
+      if (
+        movementInterp &&
+        movementInterp.fromUBCode &&
+        movementInterp.toUBCode
+      ) {
         // ── MOVEMENT SEGMENT: Smooth interpolation ──
         const mt = movementInterp.t;
 
         // 1. Blend finger pose between from/to CM
-        const fromPose = movementInterp.fromCM ? cmEntryToHandPose(movementInterp.fromCM) : RESTING_POSE;
-        const toPose = movementInterp.toCM ? cmEntryToHandPose(movementInterp.toCM) : RESTING_POSE;
+        const fromPose = movementInterp.fromCM
+          ? cmEntryToHandPose(movementInterp.fromCM)
+          : RESTING_POSE;
+        const toPose = movementInterp.toCM
+          ? cmEntryToHandPose(movementInterp.toCM)
+          : RESTING_POSE;
         const blendedPose = blendHandPoses(fromPose, toPose, mt);
-        animateFingers(leftAnimState.current, blendedPose, leftHandRefs, leftHandBindPoses, factor);
+        animateFingers(
+          leftAnimState.current,
+          blendedPose,
+          leftHandRefs,
+          leftHandBindPoses,
+          factor,
+        );
 
         // 2. Interpolate UB world position along contour path
         if (leftArmLengths) {
-          const fromPos = computeUBWorldPosition(movementInterp.fromUBCode, boneMap);
-          const toPos = computeUBWorldPosition(movementInterp.toUBCode, boneMap);
+          const fromPos = computeUBWorldPosition(
+            movementInterp.fromUBCode,
+            boneMap,
+          );
+          const toPos = computeUBWorldPosition(
+            movementInterp.toUBCode,
+            boneMap,
+          );
 
           if (fromPos && toPos) {
-            const fromArr: [number, number, number] = [fromPos.x, fromPos.y, fromPos.z];
+            const fromArr: [number, number, number] = [
+              fromPos.x,
+              fromPos.y,
+              fromPos.z,
+            ];
             const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
             const interpArr = interpolateMovementPosition(
-              fromArr, toArr,
+              fromArr,
+              toArr,
               movementInterp.contour,
               movementInterp.plane,
               mt,
@@ -1700,7 +1903,12 @@ export default function AvatarModel({
           }
         } else {
           // No UB target — neutral arms-down pose
-          poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
+          poseArmDown(
+            leftHandRefs.armChain,
+            leftHandBindPoses.armChain,
+            true,
+            factor,
+          );
           debugIK.current.active = false;
         }
       }
@@ -1710,25 +1918,54 @@ export default function AvatarModel({
     // (skip if already posed in UB browse mode above)
     if (showAllUBPoints) {
       // Already handled above
-    } else if (effectiveHandMode === "both_symmetric" && rightHandRefs && rightHandBindPoses) {
-      if (movementInterp && movementInterp.fromUBCode && movementInterp.toUBCode) {
+    } else if (
+      effectiveHandMode === "both_symmetric" &&
+      rightHandRefs &&
+      rightHandBindPoses
+    ) {
+      if (
+        movementInterp &&
+        movementInterp.fromUBCode &&
+        movementInterp.toUBCode
+      ) {
         // ── MOVEMENT SEGMENT: Mirrored smooth interpolation ──
         const mt = movementInterp.t;
 
-        const fromPose = movementInterp.fromCM ? cmEntryToHandPose(movementInterp.fromCM) : RESTING_POSE;
-        const toPose = movementInterp.toCM ? cmEntryToHandPose(movementInterp.toCM) : RESTING_POSE;
+        const fromPose = movementInterp.fromCM
+          ? cmEntryToHandPose(movementInterp.fromCM)
+          : RESTING_POSE;
+        const toPose = movementInterp.toCM
+          ? cmEntryToHandPose(movementInterp.toCM)
+          : RESTING_POSE;
         const blendedPose = blendHandPoses(fromPose, toPose, mt);
-        animateFingers(rightAnimState.current, blendedPose, rightHandRefs, rightHandBindPoses, factor);
+        animateFingers(
+          rightAnimState.current,
+          blendedPose,
+          rightHandRefs,
+          rightHandBindPoses,
+          factor,
+        );
 
         if (rightArmLengths) {
-          const fromPos = computeUBWorldPositionMirrored(movementInterp.fromUBCode, boneMap);
-          const toPos = computeUBWorldPositionMirrored(movementInterp.toUBCode, boneMap);
+          const fromPos = computeUBWorldPositionMirrored(
+            movementInterp.fromUBCode,
+            boneMap,
+          );
+          const toPos = computeUBWorldPositionMirrored(
+            movementInterp.toUBCode,
+            boneMap,
+          );
 
           if (fromPos && toPos) {
-            const fromArr: [number, number, number] = [fromPos.x, fromPos.y, fromPos.z];
+            const fromArr: [number, number, number] = [
+              fromPos.x,
+              fromPos.y,
+              fromPos.z,
+            ];
             const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
             const interpArr = interpolateMovementPosition(
-              fromArr, toArr,
+              fromArr,
+              toArr,
               movementInterp.contour,
               movementInterp.plane,
               mt,
@@ -1790,7 +2027,10 @@ export default function AvatarModel({
             }
           } else if (rightArmLengths) {
             // No preset — fall back to IK
-            const ubTarget = computeUBWorldPositionMirrored(ubLocation.code, boneMap);
+            const ubTarget = computeUBWorldPositionMirrored(
+              ubLocation.code,
+              boneMap,
+            );
             if (ubTarget) {
               animateArmIK(
                 ubTarget,
@@ -1806,12 +2046,22 @@ export default function AvatarModel({
           }
         } else {
           // No UB target — neutral arms-down pose
-          poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
+          poseArmDown(
+            rightHandRefs.armChain,
+            rightHandBindPoses.armChain,
+            false,
+            factor,
+          );
         }
       }
     } else if (rightHandRefs && rightHandBindPoses) {
       // Single-hand mode: right arm rests at side via direct pose
-      poseArmDown(rightHandRefs.armChain, rightHandBindPoses.armChain, false, factor);
+      poseArmDown(
+        rightHandRefs.armChain,
+        rightHandBindPoses.armChain,
+        false,
+        factor,
+      );
       animateFingers(
         rightAnimState.current,
         RESTING_POSE,

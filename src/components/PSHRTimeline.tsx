@@ -18,9 +18,9 @@ const PHASE_LABELS: Record<Phase, string> = {
 };
 
 const SEGMENT_TYPE_LABELS: Record<SegmentType, string> = {
-  M: "Movement",
-  D: "Detention",
-  T: "Transition",
+  M: "Movimiento",
+  D: "Detención",
+  T: "Transición",
 };
 
 interface PSHRTimelineProps {
@@ -77,7 +77,7 @@ export default function PSHRTimeline({
         onSeek(timeMs);
       }
     },
-    [addMode, durationMs, onSeek, onSegmentAdd, percentToMs]
+    [addMode, durationMs, onSeek, onSegmentAdd, percentToMs],
   );
 
   const formatTime = (ms: number) => {
@@ -90,7 +90,7 @@ export default function PSHRTimeline({
     <div className="space-y-3">
       {/* Add segment buttons */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-gray-500">Add:</span>
+        <span className="text-xs font-medium text-gray-500">Agregar:</span>
         {(["PREPARATION", "STROKE", "HOLD", "RETRACTION"] as Phase[]).map(
           (phase) => (
             <button
@@ -99,22 +99,28 @@ export default function PSHRTimeline({
               className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
                 addMode === phase
                   ? "ring-2 ring-offset-1 text-white"
-                  : "text-gray-600 hover:text-gray-900"
+                  : "text-gray-600 hover:text-ink"
               }`}
               style={{
                 backgroundColor:
-                  addMode === phase ? PHASE_COLORS[phase] : `${PHASE_COLORS[phase]}20`,
+                  addMode === phase
+                    ? PHASE_COLORS[phase]
+                    : `${PHASE_COLORS[phase]}20`,
                 borderWidth: "1px",
                 borderStyle: "solid",
-                borderColor: addMode === phase ? PHASE_COLORS[phase] : `${PHASE_COLORS[phase]}40`,
+                borderColor:
+                  addMode === phase
+                    ? PHASE_COLORS[phase]
+                    : `${PHASE_COLORS[phase]}40`,
               }}
             >
-              {PHASE_LABELS[phase]} - {phase.charAt(0) + phase.slice(1).toLowerCase()}
+              {PHASE_LABELS[phase]} -{" "}
+              {phase.charAt(0) + phase.slice(1).toLowerCase()}
             </button>
-          )
+          ),
         )}
         {addMode && (
-          <span className="text-xs text-indigo-600 animate-pulse">
+          <span className="text-xs text-accent-deep animate-pulse">
             Click timeline to place segment
           </span>
         )}
@@ -124,7 +130,9 @@ export default function PSHRTimeline({
       <div
         ref={timelineRef}
         className={`relative h-16 overflow-hidden rounded-lg border-2 ${
-          addMode ? "border-indigo-400 cursor-crosshair" : "border-gray-200 cursor-pointer"
+          addMode
+            ? "border-accent cursor-crosshair"
+            : "border-gray-200 cursor-pointer"
         } bg-gray-50`}
         onClick={handleTimelineClick}
       >
@@ -151,7 +159,9 @@ export default function PSHRTimeline({
             <div
               key={seg.id}
               className={`absolute top-5 h-9 rounded cursor-pointer transition-all ${
-                isSelected ? "ring-2 ring-white shadow-lg z-10" : "hover:brightness-110"
+                isSelected
+                  ? "ring-2 ring-white shadow-lg z-10"
+                  : "hover:brightness-110"
               }`}
               style={{
                 left: `${left}%`,
@@ -175,10 +185,10 @@ export default function PSHRTimeline({
 
         {/* Playhead */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-red-500 z-20 pointer-events-none"
+          className="absolute top-0 h-full w-0.5 bg-coral z-20 pointer-events-none"
           style={{ left: `${msToPercent(currentTimeMs)}%` }}
         >
-          <div className="absolute -left-1.5 -top-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white" />
+          <div className="absolute -left-1.5 -top-1 h-3 w-3 rounded-full bg-coral border-2 border-white" />
         </div>
       </div>
 
@@ -189,81 +199,100 @@ export default function PSHRTimeline({
       </div>
 
       {/* Selected segment editor */}
-      {selectedSegmentId && (() => {
-        const seg = segments.find((s) => s.id === selectedSegmentId);
-        if (!seg) return null;
-        return (
-          <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: PHASE_COLORS[seg.phase] }}
-                />
-                <span className="text-sm font-semibold text-gray-900">
-                  {seg.phase} ({SEGMENT_TYPE_LABELS[seg.type]})
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  onSegmentDelete(seg.id);
-                  onSegmentSelect(null);
-                }}
-                className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] font-medium text-gray-500">Start (ms)</label>
-                <input
-                  type="number"
-                  value={Math.round(seg.start_ms)}
-                  onChange={(e) =>
-                    onSegmentUpdate(seg.id, { start_ms: Number(e.target.value) })
-                  }
-                  className="w-full rounded border border-gray-200 px-2 py-1 text-xs"
-                  step={50}
-                  min={0}
-                  max={seg.end_ms - 50}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-gray-500">End (ms)</label>
-                <input
-                  type="number"
-                  value={Math.round(seg.end_ms)}
-                  onChange={(e) =>
-                    onSegmentUpdate(seg.id, { end_ms: Number(e.target.value) })
-                  }
-                  className="w-full rounded border border-gray-200 px-2 py-1 text-xs"
-                  step={50}
-                  min={seg.start_ms + 50}
-                  max={durationMs}
-                />
-              </div>
-            </div>
-            {/* Phase switcher */}
-            <div className="flex gap-1">
-              {(["PREPARATION", "STROKE", "HOLD", "RETRACTION"] as Phase[]).map((p) => (
+      {selectedSegmentId &&
+        (() => {
+          const seg = segments.find((s) => s.id === selectedSegmentId);
+          if (!seg) return null;
+          return (
+            <div className="rounded-lg border border-gray-200 bg-paper p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: PHASE_COLORS[seg.phase] }}
+                  />
+                  <span className="text-sm font-semibold text-ink">
+                    {seg.phase} ({SEGMENT_TYPE_LABELS[seg.type]})
+                  </span>
+                </div>
                 <button
-                  key={p}
-                  onClick={() => onSegmentUpdate(seg.id, { phase: p, type: p === "STROKE" ? "M" : p === "HOLD" ? "D" : "T" })}
-                  className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                    seg.phase === p ? "text-white" : "text-gray-500"
-                  }`}
-                  style={{
-                    backgroundColor: seg.phase === p ? PHASE_COLORS[p] : `${PHASE_COLORS[p]}15`,
+                  onClick={() => {
+                    onSegmentDelete(seg.id);
+                    onSegmentSelect(null);
                   }}
+                  className="rounded px-2 py-1 text-xs text-coral-deep hover:bg-coral-tint"
                 >
-                  {PHASE_LABELS[p]}
+                  Delete
                 </button>
-              ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500">
+                    Start (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={Math.round(seg.start_ms)}
+                    onChange={(e) =>
+                      onSegmentUpdate(seg.id, {
+                        start_ms: Number(e.target.value),
+                      })
+                    }
+                    className="w-full rounded border border-gray-200 px-2 py-1 text-xs"
+                    step={50}
+                    min={0}
+                    max={seg.end_ms - 50}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-gray-500">
+                    End (ms)
+                  </label>
+                  <input
+                    type="number"
+                    value={Math.round(seg.end_ms)}
+                    onChange={(e) =>
+                      onSegmentUpdate(seg.id, {
+                        end_ms: Number(e.target.value),
+                      })
+                    }
+                    className="w-full rounded border border-gray-200 px-2 py-1 text-xs"
+                    step={50}
+                    min={seg.start_ms + 50}
+                    max={durationMs}
+                  />
+                </div>
+              </div>
+              {/* Phase switcher */}
+              <div className="flex gap-1">
+                {(
+                  ["PREPARATION", "STROKE", "HOLD", "RETRACTION"] as Phase[]
+                ).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() =>
+                      onSegmentUpdate(seg.id, {
+                        phase: p,
+                        type: p === "STROKE" ? "M" : p === "HOLD" ? "D" : "T",
+                      })
+                    }
+                    className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                      seg.phase === p ? "text-white" : "text-gray-500"
+                    }`}
+                    style={{
+                      backgroundColor:
+                        seg.phase === p
+                          ? PHASE_COLORS[p]
+                          : `${PHASE_COLORS[p]}15`,
+                    }}
+                  >
+                    {PHASE_LABELS[p]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
     </div>
   );
 }

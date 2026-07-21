@@ -344,7 +344,7 @@ function RecordPageInner() {
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
+          className="rounded-full bg-ink px-6 py-2.5 font-semibold text-white transition-colors hover:bg-gray-800"
         >
           Reintentar
         </button>
@@ -364,7 +364,7 @@ function RecordPageInner() {
     return (
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-ink">
             Nueva sesión de grabación
           </h1>
           <p className="text-sm text-gray-500">
@@ -372,7 +372,7 @@ function RecordPageInner() {
           </p>
         </div>
 
-        <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6">
+        <div className="space-y-6 rounded-xl border border-gray-200 bg-paper p-6">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Nombre de la sesión
@@ -382,7 +382,7 @@ function RecordPageInner() {
               value={sessionName}
               onChange={(e) => setSessionName(e.target.value)}
               placeholder="ej., Tier 1 — primera pasada"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
             />
           </div>
 
@@ -395,7 +395,7 @@ function RecordPageInner() {
                 onClick={() => setSelectedTier(null)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   selectedTier === null
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-ink text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -411,7 +411,7 @@ function RecordPageInner() {
                     onClick={() => setSelectedTier(tier)}
                     className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                       selectedTier === tier
-                        ? "bg-indigo-600 text-white"
+                        ? "bg-ink text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -427,7 +427,7 @@ function RecordPageInner() {
               type="checkbox"
               checked={shuffled}
               onChange={(e) => setShuffled(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-gray-300 text-accent-deep focus:ring-accent"
             />
             <span className="text-sm text-gray-700">Mezclar el orden</span>
           </label>
@@ -444,13 +444,13 @@ function RecordPageInner() {
                 lugarRef.current = e.target.value;
               }}
               placeholder="ej., Ciudad de México"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
             />
           </div>
 
           <button
             onClick={handleCreateSession}
-            className="w-full rounded-lg bg-indigo-600 py-3 text-lg font-semibold text-white transition-colors hover:bg-indigo-700"
+            className="w-full rounded-full bg-ink py-3 text-lg font-semibold text-white transition-colors hover:bg-gray-800"
           >
             Comenzar a grabar (
             {selectedTier
@@ -463,7 +463,7 @@ function RecordPageInner() {
 
         {sessions.length > 0 && (
           <div>
-            <h2 className="mb-3 text-lg font-bold text-gray-900">
+            <h2 className="mb-3 text-lg font-bold text-ink">
               Sesiones anteriores
             </h2>
             <div className="space-y-2">
@@ -478,7 +478,7 @@ function RecordPageInner() {
                 return (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4"
+                    className="flex items-center justify-between rounded-xl border border-gray-200 bg-paper p-4"
                   >
                     <button
                       onClick={() => {
@@ -491,12 +491,12 @@ function RecordPageInner() {
                       }}
                       className="text-left"
                     >
-                      <p className="font-semibold text-gray-900">{s.name}</p>
+                      <p className="font-semibold text-ink">{s.name}</p>
                       <p className="text-sm text-gray-500">
                         {recorded}/{s.signs.length} grabadas &middot;{" "}
                         {new Date(s.created_at).toLocaleDateString()}
                         {unsynced > 0 && (
-                          <span className="ml-1 text-amber-600">
+                          <span className="ml-1 text-gold-deep">
                             &middot; {unsynced} sin sincronizar
                           </span>
                         )}
@@ -504,7 +504,7 @@ function RecordPageInner() {
                     </button>
                     <button
                       onClick={() => handleDeleteSession(s.id)}
-                      className="rounded-lg px-3 py-1 text-sm text-red-600 hover:bg-red-50"
+                      className="rounded-lg px-3 py-1 text-sm text-coral-deep hover:bg-coral-tint"
                     >
                       Eliminar
                     </button>
@@ -522,9 +522,13 @@ function RecordPageInner() {
   if (view === "review" && lastBlobUrl && currentCM) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Revisar grabación</h1>
+        <h1 className="text-2xl font-bold text-ink">Revisar grabación</h1>
 
-        <SignPrompt cm={currentCM} index={currentIndex} total={sessionCMs.length} />
+        <SignPrompt
+          cm={currentCM}
+          index={currentIndex}
+          total={sessionCMs.length}
+        />
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
           <video
@@ -538,13 +542,13 @@ function RecordPageInner() {
         <div className="flex gap-4">
           <button
             onClick={handleAccept}
-            className="flex-1 rounded-lg bg-green-600 py-3 text-lg font-semibold text-white transition-colors hover:bg-green-700"
+            className="flex-1 rounded-full bg-green py-3 text-lg font-semibold text-white transition-colors hover:bg-green-deep"
           >
             Aceptar y subir
           </button>
           <button
             onClick={handleRetry}
-            className="flex-1 rounded-lg bg-gray-200 py-3 text-lg font-semibold text-gray-700 transition-colors hover:bg-gray-300"
+            className="flex-1 rounded-full bg-gray-200 py-3 text-lg font-semibold text-gray-700 transition-colors hover:bg-gray-300"
           >
             Repetir
           </button>
@@ -560,7 +564,7 @@ function RecordPageInner() {
         <p className="text-lg text-gray-500">No hay señas para grabar.</p>
         <button
           onClick={() => setView("setup")}
-          className="mt-4 rounded-lg bg-indigo-600 px-6 py-2 text-white"
+          className="mt-4 rounded-full bg-ink px-6 py-2 text-white"
         >
           Crear nueva sesión
         </button>
@@ -574,7 +578,7 @@ function RecordPageInner() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{session.name}</h1>
+          <h1 className="text-2xl font-bold text-ink">{session.name}</h1>
           <p className="text-sm text-gray-500">
             {recorded}/{session.signs.length} grabadas
           </p>
@@ -584,13 +588,17 @@ function RecordPageInner() {
             setView("setup");
             setSession(null);
           }}
-          className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+          className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
         >
           Volver a sesiones
         </button>
       </div>
 
-      <SignPrompt cm={currentCM} index={currentIndex} total={sessionCMs.length} />
+      <SignPrompt
+        cm={currentCM}
+        index={currentIndex}
+        total={sessionCMs.length}
+      />
 
       <CameraRecorder
         onRecordingComplete={handleRecordingComplete}
@@ -603,7 +611,7 @@ function RecordPageInner() {
         <button
           onClick={handlePrevious}
           disabled={currentIndex === 0}
-          className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Anterior
         </button>
@@ -613,7 +621,7 @@ function RecordPageInner() {
         <button
           onClick={handleSkip}
           disabled={currentIndex >= sessionCMs.length - 1}
-          className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Saltar
         </button>
@@ -645,8 +653,8 @@ function RecordPageInner() {
         {session.signs.some(
           (s) => s.status === "approved" && s.sync_status === "failed",
         ) && (
-          <div className="mt-3 space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-            <p className="text-sm font-medium text-amber-800">
+          <div className="mt-3 space-y-2 rounded-lg border border-gold bg-gold-tint p-3">
+            <p className="text-sm font-medium text-gold-deep">
               Señas sin sincronizar. El video solo se conserva mientras esta
               página esté abierta; si la recargas tendrás que volver a grabar.
             </p>
@@ -659,12 +667,12 @@ function RecordPageInner() {
                   key={s.cm_id}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-amber-900">
+                  <span className="text-gold-deep">
                     Seña #{s.cm_id} — {s.sync_error ?? "error"}
                   </span>
                   <button
                     onClick={() => handleRetryUpload(s.cm_id)}
-                    className="rounded bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                    className="rounded bg-gold px-3 py-1 text-xs font-medium text-white hover:bg-gold-deep"
                   >
                     Reintentar
                   </button>
@@ -682,14 +690,15 @@ function gridClass(
   status: string,
   sync?: SyncStatus,
 ): string {
-  if (isCurrent) return "bg-indigo-600 text-white ring-2 ring-indigo-300";
+  if (isCurrent) return "bg-ink text-white ring-2 ring-accent-tint";
   if (status === "approved") {
-    if (sync === "synced") return "bg-green-500 text-white";
-    if (sync === "uploading") return "bg-blue-300 text-blue-900 animate-pulse";
-    if (sync === "failed") return "bg-amber-400 text-amber-900";
-    return "bg-green-200 text-green-800";
+    if (sync === "synced") return "bg-green text-white";
+    if (sync === "uploading")
+      return "bg-accent-tint text-accent-deep animate-pulse";
+    if (sync === "failed") return "bg-gold text-gold-deep";
+    return "bg-green-tint text-green-deep";
   }
-  if (status === "recorded") return "bg-green-200 text-green-800";
+  if (status === "recorded") return "bg-green-tint text-green-deep";
   return "bg-gray-100 text-gray-400 hover:bg-gray-200";
 }
 

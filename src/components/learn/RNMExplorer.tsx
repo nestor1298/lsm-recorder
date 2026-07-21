@@ -4,7 +4,14 @@ import { useState } from "react";
 
 type EyebrowPos = "NEUTRAL" | "RAISED" | "FURROWED";
 type MouthShape = "NEUTRAL" | "OPEN" | "CLOSED" | "ROUNDED" | "STRETCHED";
-type HeadMov = "NONE" | "NOD" | "SHAKE" | "TILT_LEFT" | "TILT_RIGHT" | "TILT_BACK" | "TILT_DOWN";
+type HeadMov =
+  | "NONE"
+  | "NOD"
+  | "SHAKE"
+  | "TILT_LEFT"
+  | "TILT_RIGHT"
+  | "TILT_BACK"
+  | "TILT_DOWN";
 
 interface FaceState {
   eyebrows: EyebrowPos;
@@ -16,7 +23,8 @@ interface FaceState {
 function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
   // Eyebrow positions
   const browY = eyebrows === "RAISED" ? 52 : eyebrows === "FURROWED" ? 60 : 56;
-  const browCurve = eyebrows === "FURROWED" ? 4 : eyebrows === "RAISED" ? -4 : 0;
+  const browCurve =
+    eyebrows === "FURROWED" ? 4 : eyebrows === "RAISED" ? -4 : 0;
 
   // Mouth shapes
   const mouthPaths: Record<MouthShape, string> = {
@@ -52,10 +60,24 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
     <svg viewBox="0 0 200 200" className="w-full" style={{ maxHeight: 280 }}>
       <g transform={`rotate(${headRotation[head]}, 100, 100)`}>
         {/* Head shape */}
-        <ellipse cx="100" cy="100" rx="55" ry="68" fill="#fef3c7" stroke="#d4a574" strokeWidth="2" />
+        <ellipse
+          cx="100"
+          cy="100"
+          rx="55"
+          ry="68"
+          fill="#fef3c7"
+          stroke="#d4a574"
+          strokeWidth="2"
+        />
 
         {/* Hair */}
-        <path d="M 48,70 Q 50,30 100,28 Q 150,30 152,70" fill="none" stroke="#92400e" strokeWidth="6" strokeLinecap="round" />
+        <path
+          d="M 48,70 Q 50,30 100,28 Q 150,30 152,70"
+          fill="none"
+          stroke="#92400e"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
 
         {/* Eyebrows */}
         <path
@@ -66,11 +88,16 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
           strokeLinecap="round"
         >
           {eyebrows !== "NEUTRAL" && (
-            <animate attributeName="d" values={
-              eyebrows === "RAISED"
-                ? `M 70,${browY + 2} Q 80,${browY - 4} 90,${browY + 2};M 70,${browY} Q 80,${browY - 6 + browCurve} 90,${browY};M 70,${browY + 2} Q 80,${browY - 4} 90,${browY + 2}`
-                : `M 70,${browY - 2} Q 80,${browY - 2 + browCurve} 90,${browY - 2};M 70,${browY} Q 80,${browY - 6 + browCurve} 90,${browY};M 70,${browY - 2} Q 80,${browY - 2 + browCurve} 90,${browY - 2}`
-            } dur="1.5s" repeatCount="indefinite" />
+            <animate
+              attributeName="d"
+              values={
+                eyebrows === "RAISED"
+                  ? `M 70,${browY + 2} Q 80,${browY - 4} 90,${browY + 2};M 70,${browY} Q 80,${browY - 6 + browCurve} 90,${browY};M 70,${browY + 2} Q 80,${browY - 4} 90,${browY + 2}`
+                  : `M 70,${browY - 2} Q 80,${browY - 2 + browCurve} 90,${browY - 2};M 70,${browY} Q 80,${browY - 6 + browCurve} 90,${browY};M 70,${browY - 2} Q 80,${browY - 2 + browCurve} 90,${browY - 2}`
+              }
+              dur="1.5s"
+              repeatCount="indefinite"
+            />
           )}
         </path>
         <path
@@ -81,22 +108,48 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
           strokeLinecap="round"
         >
           {eyebrows !== "NEUTRAL" && (
-            <animate attributeName="d" values={
-              eyebrows === "RAISED"
-                ? `M 110,${browY + 2} Q 120,${browY - 4} 130,${browY + 2};M 110,${browY} Q 120,${browY - 6 + browCurve} 130,${browY};M 110,${browY + 2} Q 120,${browY - 4} 130,${browY + 2}`
-                : `M 110,${browY - 2} Q 120,${browY - 2 + browCurve} 130,${browY - 2};M 110,${browY} Q 120,${browY - 6 + browCurve} 130,${browY};M 110,${browY - 2} Q 120,${browY - 2 + browCurve} 130,${browY - 2}`
-            } dur="1.5s" repeatCount="indefinite" />
+            <animate
+              attributeName="d"
+              values={
+                eyebrows === "RAISED"
+                  ? `M 110,${browY + 2} Q 120,${browY - 4} 130,${browY + 2};M 110,${browY} Q 120,${browY - 6 + browCurve} 130,${browY};M 110,${browY + 2} Q 120,${browY - 4} 130,${browY + 2}`
+                  : `M 110,${browY - 2} Q 120,${browY - 2 + browCurve} 130,${browY - 2};M 110,${browY} Q 120,${browY - 6 + browCurve} 130,${browY};M 110,${browY - 2} Q 120,${browY - 2 + browCurve} 130,${browY - 2}`
+              }
+              dur="1.5s"
+              repeatCount="indefinite"
+            />
           )}
         </path>
 
         {/* Eyes */}
-        <ellipse cx="80" cy="72" rx="8" ry="6" fill="white" stroke="#78350f" strokeWidth="1.5" />
-        <ellipse cx="120" cy="72" rx="8" ry="6" fill="white" stroke="#78350f" strokeWidth="1.5" />
+        <ellipse
+          cx="80"
+          cy="72"
+          rx="8"
+          ry="6"
+          fill="white"
+          stroke="#78350f"
+          strokeWidth="1.5"
+        />
+        <ellipse
+          cx="120"
+          cy="72"
+          rx="8"
+          ry="6"
+          fill="white"
+          stroke="#78350f"
+          strokeWidth="1.5"
+        />
         <circle cx="80" cy="72" r="3" fill="#1e293b" />
         <circle cx="120" cy="72" r="3" fill="#1e293b" />
 
         {/* Nose */}
-        <path d="M 100,82 L 96,98 Q 100,101 104,98 Z" fill="none" stroke="#d4a574" strokeWidth="1.5" />
+        <path
+          d="M 100,82 L 96,98 Q 100,101 104,98 Z"
+          fill="none"
+          stroke="#d4a574"
+          strokeWidth="1.5"
+        />
 
         {/* Mouth */}
         <path
@@ -109,14 +162,37 @@ function FaceDiagram({ eyebrows, mouth, head }: FaceState) {
         />
 
         {/* Ears */}
-        <ellipse cx="45" cy="85" rx="6" ry="12" fill="#fef3c7" stroke="#d4a574" strokeWidth="1.5" />
-        <ellipse cx="155" cy="85" rx="6" ry="12" fill="#fef3c7" stroke="#d4a574" strokeWidth="1.5" />
+        <ellipse
+          cx="45"
+          cy="85"
+          rx="6"
+          ry="12"
+          fill="#fef3c7"
+          stroke="#d4a574"
+          strokeWidth="1.5"
+        />
+        <ellipse
+          cx="155"
+          cy="85"
+          rx="6"
+          ry="12"
+          fill="#fef3c7"
+          stroke="#d4a574"
+          strokeWidth="1.5"
+        />
       </g>
 
       {/* Head movement indicator */}
       {head !== "NONE" && (
         <g>
-          <text x="100" y="190" textAnchor="middle" fontSize="10" fill="#6366f1" fontWeight="600">
+          <text
+            x="100"
+            y="190"
+            textAnchor="middle"
+            fontSize="10"
+            fill="#6366f1"
+            fontWeight="600"
+          >
             {headLabels[head]}
           </text>
         </g>
@@ -161,15 +237,16 @@ export default function RNMExplorer() {
       {/* Info */}
       <div className="rounded-xl bg-rose-50 p-3">
         <p className="text-xs leading-relaxed text-rose-700">
-          Los rasgos no manuales (RNM) son expresiones faciales, movimientos de cabeza y posturas corporales que
-          portan significado gramatical en la lengua de señas. Pueden indicar <b>preguntas</b>, <b>negación</b>,
+          Los rasgos no manuales (RNM) son expresiones faciales, movimientos de
+          cabeza y posturas corporales que portan significado gramatical en la
+          Lengua de Señas Mexicana (LSM). Pueden indicar <b>preguntas</b>, <b>negación</b>,
           <b>énfasis</b> y <b>tono emocional</b>.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Face diagram */}
-        <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-amber-50/50 to-white">
+        <div className="rounded-2xl border border-gray-200 bg-gold-tint/40">
           <FaceDiagram {...face} />
         </div>
 
@@ -184,7 +261,9 @@ export default function RNMExplorer() {
               {EYEBROW_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => setFace((f) => ({ ...f, eyebrows: opt.value }))}
+                  onClick={() =>
+                    setFace((f) => ({ ...f, eyebrows: opt.value }))
+                  }
                   className={`flex-1 rounded-lg py-2 text-center text-xs font-medium transition-all ${
                     face.eyebrows === opt.value
                       ? "bg-rose-600 text-white shadow-md"
@@ -222,7 +301,7 @@ export default function RNMExplorer() {
           {/* Head movement */}
           <div>
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-400">
-              Movimiento de Cabeza
+              Movimiento de cabeza
             </label>
             <div className="flex flex-wrap gap-1.5">
               {HEAD_OPTIONS.map((opt) => (
@@ -246,9 +325,12 @@ export default function RNMExplorer() {
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
               Notación LSM-PN
             </p>
-            <p className="font-mono text-sm text-emerald-400">
-              RNM: cejas={face.eyebrows.toLowerCase()}, boca={face.mouth.toLowerCase()}
-              {face.head !== "NONE" ? `, cabeza=${face.head.toLowerCase()}` : ""}
+            <p className="font-mono text-sm text-green">
+              RNM: cejas={face.eyebrows.toLowerCase()}, boca=
+              {face.mouth.toLowerCase()}
+              {face.head !== "NONE"
+                ? `, cabeza=${face.head.toLowerCase()}`
+                : ""}
             </p>
           </div>
         </div>

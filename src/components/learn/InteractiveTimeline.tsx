@@ -46,7 +46,8 @@ function computeSegmentLayout(sign: SignConstruction): SegmentBlock[] {
   const { holdDuration, movementDuration } = DEFAULT_PLAYBACK_CONFIG;
   const segments = sign.segments;
   let totalMs = 0;
-  for (const s of segments) totalMs += s.type === "D" ? holdDuration : movementDuration;
+  for (const s of segments)
+    totalMs += s.type === "D" ? holdDuration : movementDuration;
   if (totalMs === 0) return [];
 
   const blocks: SegmentBlock[] = [];
@@ -92,7 +93,8 @@ export default function InteractiveTimeline({
   const scrubbing = useRef(false);
 
   const blocks = useMemo(() => computeSegmentLayout(sign), [sign]);
-  const playheadPct = totalDurationMs > 0 ? (elapsedMs / totalDurationMs) * 100 : 0;
+  const playheadPct =
+    totalDurationMs > 0 ? (elapsedMs / totalDurationMs) * 100 : 0;
 
   // ── Scrub helpers ─────────────────────────────────────────────────
 
@@ -144,9 +146,18 @@ export default function InteractiveTimeline({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === " ") { e.preventDefault(); onTogglePlay(); }
-      if (e.key === "ArrowLeft") { e.preventDefault(); onScrub(Math.max(0, elapsedMs - 50)); }
-      if (e.key === "ArrowRight") { e.preventDefault(); onScrub(Math.min(totalDurationMs, elapsedMs + 50)); }
+      if (e.key === " ") {
+        e.preventDefault();
+        onTogglePlay();
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        onScrub(Math.max(0, elapsedMs - 50));
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        onScrub(Math.min(totalDurationMs, elapsedMs + 50));
+      }
     },
     [onTogglePlay, onScrub, elapsedMs, totalDurationMs],
   );
@@ -154,11 +165,11 @@ export default function InteractiveTimeline({
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-black/5 bg-white/60 px-3 py-2 backdrop-blur-sm">
+    <div className="flex items-center gap-2 rounded-xl border border-black/5 bg-paper/60 px-3 py-2 backdrop-blur-sm">
       {/* Play/Pause */}
       <button
         onClick={onTogglePlay}
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-sm transition-colors hover:bg-indigo-600"
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-accent text-white shadow-sm transition-colors hover:bg-ink"
         title={isPlaying ? "Pausar" : "Reproducir"}
       >
         {isPlaying ? (
@@ -275,12 +286,19 @@ export default function InteractiveTimeline({
         onClick={onToggleLoop}
         className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
           loop
-            ? "bg-indigo-100 text-indigo-600"
+            ? "bg-accent-tint text-accent-deep"
             : "bg-gray-100 text-gray-400 hover:text-gray-600"
         }`}
         title={loop ? "Repetir: activado" : "Repetir: desactivado"}
       >
-        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-3.5 w-3.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" />
         </svg>
       </button>

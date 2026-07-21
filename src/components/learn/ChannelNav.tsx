@@ -6,7 +6,11 @@ interface ChannelNavProps {
   onNavigate: (id: string) => void;
 }
 
-export default function ChannelNav({ channels, activeChannel, onNavigate }: ChannelNavProps) {
+export default function ChannelNav({
+  channels,
+  activeChannel,
+  onNavigate,
+}: ChannelNavProps) {
   return (
     <nav className="fixed right-3 top-1/2 z-50 hidden -translate-y-1/2 flex-col gap-3 lg:flex">
       {channels.map((ch) => {
@@ -26,7 +30,7 @@ export default function ChannelNav({ channels, activeChannel, onNavigate }: Chan
             {/* Dot */}
             <span
               className={`h-3 w-3 rounded-full border-2 transition-all duration-300 ${
-                isActive ? "scale-125" : "scale-100 border-white/40 bg-white/20"
+                isActive ? "scale-125" : "scale-100 border-white/40 bg-paper/20"
               }`}
               style={
                 isActive

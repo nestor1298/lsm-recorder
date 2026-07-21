@@ -37,7 +37,7 @@ function getFingerPoints(
   baseX: number,
   baseY: number,
   angle: number,
-  flexion: FlexionLevel
+  flexion: FlexionLevel,
 ) {
   const curlDeg = FLEXION_ANGLE[flexion];
   const curlRad = (curlDeg * Math.PI) / 180;
@@ -66,9 +66,7 @@ function getFingerPoints(
   return points;
 }
 
-function getThumbPoints(
-  cm: CMEntry
-): { x: number; y: number }[] {
+function getThumbPoints(cm: CMEntry): { x: number; y: number }[] {
   const baseX = 108;
   const baseY = 200;
   const isOpposed = cm.thumb_opposition === "OPPOSED";
@@ -94,14 +92,17 @@ function getThumbPoints(
   return points;
 }
 
-export default function HandVisualization({ cm, size = 280 }: HandVisualizationProps) {
+export default function HandVisualization({
+  cm,
+  size = 280,
+}: HandVisualizationProps) {
   if (!cm) {
     return (
       <div
         className="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50"
         style={{ width: size, height: size }}
       >
-        <span className="text-sm text-gray-400">Select a CM</span>
+        <span className="text-sm text-gray-400">Elige una CM</span>
       </div>
     );
   }
@@ -116,7 +117,7 @@ export default function HandVisualization({ cm, size = 280 }: HandVisualizationP
         width={size}
         height={size}
         viewBox="0 0 280 280"
-        className="rounded-xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white"
+        className="rounded-xl border border-gray-200 bg-gray-50"
       >
         {/* Palm */}
         <ellipse
@@ -149,7 +150,7 @@ export default function HandVisualization({ cm, size = 280 }: HandVisualizationP
             finger.x,
             finger.y,
             FINGER_ANGLES[i],
-            flexion
+            flexion,
           );
           const color = FLEXION_COLOR[flexion];
 
@@ -226,19 +227,40 @@ export default function HandVisualization({ cm, size = 280 }: HandVisualizationP
 
         {/* Spread indicator */}
         {cm.spread === "SPREAD" && (
-          <text x="140" y="20" textAnchor="middle" className="text-xs" fill="#7c3aed" fontWeight="bold">
+          <text
+            x="140"
+            y="20"
+            textAnchor="middle"
+            className="text-xs"
+            fill="#7c3aed"
+            fontWeight="bold"
+          >
             SPREAD
           </text>
         )}
 
         {/* Interaction indicator */}
         {cm.interaction === "CROSSED" && (
-          <text x="140" y="35" textAnchor="middle" className="text-xs" fill="#d97706" fontWeight="bold">
+          <text
+            x="140"
+            y="35"
+            textAnchor="middle"
+            className="text-xs"
+            fill="#d97706"
+            fontWeight="bold"
+          >
             CROSSED
           </text>
         )}
         {cm.interaction === "STACKED" && (
-          <text x="140" y="35" textAnchor="middle" className="text-xs" fill="#d97706" fontWeight="bold">
+          <text
+            x="140"
+            y="35"
+            textAnchor="middle"
+            className="text-xs"
+            fill="#d97706"
+            fontWeight="bold"
+          >
             STACKED
           </text>
         )}
@@ -251,15 +273,19 @@ export default function HandVisualization({ cm, size = 280 }: HandVisualizationP
 
       {/* Legend */}
       <div className="mt-2 flex flex-wrap justify-center gap-2">
-        {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map((level) => (
-          <div key={level} className="flex items-center gap-1">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: FLEXION_COLOR[level] }}
-            />
-            <span className="text-[10px] text-gray-500">{level.toLowerCase()}</span>
-          </div>
-        ))}
+        {(["EXTENDED", "CURVED", "BENT", "CLOSED"] as FlexionLevel[]).map(
+          (level) => (
+            <div key={level} className="flex items-center gap-1">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: FLEXION_COLOR[level] }}
+              />
+              <span className="text-[10px] text-gray-500">
+                {level.toLowerCase()}
+              </span>
+            </div>
+          ),
+        )}
       </div>
     </div>
   );

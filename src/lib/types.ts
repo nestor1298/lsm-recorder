@@ -27,11 +27,11 @@ export interface CMEntry {
 }
 
 export type FingerGroup =
-  | "A: All Fingers (1234)"
-  | "B: Three Fingers (123)"
-  | "C: Two Fingers (12)"
-  | "D: Index Finger (1)"
-  | "E: Pinky & Special";
+  | "A: Todos los dedos (1234)"
+  | "B: Tres dedos (123)"
+  | "C: Dos dedos (12)"
+  | "D: Índice (1)"
+  | "E: Meñique y especiales";
 
 // Local draft sync state (the corpus of record lives in S3/DynamoDB; localStorage
 // is a draft layer). A recording is only "synced" once its DynamoDB item exists.

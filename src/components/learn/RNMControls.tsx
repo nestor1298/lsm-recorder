@@ -3,8 +3,16 @@
 import { useState, useEffect } from "react";
 
 export type EyebrowPos = "NEUTRAL" | "RAISED" | "FURROWED";
-export type MouthShape = "NEUTRAL" | "OPEN" | "CLOSED" | "ROUNDED" | "STRETCHED";
-export type HeadMov = "NONE" | "NOD" | "SHAKE" | "TILT_LEFT" | "TILT_RIGHT" | "TILT_BACK" | "TILT_DOWN";
+export type MouthShape =
+  "NEUTRAL" | "OPEN" | "CLOSED" | "ROUNDED" | "STRETCHED";
+export type HeadMov =
+  | "NONE"
+  | "NOD"
+  | "SHAKE"
+  | "TILT_LEFT"
+  | "TILT_RIGHT"
+  | "TILT_BACK"
+  | "TILT_DOWN";
 
 export interface FaceState {
   eyebrows: EyebrowPos;
@@ -43,12 +51,18 @@ interface RNMControlsProps {
   className?: string;
 }
 
-export default function RNMControls({ onFaceChange, defaultFace, className = "" }: RNMControlsProps) {
-  const [face, setFace] = useState<FaceState>(defaultFace ?? {
-    eyebrows: "NEUTRAL",
-    mouth: "NEUTRAL",
-    head: "NONE",
-  });
+export default function RNMControls({
+  onFaceChange,
+  defaultFace,
+  className = "",
+}: RNMControlsProps) {
+  const [face, setFace] = useState<FaceState>(
+    defaultFace ?? {
+      eyebrows: "NEUTRAL",
+      mouth: "NEUTRAL",
+      head: "NONE",
+    },
+  );
 
   // Propagate face state to parent
   useEffect(() => {
@@ -131,8 +145,9 @@ export default function RNMControls({ onFaceChange, defaultFace, className = "" 
         <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
           Notación LSM-PN
         </p>
-        <p className="font-mono text-sm text-emerald-400">
-          RNM: cejas={face.eyebrows.toLowerCase()}, boca={face.mouth.toLowerCase()}
+        <p className="font-mono text-sm text-green">
+          RNM: cejas={face.eyebrows.toLowerCase()}, boca=
+          {face.mouth.toLowerCase()}
           {face.head !== "NONE" ? `, cabeza=${face.head.toLowerCase()}` : ""}
         </p>
       </div>

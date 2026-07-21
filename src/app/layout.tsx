@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "LSM Recorder",
+  title: "SignaLab · corpus de LSM",
   description:
-    "Recording tool for Mexican Sign Language (LSM) video corpus — 101 handshape configurations",
+    "Plataforma de SignaLab (OtherAI) para grabar y anotar un corpus de Lengua de Señas Mexicana — 101 configuraciones de mano.",
+  icons: { icon: "/otherai-mark.png" },
 };
 
 export default function RootLayout({
@@ -26,11 +16,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
+        {/* Franja espectro: motivo de inclusión, una sola vez por vista */}
+        <div className="spectrum-stripe" aria-hidden>
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {children}
         </main>
       </body>

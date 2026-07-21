@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
@@ -9,19 +10,29 @@ const NAV_ITEMS = [
   { href: "/catalog", label: "Catálogo" },
   { href: "/record", label: "Grabar" },
   { href: "/annotate", label: "Anotar" },
+  { href: "/mis-grabaciones", label: "Mis grabaciones" },
 ];
 
 export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-gray-200 bg-paper">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-gray-900">LSM</span>
-            <span className="rounded bg-indigo-600 px-2 py-0.5 text-sm font-medium text-white">
-              Recorder
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/otherai-mark.png"
+              alt=""
+              width={32}
+              height={32}
+              priority
+            />
+            <span className="font-display text-xl font-bold tracking-[-0.02em] text-ink">
+              signalab
+            </span>
+            <span className="hidden text-sm text-gray-500 sm:inline">
+              por otherAI
             </span>
           </Link>
           <nav className="flex gap-1">
@@ -34,10 +45,10 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
                     isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "text-ink underline decoration-accent decoration-2 underline-offset-8"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-ink"
                   }`}
                 >
                   {item.label}

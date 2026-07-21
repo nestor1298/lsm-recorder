@@ -20,7 +20,9 @@ export default function SignSummary({ sign }: SignSummaryProps) {
         const parts: string[] = [];
         if (seg.cm) parts.push(`CM #${seg.cm.cm_id}`);
         if (seg.ub) parts.push(`UB=${seg.ub.code}`);
-        parts.push(`OR(${seg.orientation.palm[0].toLowerCase()},${seg.orientation.fingers[0].toLowerCase()})`);
+        parts.push(
+          `OR(${seg.orientation.palm[0].toLowerCase()},${seg.orientation.fingers[0].toLowerCase()})`,
+        );
         if (seg.handMode === "both_symmetric") parts.push("2M");
         lines.push({
           label: `D\u2082${dCount}`,
@@ -59,13 +61,16 @@ export default function SignSummary({ sign }: SignSummaryProps) {
   const handModeSummary = useMemo(() => {
     const firstHold = sign.segments.find((s) => s.type === "D");
     if (!firstHold || firstHold.type !== "D") return "dominante";
-    return firstHold.handMode === "both_symmetric" ? "ambas (sim.)" : "dominante";
+    return firstHold.handMode === "both_symmetric"
+      ? "ambas (sim.)"
+      : "dominante";
   }, [sign]);
 
   const copyToClipboard = useCallback(() => {
-    const text = summary.map((s) => `${s.label}: ${s.detail}`).join("\n")
-      + (rnmParts.length > 0 ? `\nRNM: ${rnmParts.join(", ")}` : "")
-      + `\nManos: ${handModeSummary}`;
+    const text =
+      summary.map((s) => `${s.label}: ${s.detail}`).join("\n") +
+      (rnmParts.length > 0 ? `\nRNM: ${rnmParts.join(", ")}` : "") +
+      `\nManos: ${handModeSummary}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }, [summary, rnmParts, handModeSummary]);
 
@@ -73,11 +78,11 @@ export default function SignSummary({ sign }: SignSummaryProps) {
     <div className="rounded-xl border border-black/5 bg-gray-900/80 p-3 backdrop-blur-sm">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-          Resumen Fonol&oacute;gico
+          Resumen fonol&oacute;gico
         </span>
         <button
           onClick={copyToClipboard}
-          className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-medium text-gray-400 transition-colors hover:bg-white/20 hover:text-white"
+          className="rounded bg-paper/10 px-2 py-0.5 text-[10px] font-medium text-gray-400 transition-colors hover:bg-paper/20 hover:text-white"
           title="Copiar resumen"
         >
           Copiar
@@ -93,7 +98,8 @@ export default function SignSummary({ sign }: SignSummaryProps) {
               style={{ color: line.color }}
             >
               {line.label.replace(/\u2082(\d)/, (_, d) => {
-                const subs = "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
+                const subs =
+                  "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089";
                 return subs[parseInt(d)] || d;
               })}
             </span>
@@ -104,7 +110,7 @@ export default function SignSummary({ sign }: SignSummaryProps) {
 
       {/* RNM */}
       {rnmParts.length > 0 && (
-        <div className="mb-2 rounded bg-rose-500/10 px-2 py-1">
+        <div className="mb-2 rounded bg-coral/10 px-2 py-1">
           <span className="text-[10px] font-medium text-rose-300">
             RNM: {rnmParts.join(", ")}
           </span>
@@ -117,7 +123,7 @@ export default function SignSummary({ sign }: SignSummaryProps) {
         {sign.name && (
           <>
             <span className="text-gray-600">|</span>
-            <span className="text-indigo-400">{sign.name}</span>
+            <span className="text-accent">{sign.name}</span>
           </>
         )}
       </div>

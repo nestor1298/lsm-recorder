@@ -13,8 +13,10 @@ export default function CatalogPage() {
 
   const filtered = useMemo(() => {
     return CM_INVENTORY.filter((cm) => {
-      if (selectedTier !== null && cm.frequency_tier !== selectedTier) return false;
-      if (selectedGroup !== null && getFingerGroup(cm) !== selectedGroup) return false;
+      if (selectedTier !== null && cm.frequency_tier !== selectedTier)
+        return false;
+      if (selectedGroup !== null && getFingerGroup(cm) !== selectedGroup)
+        return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matches =
@@ -31,11 +33,12 @@ export default function CatalogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          CM Handshape Catalog
+        <h1 className="text-2xl font-bold text-ink">
+          Catálogo de configuraciones de mano
         </h1>
         <p className="text-sm text-gray-500">
-          101 Cruz Aldrete configurations from Gram&aacute;tica de la LSM (2008)
+          Las 101 configuraciones de Cruz Aldrete, de la Gram&aacute;tica de la
+          LSM (2008)
         </p>
       </div>
 
@@ -58,7 +61,7 @@ export default function CatalogPage() {
 
       {filtered.length === 0 && (
         <div className="py-12 text-center text-gray-500">
-          No handshapes match your filters. Try adjusting the criteria.
+          Ninguna configuración coincide con tus filtros. Ajusta los criterios.
         </div>
       )}
     </div>

@@ -21,7 +21,9 @@ export default function LSMVideoSlot({
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
         <video src={videoSrc} controls className="aspect-video w-full" />
         {caption && (
-          <p className="bg-gray-50 px-3 py-2 text-xs text-gray-500">{caption}</p>
+          <p className="bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            {caption}
+          </p>
         )}
       </div>
     );
