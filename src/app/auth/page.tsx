@@ -1,19 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { startEmailOtp, confirmEmailOtp } from "@/lib/auth-client";
-import { fetchMe } from "@/lib/api-client";
+import {
+  startEmailOtp,
+  confirmEmailOtp,
+  currentUserId,
+  signOut,
+} from "@/lib/auth-client";
+import { fetchMe, type MeResponse } from "@/lib/api-client";
 
-type Phase = "email" | "code";
+type Phase = "checking" | "email" | "code" | "session_error";
 
 export default function AuthPage() {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>("email");
+  const [phase, setPhase] = useState<Phase>("checking");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const routeByProfile = useCallback(
+    (me: MeResponse) => {
+      if (me.consentStatus !== "granted") router.push("/consentimiento");
+      else if (!me.hasMetadata) router.push("/perfil");
+      else router.push("/record");
+    },
+    [router],
+  );
+
+  // Already signed in? Route forward instead of showing the email form —
+  // trying to signIn again would throw "There is already a signed in user".
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const uid = await currentUserId();
+      if (!active) return;
+      if (!uid) {
+        setPhase("email");
+        return;
+      }
+      try {
+        const me = await fetchMe();
+        if (active) routeByProfile(me);
+      } catch (err) {
+        // Signed in but the profile call failed (server/config issue):
+        // dead-ending on the email form would loop. Surface it instead.
+        if (active) {
+          setPhase("session_error");
+          setError(
+            err instanceof Error ? err.message : "No se pudo cargar tu perfil.",
+          );
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [routeByProfile]);
 
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -40,14 +84,7 @@ export default function AuthPage() {
     try {
       await confirmEmailOtp(code.trim());
       // Route to wherever the participant needs to go next.
-      const me = await fetchMe();
-      if (me.consentStatus !== "granted") {
-        router.push("/consentimiento");
-      } else if (!me.hasMetadata) {
-        router.push("/perfil");
-      } else {
-        router.push("/record");
-      }
+      routeByProfile(await fetchMe());
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Código incorrecto o expirado.",
@@ -66,7 +103,39 @@ export default function AuthPage() {
         </p>
       </div>
 
-      {phase === "email" ? (
+      {phase === "checking" && (
+        <p className="py-6 text-center text-sm text-gray-500">
+          Verificando tu sesión...
+        </p>
+      )}
+
+      {phase === "session_error" && (
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm text-gray-700">
+            Tu sesión está activa, pero no se pudo cargar tu perfil.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="flex-1 rounded-lg bg-indigo-600 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
+            >
+              Reintentar
+            </button>
+            <button
+              onClick={async () => {
+                await signOut();
+                setError(null);
+                setPhase("email");
+              }}
+              className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      )}
+
+      {phase === "email" && (
         <form
           onSubmit={handleSendCode}
           className="space-y-4 rounded-xl border border-gray-200 bg-white p-6"
@@ -92,7 +161,9 @@ export default function AuthPage() {
             {busy ? "Enviando..." : "Enviar código"}
           </button>
         </form>
-      ) : (
+      )}
+
+      {phase === "code" && (
         <form
           onSubmit={handleConfirm}
           className="space-y-4 rounded-xl border border-gray-200 bg-white p-6"

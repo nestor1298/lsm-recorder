@@ -25,7 +25,7 @@ import SignPrompt from "@/components/SignPrompt";
 import CameraRecorder from "@/components/CameraRecorder";
 
 type View = "setup" | "recording" | "review";
-type Gate = "checking" | "ok" | "redirecting";
+type Gate = "checking" | "ok" | "redirecting" | "error";
 
 export default function RecordPage() {
   return (
@@ -87,10 +87,10 @@ function RecordPageInner() {
         }
       })
       .catch(() => {
-        if (active) {
-          setGate("redirecting");
-          router.replace("/auth");
-        }
+        // We're signed in (authState says so) but /api/me failed — a server or
+        // config error, not an auth problem. Bouncing to /auth here caused a
+        // loop ("there is already a signed in user"); show the error instead.
+        if (active) setGate("error");
       });
     return () => {
       active = false;
@@ -336,6 +336,21 @@ function RecordPageInner() {
   }, []);
 
   // ── Gate UI ──────────────────────────────────────────────────────────────
+  if (gate === "error") {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-12 text-center">
+        <p className="text-gray-700">
+          Tu sesión está activa, pero no se pudo verificar tu perfil.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
   if (gate !== "ok") {
     return (
       <div className="py-12 text-center text-gray-500">
