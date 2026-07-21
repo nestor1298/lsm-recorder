@@ -10,14 +10,20 @@ let _ddb: DynamoDBDocumentClient | null = null;
 
 export function s3Client(): S3Client {
   if (!_s3) {
-    _s3 = new S3Client({ region: awsEnv.region() });
+    _s3 = new S3Client({
+      region: awsEnv.region(),
+      credentials: awsEnv.credentials(),
+    });
   }
   return _s3;
 }
 
 export function ddbDoc(): DynamoDBDocumentClient {
   if (!_ddb) {
-    const base = new DynamoDBClient({ region: awsEnv.region() });
+    const base = new DynamoDBClient({
+      region: awsEnv.region(),
+      credentials: awsEnv.credentials(),
+    });
     _ddb = DynamoDBDocumentClient.from(base, {
       marshallOptions: { removeUndefinedValues: true },
     });
