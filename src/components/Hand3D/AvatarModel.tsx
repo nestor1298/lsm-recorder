@@ -1326,25 +1326,28 @@ export default function AvatarModel({
   // Build full bone map for O(1) lookup
   const boneMap = useMemo(() => buildBoneMap(clonedScene), [clonedScene]);
 
-  // Find skinned mesh with morph targets
-  const skinnedMeshRef = useRef<THREE.Mesh | null>(null);
+  // Find ALL meshes with morph targets. glTF splits the character into one
+  // primitive per material (eyes / face skin / body), and three.js turns each
+  // primitive into its own Mesh with its own morphTargetInfluences and
+  // dictionary — animating only one of them freezes the rest of the face.
+  const morphMeshesRef = useRef<THREE.Mesh[]>([]);
   useMemo(() => {
-    skinnedMeshRef.current = null;
+    const found: THREE.Mesh[] = [];
     clonedScene.traverse((child) => {
       if (
         (child as THREE.Mesh).isMesh &&
         (child as THREE.Mesh).morphTargetInfluences &&
         (child as THREE.Mesh).morphTargetInfluences!.length > 0
       ) {
-        skinnedMeshRef.current = child as THREE.Mesh;
+        found.push(child as THREE.Mesh);
       }
     });
+    morphMeshesRef.current = found;
   }, [clonedScene]);
 
-  // Build morph target name → index mapping
-  const morphMap = useMemo<MorphMap>(() => {
-    if (!skinnedMeshRef.current) return {};
-    return buildMorphMap(skinnedMeshRef.current);
+  // Morph name → index mapping, per mesh (indices can differ per primitive)
+  const morphMaps = useMemo<MorphMap[]>(() => {
+    return morphMeshesRef.current.map((m) => buildMorphMap(m));
   }, [clonedScene]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Named bone references for head/neck animation
@@ -1448,11 +1451,11 @@ export default function AvatarModel({
     return orientationToSplitQuats(mirrored.palm, mirrored.fingers);
   }, [orientation]);
 
-  // Compute target morph weights from RNM state
+  // Compute target morph weights from RNM state — one index→weight map per mesh
   const targetMorphWeights = useMemo(() => {
-    if (!rnm) return {};
-    return rnmToMorphWeights(rnm, morphMap);
-  }, [rnm, morphMap]);
+    if (!rnm) return morphMaps.map(() => ({}) as Record<number, number>);
+    return morphMaps.map((mm) => rnmToMorphWeights(rnm, mm));
+  }, [rnm, morphMaps]);
 
   // Selected UB code (from props or 3D click)
   // Use explicit selectedUBCode prop if provided, otherwise fall back to ubLocation
@@ -1571,11 +1574,13 @@ export default function AvatarModel({
     const factor = 1 - Math.pow(1 - 0.08, clampedDelta * 60);
     const t = rs.clock.elapsedTime;
 
-    // ─ RNM: Morph target animation (blendshapes) ─
-    if (skinnedMeshRef.current?.morphTargetInfluences) {
-      const influences = skinnedMeshRef.current.morphTargetInfluences;
+    // ─ RNM: Morph target animation (blendshapes) — every morph primitive ─
+    for (let m = 0; m < morphMeshesRef.current.length; m++) {
+      const influences = morphMeshesRef.current[m].morphTargetInfluences;
+      if (!influences) continue;
+      const targets = targetMorphWeights[m] ?? {};
       for (let i = 0; i < influences.length; i++) {
-        const target = targetMorphWeights[i] ?? 0;
+        const target = targets[i] ?? 0;
         influences[i] += (target - influences[i]) * factor * 3;
         if (Math.abs(influences[i]) < 0.001) influences[i] = 0;
       }
