@@ -656,16 +656,16 @@ function rnmToMorphWeights(
       set("browInnerUpR", 0.9);
       set("browOuterUpL", 0.7);
       set("browOuterUpR", 0.7);
-      set("eyeWidenUpperL", 0.4);
-      set("eyeWidenUpperR", 0.4);
+      set("eyeWidenUpperL", 0.9);
+      set("eyeWidenUpperR", 0.9);
       break;
     case "FURROWED":
       set("browInnerDnL", 0.8);
       set("browInnerDnR", 0.8);
       set("browSqueezeL", 0.7);
       set("browSqueezeR", 0.7);
-      set("eyeSquintL", 0.3);
-      set("eyeSquintR", 0.3);
+      set("eyeSquintL", 0.85);
+      set("eyeSquintR", 0.85);
       break;
   }
 

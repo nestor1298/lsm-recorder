@@ -24,7 +24,6 @@ import ORControls from "@/components/learn/ORControls";
 import UBControls from "@/components/learn/UBControls";
 import MVControls from "@/components/learn/MVControls";
 import RNMControls, { type FaceState } from "@/components/learn/RNMControls";
-import FaceDiagram from "@/components/learn/FaceDiagram";
 import ArmControls from "@/components/learn/ArmControls";
 import SignBuilder, { type ViewerState } from "@/components/learn/SignBuilder";
 import InteractiveTimeline from "@/components/learn/InteractiveTimeline";
@@ -586,26 +585,6 @@ export default function LearnPage() {
             <span className="hidden text-[11px] text-white/50 sm:inline">
               {currentChannelInfo.fullName}
             </span>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Vista facial (RNM) ───
-          Complemento del avatar: los 28 blendshapes transferidos animan la boca
-          en 3D, pero las cejas de Lexsi son sutiles — aquí siempre se leen. */}
-      {avatarRNMTarget && (
-        <div className="pointer-events-none absolute right-3 top-14 z-20 w-44 overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-2xl ring-1 ring-white/5 backdrop-blur-2xl lg:right-5 lg:top-20">
-          <div className="border-b border-white/10 px-3 py-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
-              Vista facial
-            </span>
-          </div>
-          <div className="bg-paper/95 px-2 pb-1 pt-2">
-            <FaceDiagram
-              eyebrows={avatarRNMTarget.eyebrows}
-              mouth={avatarRNMTarget.mouth}
-              head={avatarRNMTarget.head}
-            />
           </div>
         </div>
       )}
