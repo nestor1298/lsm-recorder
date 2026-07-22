@@ -1,16 +1,15 @@
 /**
- * MiniHand — SVG hand thumbnail for CM handshape display.
+ * MiniHand — miniatura SVG de la configuración de mano.
  *
- * Each finger is drawn as a filled tapered silhouette (one continuous path)
- * with thin dividing lines at the joint boundaries. The entire finger fill
- * uses the flexion-state color:
- *   EXTENDED = green, CURVED = yellow, BENT = orange, CLOSED = red.
- * Non-selected fingers are gray at reduced opacity.
+ * Silueta de mano segmentada (falanges y palma como trazos independientes,
+ * de goodHand.svg). Cada dedo se rellena con el color de su nivel de
+ * flexión; los dedos no seleccionados quedan en gris atenuado:
+ *   EXTENDED = verde, CURVED = amarillo, BENT = naranja, CLOSED = rojo.
  */
 
 import type { CMEntry, FlexionLevel } from "@/lib/types";
 
-// ── Color constants ─────────────────────────────────────────────────
+// ── Colores de flexión ──────────────────────────────────────────────
 
 export const FLEXION_COLOR: Record<FlexionLevel, string> = {
   EXTENDED: "#22c55e",
@@ -19,7 +18,10 @@ export const FLEXION_COLOR: Record<FlexionLevel, string> = {
   CLOSED: "#ef4444",
 };
 
-/** Darker variant for joint lines and outlines */
+const NEUTRAL = "#C6C6CC";
+const PALM = "#E4E4E8";
+
+/** Variante oscura para contornos */
 function darken(hex: string, amount = 0.3): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -34,262 +36,105 @@ function darken(hex: string, amount = 0.3): string {
     .padStart(2, "0")}`;
 }
 
-// ── Curl angles ─────────────────────────────────────────────────────
+// ── Silueta segmentada (viewBox 327×327, pulgar a la izquierda) ─────
 
-const CURL_DEG: Record<FlexionLevel, number> = {
-  EXTENDED: 0,
-  CURVED: 25,
-  BENT: 55,
-  CLOSED: 80,
+type FingerName = "index" | "middle" | "ring" | "pinky";
+
+const SEGMENTS: Record<FingerName | "thumb" | "palm", string[]> = {
+  middle: [
+    "M170.097,46.287 C165.997,48.287 164.097,53.687 163.397,65.387 C162.797,75.887 162.797,75.887 165.197,76.487 C166.497,76.787 170.997,76.987 175.097,76.787 L182.597,76.487 L182.597,63.187 L182.597,49.787 L179.797,47.387 C176.697,44.687 173.897,44.387 170.097,46.287 z",
+    "M163.097,86.087 C163.097,89.687 162.797,96.787 162.497,101.787 L161.797,110.887 L172.597,110.887 L183.397,110.887 L182.797,101.187 C182.397,95.887 182.097,88.787 182.097,85.487 L182.097,79.487 L172.597,79.487 L163.097,79.487 L163.097,86.087 z",
+    "M164.097,113.887 C161.197,114.787 161.297,113.887 163.097,136.087 L164.297,150.687 L173.097,150.687 L181.897,150.687 L182.597,135.087 C182.897,126.487 183.397,118.787 183.597,117.987 C184.497,114.787 182.497,113.787 174.497,113.487 C170.097,113.187 165.497,113.387 164.097,113.887 z",
+  ],
+  ring: [
+    "M211.297,62.187 C208.397,65.387 207.497,68.087 206.097,78.787 C204.597,89.587 204.297,89.087 212.997,90.987 C222.297,92.987 223.497,92.487 224.297,85.987 C224.597,82.987 224.897,76.987 224.997,72.687 C225.097,65.687 224.897,64.687 222.597,62.487 C219.397,59.187 214.297,59.087 211.297,62.187 z",
+    "M204.097,95.787 C204.097,97.887 202.997,104.187 201.597,109.587 C200.197,114.987 199.097,119.787 199.097,120.187 C199.097,120.587 201.197,121.187 203.897,121.587 C206.497,121.987 210.997,123.087 213.897,124.087 C217.597,125.387 219.097,125.587 219.097,124.687 C219.097,121.887 222.097,98.187 222.597,96.787 C223.097,95.687 221.597,95.087 215.897,94.187 C211.897,93.587 207.597,92.687 206.397,92.387 C204.297,91.787 204.097,92.087 204.097,95.787 z",
+    "M197.697,126.587 C197.397,128.188 196.697,133.787 196.097,138.987 C195.497,144.188 194.797,149.887 194.497,151.587 C193.897,154.688 194.097,154.887 202.397,159.387 C206.997,161.887 210.997,163.987 211.297,163.987 C211.597,163.987 212.097,161.587 212.497,158.587 C212.797,155.587 214.197,148.387 215.597,142.587 C218.997,128.087 219.097,128.387 212.997,126.587 C210.197,125.687 205.697,124.787 203.097,124.387 C198.397,123.787 198.297,123.787 197.697,126.587 z",
+  ],
+  index: [
+    "M120.297,64.987 C117.497,67.587 116.697,72.487 117.397,82.887 C118.197,94.787 118.497,95.387 123.497,94.687 C125.797,94.287 129.997,93.287 132.997,92.487 L138.397,90.787 L137.797,86.487 C136.397,76.487 133.897,68.087 131.597,65.587 C128.597,62.387 123.397,62.087 120.297,64.987 z",
+    "M134.297,94.987 C133.097,95.487 129.097,96.487 125.497,97.087 C120.697,97.887 119.097,98.587 119.497,99.587 C119.797,100.287 120.497,105.787 121.097,111.687 C121.697,117.587 122.397,122.987 122.597,123.687 C122.897,124.487 125.197,124.087 130.597,122.387 C134.797,121.087 138.897,119.987 139.897,119.987 C143.897,119.887 143.997,118.787 141.497,109.087 C140.197,103.987 139.097,98.487 139.097,96.887 C139.097,93.887 138.197,93.487 134.297,94.987 z",
+    "M135.097,123.987 C127.297,126.087 123.097,127.687 123.097,128.587 C123.097,129.287 130.297,160.387 130.497,160.687 C130.597,160.887 134.297,159.387 138.697,157.487 C142.997,155.587 147.397,153.987 148.297,153.987 C149.197,153.987 150.197,153.587 150.497,153.187 C150.797,152.687 149.897,147.587 148.597,141.887 C147.197,136.187 145.897,129.387 145.597,126.687 C144.897,121.287 144.897,121.287 135.097,123.987 z",
+  ],
+  pinky: [
+    "M252.597,107.387 C249.097,111.087 243.497,124.887 244.397,127.387 C244.897,128.687 253.297,133.187 257.697,134.387 C259.597,134.987 259.997,134.287 261.897,127.787 C263.097,123.787 264.297,118.187 264.697,115.387 C265.997,104.687 259.297,100.287 252.597,107.387 z",
+    "M238.297,140.087 C235.897,145.087 234.097,149.287 234.297,149.387 C235.697,150.487 250.397,157.987 250.597,157.787 C250.897,157.387 257.097,141.087 257.797,138.687 C258.097,137.687 257.797,136.987 256.997,136.987 C256.197,136.987 252.897,135.587 249.597,133.987 C246.297,132.387 243.397,130.987 243.097,131.087 C242.797,131.087 240.697,135.087 238.297,140.087 z",
+    "M227.097,162.587 L221.997,173.187 L226.197,176.887 C228.597,178.887 231.797,181.987 233.497,183.687 C235.097,185.487 236.697,186.987 237.097,186.987 C237.497,186.987 238.297,185.287 238.897,183.187 C239.497,181.187 242.097,175.287 244.497,170.287 L248.997,161.087 L246.297,159.187 C243.197,156.987 238.297,154.387 234.597,152.987 C232.297,152.087 231.997,152.487 227.097,162.587 z",
+  ],
+  thumb: [
+    "M64.297,163.587 C60.697,166.087 61.497,169.887 67.497,178.887 C70.497,183.287 73.897,188.987 75.097,191.387 C78.397,198.287 78.997,198.387 85.197,194.387 C91.997,189.887 97.097,185.087 97.097,183.087 C97.097,180.087 87.997,169.887 81.897,165.887 C76.997,162.787 74.797,161.987 71.197,161.987 C68.597,161.987 65.597,162.687 64.297,163.587 z",
+    "M95.997,189.587 C94.697,190.987 90.797,193.987 87.297,196.187 C83.097,198.987 81.397,200.587 81.997,201.387 C82.497,201.987 84.797,204.487 87.197,206.987 C89.897,209.787 93.297,215.487 96.797,222.887 C99.897,229.587 103.897,236.187 106.197,238.687 C108.297,240.987 110.097,242.887 110.097,242.687 C110.197,238.887 112.797,228.987 115.397,222.287 C120.697,208.987 120.597,209.387 117.197,208.187 C112.997,206.687 105.897,198.987 102.697,192.487 C101.197,189.487 99.697,186.987 99.197,186.987 C98.797,186.987 97.397,188.187 95.997,189.587 z",
+  ],
+  palm: [
+    "M131.597,163.487 L139.597,160.087 C145.697,157.387 148.997,156.587 153.597,156.587 C157.797,156.487 160.397,155.887 162.097,154.687 C164.197,153.188 166.097,152.887 173.797,153.187 C181.897,153.487 183.297,153.887 185.197,155.887 C186.697,157.487 188.097,157.987 189.997,157.687 C193.897,156.887 211.497,166.487 212.897,170.187 C213.497,171.887 215.497,173.587 218.397,174.987 C222.697,176.987 231.797,185.087 234.697,189.487 C235.697,191.188 235.697,192.587 234.497,197.687 C233.697,201.087 231.297,214.188 229.097,226.787 C226.997,239.387 224.197,252.787 222.997,256.487 C219.597,266.587 214.297,274.887 208.497,278.787 C203.997,281.887 203.097,282.188 197.597,281.787 C193.897,281.487 189.197,280.288 185.297,278.487 C179.297,275.788 178.797,275.788 173.497,276.887 L151.337,275.947 C139.988,275.683 131.579,267.226 124.884,258.996 C121.206,254.437 116.988,249.36 115.474,247.806 C113.094,245.32 112.878,244.387 113.311,238.999 C113.635,235.684 114.933,230.4 116.123,227.292 C117.313,224.184 119.584,218.071 121.206,213.823 C122.829,209.575 125.209,204.705 126.615,202.944 C129.535,199.318 130.624,195.362 131.597,188.109 L131.597,163.487 z",
+  ],
 };
 
-const RAD = Math.PI / 180;
+const FINGER_TO_SELECTED: Record<FingerName, number> = {
+  index: 1,
+  middle: 2,
+  ring: 3,
+  pinky: 4,
+};
 
-// ── Finger silhouette geometry ──────────────────────────────────────
-
-interface JointPoint {
-  x: number;
-  y: number;
-  angle: number; // direction in degrees
-  halfW: number; // half-width at this joint
-}
-
-/**
- * Compute the center-line points (base, MCP/PIP junction, PIP/DIP junction, tip)
- * and half-widths at each point along the finger.
- */
-function fingerCenterline(
-  baseX: number,
-  baseY: number,
-  spreadAngle: number,
-  flexion: FlexionLevel,
-): JointPoint[] {
-  const curl = CURL_DEG[flexion] * RAD;
-  const LENS = [9, 7.5, 5.5];
-  const HALF_WIDTHS = [2.4, 2.1, 1.7, 1.2]; // base, MCP/PIP, PIP/DIP, tip
-
-  const points: JointPoint[] = [];
-  let x = baseX;
-  let y = baseY;
-  let a = spreadAngle - 90; // degrees, pointing upward
-
-  // Base point
-  points.push({ x, y, angle: a, halfW: HALF_WIDTHS[0] });
-
-  for (let i = 0; i < 3; i++) {
-    if (i > 0) a += curl * (180 / Math.PI) * (i === 1 ? 0.45 : 0.55);
-
-    const len = LENS[i];
-    x += Math.cos(a * RAD) * len;
-    y += Math.sin(a * RAD) * len;
-
-    points.push({ x, y, angle: a, halfW: HALF_WIDTHS[i + 1] });
-  }
-
-  return points;
-}
-
-/**
- * Build a filled SVG path for the finger silhouette.
- * Traces left side (base→tip) then right side (tip→base) to form a closed shape.
- */
-function fingerSilhouettePath(pts: JointPoint[]): string {
-  // For each point, compute left and right edge positions
-  const left: { x: number; y: number }[] = [];
-  const right: { x: number; y: number }[] = [];
-
-  for (const pt of pts) {
-    // Perpendicular to direction (90° counterclockwise)
-    const perpAngle = (pt.angle - 90) * RAD;
-    const lx = pt.x + Math.cos(perpAngle) * pt.halfW;
-    const ly = pt.y + Math.sin(perpAngle) * pt.halfW;
-    const rx = pt.x - Math.cos(perpAngle) * pt.halfW;
-    const ry = pt.y - Math.sin(perpAngle) * pt.halfW;
-    left.push({ x: lx, y: ly });
-    right.push({ x: rx, y: ry });
-  }
-
-  // Build path: left side forward, rounded tip, right side backward
-  const tip = pts[pts.length - 1];
-  const tipPerp = (tip.angle - 90) * RAD;
-  const tipFwd = tip.angle * RAD;
-  const tipLen = tip.halfW * 0.8;
-
-  // Tip arc control point (extends slightly past the tip)
-  const tipCtrlX = tip.x + Math.cos(tipFwd) * tipLen;
-  const tipCtrlY = tip.y + Math.sin(tipFwd) * tipLen;
-
-  let d = `M ${left[0].x.toFixed(1)},${left[0].y.toFixed(1)}`;
-  // Left edge (base to near-tip)
-  for (let i = 1; i < left.length; i++) {
-    d += ` L ${left[i].x.toFixed(1)},${left[i].y.toFixed(1)}`;
-  }
-  // Rounded tip
-  d += ` Q ${tipCtrlX.toFixed(1)},${tipCtrlY.toFixed(1)} ${right[right.length - 1].x.toFixed(1)},${right[right.length - 1].y.toFixed(1)}`;
-  // Right edge (tip to base)
-  for (let i = right.length - 2; i >= 0; i--) {
-    d += ` L ${right[i].x.toFixed(1)},${right[i].y.toFixed(1)}`;
-  }
-  d += " Z";
-
-  return d;
-}
-
-/**
- * Build joint divider lines (thin lines across the finger at joint boundaries).
- * Returns lines for joints 1 and 2 (MCP/PIP and PIP/DIP boundaries).
- */
-function jointDividers(
-  pts: JointPoint[],
-): { x1: number; y1: number; x2: number; y2: number }[] {
-  const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
-  // Joint dividers at points 1 (MCP/PIP) and 2 (PIP/DIP)
-  for (let i = 1; i <= 2; i++) {
-    if (i >= pts.length) break;
-    const pt = pts[i];
-    const perpAngle = (pt.angle - 90) * RAD;
-    const w = pt.halfW + 0.3; // slightly wider than finger edge
-    lines.push({
-      x1: pt.x + Math.cos(perpAngle) * w,
-      y1: pt.y + Math.sin(perpAngle) * w,
-      x2: pt.x - Math.cos(perpAngle) * w,
-      y2: pt.y - Math.sin(perpAngle) * w,
-    });
-  }
-  return lines;
-}
-
-// ── Thumb ───────────────────────────────────────────────────────────
-
-function thumbCenterline(
-  opposition: string,
-  flexion: FlexionLevel,
-): JointPoint[] {
-  const curl = CURL_DEG[flexion] * RAD;
-
-  const configs: Record<string, { x: number; y: number; angle: number }> = {
-    PARALLEL: { x: 19, y: 34, angle: -140 },
-    OPPOSED: { x: 21, y: 33, angle: -115 },
-    CROSSED: { x: 22, y: 32, angle: -100 },
-  };
-  const cfg = configs[opposition] ?? configs.PARALLEL;
-
-  const LENS = [7.5, 6];
-  const HALF_WIDTHS = [2.6, 2.2, 1.5];
-
-  const points: JointPoint[] = [];
-  let x = cfg.x;
-  let y = cfg.y;
-  let a = cfg.angle;
-
-  points.push({ x, y, angle: a, halfW: HALF_WIDTHS[0] });
-
-  for (let i = 0; i < 2; i++) {
-    if (i > 0) a += curl * (180 / Math.PI) * 0.6;
-    x += Math.cos(a * RAD) * LENS[i];
-    y += Math.sin(a * RAD) * LENS[i];
-    points.push({ x, y, angle: a, halfW: HALF_WIDTHS[i + 1] });
-  }
-
-  return points;
-}
-
-// ── Component ───────────────────────────────────────────────────────
+const FINGERS: FingerName[] = ["index", "middle", "ring", "pinky"];
 
 interface MiniHandProps {
   cm: CMEntry;
   size?: number;
-  className?: string;
 }
 
-export function MiniHand({ cm, size = 64, className }: MiniHandProps) {
-  const fingerStates: FlexionLevel[] = [cm.index, cm.middle, cm.ring, cm.pinky];
-
-  const BASES = [
-    { x: 25, y: 27, angle: -24 }, // Index
-    { x: 30, y: 24, angle: -10 }, // Middle
-    { x: 35.5, y: 25.5, angle: 4 }, // Ring
-    { x: 40, y: 28.5, angle: 17 }, // Pinky
-  ];
-
-  // Compute finger geometry
-  const fingers = BASES.map((base, i) => {
-    const pts = fingerCenterline(base.x, base.y, base.angle, fingerStates[i]);
-    const selected = cm.selected_fingers.includes(i + 1);
-    return { pts, selected, state: fingerStates[i] };
-  });
-
-  // Thumb geometry
-  const thumbPts = thumbCenterline(cm.thumb_opposition, cm.thumb_flexion);
+export function MiniHand({ cm, size = 56 }: MiniHandProps) {
+  const flexion: Record<FingerName, FlexionLevel> = {
+    index: cm.index,
+    middle: cm.middle,
+    ring: cm.ring,
+    pinky: cm.pinky,
+  };
+  const selected = new Set(cm.selected_fingers);
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 64 64"
-      className={`flex-shrink-0 ${className ?? ""}`}
+      viewBox="0 0 327 327"
+      aria-hidden
+      className="shrink-0"
     >
-      {/* Palm silhouette */}
-      <path
-        d="M 23,50 C 21,46 19.5,40 20,34 Q 20.5,30 23,27 L 26,26 L 31,24.5 L 37,25.5 L 41,28 Q 43.5,30 44,34 C 44.5,40 43,46 41,50 Q 38,52 32,52 Q 26,52 23,50 Z"
-        fill="#fde8d0"
-        stroke="#d4a574"
-        strokeWidth="0.6"
-      />
-
-      {/* Thumb — filled silhouette */}
-      <path
-        d={fingerSilhouettePath(thumbPts)}
-        fill={FLEXION_COLOR[cm.thumb_flexion]}
-        stroke={darken(FLEXION_COLOR[cm.thumb_flexion])}
-        strokeWidth="0.4"
-      />
-      {/* Thumb joint divider */}
-      {jointDividers(thumbPts).map((line, i) => (
-        <line
-          key={`thd-${i}`}
-          x1={line.x1.toFixed(1)}
-          y1={line.y1.toFixed(1)}
-          x2={line.x2.toFixed(1)}
-          y2={line.y2.toFixed(1)}
-          stroke={darken(FLEXION_COLOR[cm.thumb_flexion], 0.4)}
-          strokeWidth="0.6"
+      {SEGMENTS.palm.map((d, i) => (
+        <path
+          key={`palm-${i}`}
+          d={d}
+          fill={PALM}
+          stroke={darken(PALM, 0.2)}
+          strokeWidth="2"
         />
       ))}
-
-      {/* Fingers — filled silhouettes */}
-      {fingers.map((finger, fi) => {
-        const color = finger.selected ? FLEXION_COLOR[finger.state] : "#d4d4d4";
-        const strokeColor = finger.selected
-          ? darken(FLEXION_COLOR[finger.state])
-          : "#b0b0b0";
-        const opacity = finger.selected ? 1 : 0.3;
-
-        return (
-          <g key={`f${fi}`} opacity={opacity}>
-            {/* Finger outline fill */}
-            <path
-              d={fingerSilhouettePath(finger.pts)}
-              fill={color}
-              stroke={strokeColor}
-              strokeWidth="0.4"
-            />
-            {/* Joint dividers (selected fingers only) */}
-            {finger.selected &&
-              jointDividers(finger.pts).map((line, ji) => (
-                <line
-                  key={`jd${fi}-${ji}`}
-                  x1={line.x1.toFixed(1)}
-                  y1={line.y1.toFixed(1)}
-                  x2={line.x2.toFixed(1)}
-                  y2={line.y2.toFixed(1)}
-                  stroke={darken(FLEXION_COLOR[finger.state], 0.4)}
-                  strokeWidth="0.6"
-                />
-              ))}
-          </g>
-        );
+      {FINGERS.map((finger) => {
+        const isSelected = selected.has(FINGER_TO_SELECTED[finger]);
+        const color = isSelected ? FLEXION_COLOR[flexion[finger]] : NEUTRAL;
+        const opacity = isSelected ? 1 : 0.45;
+        return SEGMENTS[finger].map((d, i) => (
+          <path
+            key={`${finger}-${i}`}
+            d={d}
+            fill={color}
+            fillOpacity={opacity}
+            stroke={darken(color)}
+            strokeOpacity={opacity}
+            strokeWidth="2"
+          />
+        ));
       })}
+      {SEGMENTS.thumb.map((d, i) => (
+        <path
+          key={`thumb-${i}`}
+          d={d}
+          fill={FLEXION_COLOR[cm.thumb_flexion]}
+          stroke={darken(FLEXION_COLOR[cm.thumb_flexion])}
+          strokeWidth="2"
+        />
+      ))}
     </svg>
   );
 }
