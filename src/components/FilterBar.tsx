@@ -1,14 +1,15 @@
 "use client";
 
-import { FINGER_GROUPS, TIER_LABELS } from "@/lib/data";
-import type { FingerGroup } from "@/lib/types";
+import { TIER_LABELS } from "@/lib/data";
+import { CM_FAMILIES } from "@/lib/families";
 
 interface FilterBarProps {
   selectedTier: number | null;
-  selectedGroup: FingerGroup | null;
+  selectedFamily: string | null;
   searchQuery: string;
   onTierChange: (tier: number | null) => void;
-  onGroupChange: (group: FingerGroup | null) => void;
+  onFamilyChange: (family: string | null) => void;
+  familyCounts: Record<string, number>;
   onSearchChange: (query: string) => void;
   totalCount: number;
   filteredCount: number;
@@ -16,10 +17,11 @@ interface FilterBarProps {
 
 export default function FilterBar({
   selectedTier,
-  selectedGroup,
+  selectedFamily,
   searchQuery,
   onTierChange,
-  onGroupChange,
+  onFamilyChange,
+  familyCounts,
   onSearchChange,
   totalCount,
   filteredCount,
@@ -69,38 +71,42 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Finger Groups */}
+      {/* Familias */}
       <div>
-        <p className="mb-2 text-xs font-medium overline-label text-gray-500">
-          Grupo de dedos
-        </p>
+        <p className="mb-2 overline-label text-gray-500">Familia de la mano</p>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => onGroupChange(null)}
+            onClick={() => onFamilyChange(null)}
             className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              selectedGroup === null
+              selectedFamily === null
                 ? "bg-ink text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
             Todas
           </button>
-          {FINGER_GROUPS.map((group) => (
+          {CM_FAMILIES.map((fam) => (
             <button
-              key={group}
+              key={fam.id}
               onClick={() =>
-                onGroupChange(selectedGroup === group ? null : group)
+                onFamilyChange(selectedFamily === fam.id ? null : fam.id)
               }
+              title={fam.description}
               className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                selectedGroup === group
+                selectedFamily === fam.id
                   ? "bg-ink text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {group.split(":")[0]}
+              {fam.label} ({familyCounts[fam.id] ?? 0})
             </button>
           ))}
         </div>
+        {selectedFamily && (
+          <p className="mt-2 text-xs text-gray-500">
+            {CM_FAMILIES.find((f) => f.id === selectedFamily)?.description}
+          </p>
+        )}
       </div>
 
       {/* Count */}
