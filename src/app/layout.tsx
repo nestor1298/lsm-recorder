@@ -6,7 +6,6 @@ export const metadata: Metadata = {
   title: "SignaLab · corpus de LSM",
   description:
     "Plataforma de SignaLab (OtherAI) para grabar y anotar un corpus de Lengua de Señas Mexicana — 101 configuraciones de mano.",
-  icons: { icon: "/otherai-mark.png" },
 };
 
 export default function RootLayout({
