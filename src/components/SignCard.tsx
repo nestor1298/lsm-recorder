@@ -1,7 +1,9 @@
 "use client";
 
 import type { CMEntry } from "@/lib/types";
-import { getFingerGroup, TIER_COLORS, TIER_LABELS } from "@/lib/data";
+import { TIER_COLORS, TIER_LABELS } from "@/lib/data";
+import { getCMFamily } from "@/lib/families";
+import { MiniHand } from "@/components/learn/MiniHand";
 
 function FlexionDot({ level }: { level: string }) {
   const colors: Record<string, string> = {
@@ -33,7 +35,7 @@ export default function SignCard({
   onSelect,
   status,
 }: SignCardProps) {
-  const group = getFingerGroup(cm);
+  const family = getCMFamily(cm);
   const tierClass = TIER_COLORS[cm.frequency_tier];
 
   const statusBadge =
@@ -55,7 +57,8 @@ export default function SignCard({
       onClick={() => onSelect?.(cm)}
     >
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <MiniHand cm={cm} size={compact ? 44 : 56} />
           <span className="text-lg font-bold text-ink">#{cm.cm_id}</span>
           {cm.alpha_code && (
             <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-700">
@@ -92,7 +95,7 @@ export default function SignCard({
 
           <div className="mt-2 flex flex-wrap gap-1">
             <span className="rounded bg-gray-50 px-1.5 py-0.5 text-xs text-gray-500">
-              {group.split(":")[0]}
+              {family.label}
             </span>
             {cm.spread !== "NEUTRAL" && (
               <span className="rounded bg-accent-tint px-1.5 py-0.5 text-xs text-accent-deep">
