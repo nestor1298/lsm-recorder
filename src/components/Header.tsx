@@ -28,11 +28,9 @@ export default function Header() {
               height={32}
               priority
             />
-            <span className="font-display text-xl font-bold tracking-[-0.02em] text-ink">
-              signalab
-            </span>
-            <span className="hidden text-sm text-gray-500 sm:inline">
-              por otherAI
+            <span className="font-display text-xl font-bold tracking-[-0.02em]">
+              <span className="text-gold">signa</span>
+              <span className="text-coral">lab</span>
             </span>
           </Link>
           <nav className="flex gap-1">
