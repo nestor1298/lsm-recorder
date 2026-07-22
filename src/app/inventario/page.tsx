@@ -6,7 +6,7 @@ import { getCMFamilyId } from "@/lib/families";
 import SignCard from "@/components/SignCard";
 import FilterBar from "@/components/FilterBar";
 
-export default function CatalogPage() {
+export default function InventarioPage() {
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [selectedFamily, setSelectedFamily] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +43,7 @@ export default function CatalogPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-ink">
-          Catálogo de configuraciones de mano
+          Inventario de configuraciones de mano
         </h1>
         <p className="text-sm text-gray-500">
           Las 101 configuraciones de Cruz Aldrete, de la Gram&aacute;tica de la
@@ -54,7 +54,7 @@ export default function CatalogPage() {
       {/* Guía express: qué es una CM y cómo leer las miniaturas */}
       <details className="rounded-2xl border border-gray-200 bg-gray-50 open:bg-paper">
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink">
-          ¿Cómo leer este catálogo?
+          ¿Cómo leer este inventario?
         </summary>
         <div className="space-y-3 px-4 pb-4 text-sm text-gray-700">
           <p>
