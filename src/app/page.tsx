@@ -44,10 +44,10 @@ export default function Dashboard() {
             Empezar a grabar
           </Link>
           <Link
-            href="/catalog"
+            href="/inventario"
             className="rounded-full border-[1.5px] border-paper/40 px-7 py-3 font-semibold text-paper transition-colors hover:bg-paper/10"
           >
-            Explorar el catálogo
+            Explorar el inventario
           </Link>
         </div>
       </div>
