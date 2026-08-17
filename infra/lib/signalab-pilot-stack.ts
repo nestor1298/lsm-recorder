@@ -9,6 +9,7 @@ import {
   aws_cognito as cognito,
   aws_dynamodb as dynamodb,
   aws_iam as iam,
+  aws_amplify as amplify,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 
@@ -185,6 +186,69 @@ export class SignalabPilotStack extends Stack {
         }),
       ],
     });
+
+    // ── Amplify Hosting: Next.js SSR con rol de cómputo (sin access keys) ───
+    // El runtime SSR asume `signalab-amplify-compute` vía la cadena de
+    // credenciales por defecto del SDK: la app no define SIGNALAB_AWS_* y
+    // clients.ts recibe credentials=undefined. Cero llaves que rotar.
+    //
+    // Los recursos de Amplify solo se sintetizan cuando AMPLIFY_GITHUB_TOKEN
+    // está presente (se necesita para conectar el repo y sus webhooks); así
+    // `cdk synth`/CI sin token siguen funcionando sin tocar Amplify.
+    const githubToken = process.env.AMPLIFY_GITHUB_TOKEN;
+    if (githubToken) {
+      const computeRole = new iam.Role(this, "AmplifyComputeRole", {
+        roleName: "signalab-amplify-compute",
+        assumedBy: new iam.ServicePrincipal("amplify.amazonaws.com"),
+        description:
+          "SSR compute role for the SignaLab Next.js runtime on Amplify Hosting.",
+      });
+      computeRole.addManagedPolicy(appRuntimePolicy);
+
+      const amplifyApp = new amplify.CfnApp(this, "AmplifyApp", {
+        name: "signalab-web",
+        repository: "https://github.com/nestor1298/lsm-recorder",
+        accessToken: githubToken,
+        platform: "WEB_COMPUTE",
+        // amplify.yml (raíz del repo) define el build; aquí solo el entorno.
+        environmentVariables: [
+          { name: "SIGNALAB_AWS_REGION", value: this.region },
+          { name: "NEXT_PUBLIC_AWS_REGION", value: this.region },
+          { name: "SIGNALAB_CORPUS_TABLE", value: table.tableName },
+          {
+            name: "SIGNALAB_RECORDINGS_BUCKET",
+            value: recordingsBucket.bucketName,
+          },
+          { name: "SIGNALAB_CONSENT_BUCKET", value: consentBucket.bucketName },
+          {
+            name: "NEXT_PUBLIC_COGNITO_USER_POOL_ID",
+            value: userPool.userPoolId,
+          },
+          {
+            name: "NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID",
+            value: userPoolClient.userPoolClientId,
+          },
+        ],
+      });
+      // Propiedad nueva (feb 2025); escape hatch para no depender de la
+      // versión menor de aws-cdk-lib instalada.
+      amplifyApp.addPropertyOverride("ComputeRoleArn", computeRole.roleArn);
+      Tags.of(amplifyApp).add("project", "signalab");
+
+      new amplify.CfnBranch(this, "AmplifyMainBranch", {
+        appId: amplifyApp.attrAppId,
+        branchName: "main",
+        enableAutoBuild: true,
+        framework: "Next.js - SSR",
+        stage: "PRODUCTION",
+      });
+
+      new CfnOutput(this, "AmplifyAppId", { value: amplifyApp.attrAppId });
+      new CfnOutput(this, "AmplifyDefaultDomain", {
+        value: `https://main.${amplifyApp.attrDefaultDomain}`,
+        description: "URL de prueba antes del cutover de DNS.",
+      });
+    }
 
     // ── Outputs (mirror these into the app's .env.local) ────────────────────
     new CfnOutput(this, "AwsRegion", { value: this.region });
