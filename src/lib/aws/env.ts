@@ -22,25 +22,21 @@ export const awsEnv = {
       "us-east-1"
     ).trim(),
   /**
-   * Explicit runtime credentials. Vercel functions run on AWS Lambda, where
-   * AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are runtime-owned names — custom
-   * values under those names may be stripped or shadowed. We therefore read
-   * SIGNALAB_-prefixed names first and hand them to the SDK explicitly.
-   * `trim()` defends against pasted whitespace. Returns undefined when unset
-   * (local dev then uses the default provider chain: profiles, SSO, etc.).
+   * Explicit runtime credentials — ONLY the SIGNALAB_-prefixed names (needed
+   * on Vercel, where AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are Lambda
+   * runtime-owned). When unset, return undefined so the SDK uses its default
+   * provider chain — that's what carries the temporary role credentials
+   * (key + secret + SESSION TOKEN) on Amplify SSR compute and local dev.
+   * Never fall back to raw AWS_* env vars: on role-based runtimes those are
+   * temporary credentials whose session token would be silently dropped,
+   * producing invalid signatures. `trim()` defends against pasted whitespace.
    */
   credentials: ():
     | { accessKeyId: string; secretAccessKey: string }
     | undefined => {
-    const accessKeyId = (
-      process.env.SIGNALAB_AWS_ACCESS_KEY_ID ??
-      process.env.AWS_ACCESS_KEY_ID ??
-      ""
-    ).trim();
+    const accessKeyId = (process.env.SIGNALAB_AWS_ACCESS_KEY_ID ?? "").trim();
     const secretAccessKey = (
-      process.env.SIGNALAB_AWS_SECRET_ACCESS_KEY ??
-      process.env.AWS_SECRET_ACCESS_KEY ??
-      ""
+      process.env.SIGNALAB_AWS_SECRET_ACCESS_KEY ?? ""
     ).trim();
     if (!accessKeyId || !secretAccessKey) return undefined;
     return { accessKeyId, secretAccessKey };

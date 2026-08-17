@@ -27,15 +27,15 @@ export async function GET() {
   }
 
   // Which credential source is in play (booleans only, never values):
-  // explicit SIGNALAB_-prefixed vars beat the Lambda-reserved AWS_* names.
+  // "explicit" = SIGNALAB_-prefixed keys (Vercel); "default-chain" = the SDK
+  // provider chain — en Amplify son las credenciales temporales del rol de
+  // cómputo (AWS_* + session token), en local el perfil/SSO.
   const creds = Boolean(
     process.env.SIGNALAB_AWS_ACCESS_KEY_ID?.trim() &&
       process.env.SIGNALAB_AWS_SECRET_ACCESS_KEY?.trim(),
   )
     ? "explicit"
-    : process.env.AWS_ACCESS_KEY_ID
-      ? "reserved-name"
-      : "default-chain";
+    : "default-chain";
 
   return Response.json(
     { ok: dynamo, dynamo, creds, ...(error ? { error } : {}) },
