@@ -10,6 +10,15 @@ import {
   type BodyZone,
 } from "@/lib/ub_inventory";
 import type { ContactType, Laterality } from "@/lib/types";
+import { CONTACT_ES, LATERALITY_ES } from "@/lib/anotar_labels";
+
+const ZONE_ES: Record<BodyZone, string> = {
+  full: "Cuerpo",
+  head: "Cabeza",
+  trunk: "Tronco",
+  arm: "Brazo",
+  hand: "Mano",
+};
 
 interface BodySilhouetteProps {
   selectedCode: string | undefined;
@@ -94,13 +103,13 @@ export default function BodySilhouette({
           <button
             key={z}
             onClick={() => setZone(z)}
-            className={`rounded px-2 py-1 text-[10px] font-medium capitalize ${
+            className={`rounded px-2 py-1 text-[10px] font-medium ${
               zone === z
                 ? "bg-ink text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            {z === "full" ? "Body" : z}
+            {ZONE_ES[z]}
           </button>
         ))}
         <div className="flex-1" />
@@ -223,7 +232,7 @@ export default function BodySilhouette({
       {/* Contact type */}
       <div>
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
-          Contact
+          Contacto
         </label>
         <div className="flex flex-wrap gap-1">
           {CONTACT_TYPES.map((ct) => (
@@ -236,7 +245,7 @@ export default function BodySilhouette({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {ct.toLowerCase()}
+              {CONTACT_ES[ct].toLowerCase()}
             </button>
           ))}
         </div>
@@ -245,7 +254,7 @@ export default function BodySilhouette({
       {/* Laterality */}
       <div>
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
-          Laterality
+          Lateralidad
         </label>
         <div className="flex gap-1">
           {LATERALITIES.map((lat) => (
@@ -260,7 +269,7 @@ export default function BodySilhouette({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {lat.toLowerCase().replace(/_/g, " ")}
+              {LATERALITY_ES[lat].toLowerCase()}
             </button>
           ))}
         </div>
@@ -269,7 +278,7 @@ export default function BodySilhouette({
       {/* Quick select (frequent) */}
       <div>
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
-          Quick Select
+          Selección rápida
         </label>
         <div className="flex flex-wrap gap-1">
           {FREQUENT_LOCATIONS.map((loc) => (
@@ -306,7 +315,7 @@ export default function BodySilhouette({
               style={{ backgroundColor: color }}
             />
             <span className="text-[9px] text-gray-500">
-              {region.toLowerCase().replace(/_/g, " ")}
+              {REGION_LABELS[region] ?? region}
             </span>
           </div>
         ))}
@@ -316,7 +325,7 @@ export default function BodySilhouette({
 }
 
 /** SVG body silhouette outline */
-function BodyOutline() {
+export function BodyOutline() {
   return (
     <g
       opacity={0.15}
