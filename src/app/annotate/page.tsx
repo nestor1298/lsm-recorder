@@ -155,9 +155,17 @@ export default function AnnotatePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-ink">Anotaciones</h1>
+            <h1 className="text-2xl font-bold text-ink">
+              Anotaciones · modo experto
+            </h1>
             <p className="text-sm text-gray-500">
-              Anotaciones fonológicas LSM-PN con línea de tiempo PSHR
+              Anotaciones fonológicas LSM-PN con línea de tiempo PSHR.{" "}
+              <a
+                href="/anotar"
+                className="font-medium text-accent-deep hover:underline"
+              >
+                Ir al modo guiado
+              </a>
             </p>
           </div>
           <button
