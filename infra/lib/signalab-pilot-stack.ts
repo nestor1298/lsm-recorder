@@ -235,13 +235,24 @@ export class SignalabPilotStack extends Stack {
       amplifyApp.addPropertyOverride("ComputeRoleArn", computeRole.roleArn);
       Tags.of(amplifyApp).add("project", "signalab");
 
-      new amplify.CfnBranch(this, "AmplifyMainBranch", {
+      const mainBranch = new amplify.CfnBranch(this, "AmplifyMainBranch", {
         appId: amplifyApp.attrAppId,
         branchName: "main",
         enableAutoBuild: true,
         framework: "Next.js - SSR",
         stage: "PRODUCTION",
       });
+
+      // Dominio de producción. Tras el deploy queda PENDING_VERIFICATION
+      // hasta que los registros CNAME (validación de cert + tráfico) se den
+      // de alta en Cloudflare — leerlos con
+      // `aws amplify get-domain-association` y crearlos en modo DNS only.
+      const domain = new amplify.CfnDomain(this, "AmplifyDomain", {
+        appId: amplifyApp.attrAppId,
+        domainName: "signalab.other-ai.com",
+        subDomainSettings: [{ prefix: "", branchName: "main" }],
+      });
+      domain.addDependency(mainBranch);
 
       new CfnOutput(this, "AmplifyAppId", { value: amplifyApp.attrAppId });
       new CfnOutput(this, "AmplifyDefaultDomain", {
