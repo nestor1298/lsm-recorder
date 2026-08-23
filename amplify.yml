@@ -11,6 +11,10 @@ frontend:
         - npm ci
     build:
       commands:
+        # Las env vars del app de Amplify existen solo en el build; el runtime
+        # SSR lee .env.production, así que las volcamos ahí (gotcha documentado
+        # de Amplify Hosting para WEB_COMPUTE).
+        - env | grep -e '^SIGNALAB_' -e '^NEXT_PUBLIC_' >> .env.production || true
         - npm run build
   artifacts:
     baseDirectory: .next
