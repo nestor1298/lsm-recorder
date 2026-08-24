@@ -24,6 +24,10 @@ import { fetchMe, postJson } from "@/lib/api-client";
 import SignPrompt from "@/components/SignPrompt";
 import CameraRecorder from "@/components/CameraRecorder";
 
+// Tipos admitidos al subir un video ya grabado (además del webm de cámara)
+const UPLOAD_TYPES = ["video/webm", "video/mp4", "video/quicktime"];
+const MAX_UPLOAD_MB = 300;
+
 type View = "setup" | "recording" | "review";
 type Gate = "checking" | "ok" | "redirecting" | "error";
 
@@ -204,7 +208,16 @@ function RecordPageInner() {
           url: string;
           key: string;
           contentType: string;
-        }>("/api/recordings/presign", { sessionId, cmId });
+        }>("/api/recordings/presign", {
+          sessionId,
+          cmId,
+          // Tipo real del video (webm de cámara o mp4/mov subido), sin
+          // parámetros de codecs (MediaRecorder produce p. ej.
+          // "video/webm;codecs=vp9"); el servidor valida el tipo base.
+          ...(blob.type
+            ? { contentType: blob.type.split(";")[0].trim() }
+            : {}),
+        });
 
         const put = await fetch(url, {
           method: "PUT",
@@ -267,6 +280,41 @@ function RecordPageInner() {
       setView("review");
     },
     [session, currentCM],
+  );
+
+  // Subir un archivo de video en lugar de grabar con la cámara.
+  // Entra al mismo flujo de revisión → aceptar → presign/S3.
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const handleFileChosen = useCallback(
+    (file: File | undefined) => {
+      setUploadError(null);
+      if (!file) return;
+      if (!UPLOAD_TYPES.includes(file.type.split(";")[0].trim())) {
+        setUploadError("Formato no admitido. Usa webm, mp4 o mov.");
+        return;
+      }
+      if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+        setUploadError(`El video pasa de ${MAX_UPLOAD_MB} MB. Recórtalo e intenta de nuevo.`);
+        return;
+      }
+      // Leer la duración de los metadatos antes de pasar a revisión.
+      const probe = document.createElement("video");
+      const url = URL.createObjectURL(file);
+      probe.preload = "metadata";
+      probe.onloadedmetadata = () => {
+        const durationMs = isFinite(probe.duration)
+          ? Math.round(probe.duration * 1000)
+          : 0;
+        URL.revokeObjectURL(url);
+        handleRecordingComplete(file, durationMs);
+      };
+      probe.onerror = () => {
+        URL.revokeObjectURL(url);
+        setUploadError("No se pudo leer el video. ¿El archivo está completo?");
+      };
+      probe.src = url;
+    },
+    [handleRecordingComplete],
   );
 
   // Accept recording -> approve + start upload
@@ -606,6 +654,36 @@ function RecordPageInner() {
           cameraSettingsRef.current = s;
         }}
       />
+
+      {/* Alternativa: subir un video ya grabado para esta seña */}
+      <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-600">
+            ¿Ya tienes esta seña en video? Súbelo en lugar de grabar.
+          </p>
+          <label className="cursor-pointer rounded-full border-[1.5px] border-ink px-4 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-gray-100">
+            Subir video
+            <input
+              type="file"
+              accept="video/webm,video/mp4,video/quicktime"
+              className="hidden"
+              onChange={(e) => {
+                handleFileChosen(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+        <p className="mt-1 text-xs text-gray-400">
+          webm, mp4 o mov · máx. 300 MB · pasa por la misma revisión antes de
+          enviarse
+        </p>
+        {uploadError && (
+          <p className="mt-2 rounded bg-coral-tint px-3 py-2 text-xs text-coral-deep">
+            {uploadError}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center justify-between">
         <button
