@@ -5,6 +5,7 @@ import { CM_INVENTORY } from "@/lib/data";
 import { CM_FAMILIES, getCMFamilyId } from "@/lib/families";
 import { MiniHand } from "@/components/learn/MiniHand";
 import type { CMEntry } from "@/lib/types";
+import type { CMCandidate } from "@/lib/vision/phon/phon_features";
 
 /**
  * Paso 2 — elegir la configuración de mano (CM).
@@ -14,6 +15,8 @@ import type { CMEntry } from "@/lib/types";
 
 interface PasoCMProps {
   selectedCmId?: number;
+  /** Candidatas del análisis automático del video */
+  sugeridas?: CMCandidate[];
   onSelect: (cm: CMEntry) => void;
   onNext: () => void;
   onBack: () => void;
@@ -21,6 +24,7 @@ interface PasoCMProps {
 
 export default function PasoCM({
   selectedCmId,
+  sugeridas,
   onSelect,
   onNext,
   onBack,
@@ -56,6 +60,47 @@ export default function PasoCM({
             : "Primero elige la forma general."}
         </p>
       </div>
+
+      {/* Sugerencias del análisis del video */}
+      {sugeridas && sugeridas.length > 0 && (
+        <div className="rounded-2xl border border-accent bg-accent-tint/30 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-accent-deep">
+            Sugerencias del video
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {sugeridas.map((cand) => {
+              const cm = CM_INVENTORY.find((c) => c.cm_id === cand.cm_id);
+              if (!cm) return null;
+              const isSelected = cm.cm_id === selectedCmId;
+              return (
+                <button
+                  key={cm.cm_id}
+                  onClick={() => {
+                    onSelect(cm);
+                    setFamilyId(getCMFamilyId(cm));
+                  }}
+                  aria-pressed={isSelected}
+                  className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 transition-colors ${
+                    isSelected
+                      ? "border-accent bg-accent-tint"
+                      : "border-transparent bg-paper hover:border-gray-300"
+                  }`}
+                >
+                  <MiniHand cm={cm} size={44} />
+                  <span className="text-left">
+                    <span className="block text-xs font-bold text-ink">
+                      #{cm.cm_id} · {cm.cruz_aldrete_notation}
+                    </span>
+                    <span className="block text-[10px] text-gray-500">
+                      {Math.round(cand.score * 100)}% de coincidencia
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Nivel 1: familias */}
       {!familyId && (
