@@ -5,11 +5,14 @@
 import type {
   ContactType,
   ContourMovement,
+  EyebrowPosition,
   Laterality,
   LocalMovement,
+  MouthShape,
   MovementPlane,
   SignAnnotation,
 } from "./types";
+import type { PhonSuggestion } from "./vision/phon/phon_features";
 import { UB_LOCATIONS } from "./ub_inventory";
 import { saveAnnotation } from "./store";
 
@@ -35,9 +38,13 @@ export interface GuidedDraft {
   contour?: ContourMovement;
   local?: LocalMovement;
   plane?: MovementPlane;
+  eyebrows?: EyebrowPosition;
+  mouth?: MouthShape;
   dominant_hand: "LEFT" | "RIGHT";
   two_handed: boolean;
   notes: string;
+  /** Resultado del análisis automático del video (pre-anotación) */
+  sugerencia?: PhonSuggestion;
 }
 
 export const EMPTY_DRAFT: GuidedDraft = {
@@ -114,6 +121,8 @@ export function draftToAnnotation(
         contour_movement: draft.contour,
         local_movement: draft.local,
         movement_plane: draft.plane,
+        eyebrows: draft.eyebrows,
+        mouth: draft.mouth,
       },
     ],
   };

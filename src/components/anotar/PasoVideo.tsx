@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getJson } from "@/lib/api-client";
+import type { PhonSuggestion } from "@/lib/vision/phon/phon_features";
+import type { AnalyzeProgress } from "@/lib/vision/phon/analyze_video";
 
 /**
  * Paso 1 — elegir el video a anotar y darle nombre a la seña.
@@ -21,16 +23,21 @@ interface RecordingRow {
 interface PasoVideoProps {
   gloss: string;
   videoUrl?: string;
+  /** Sugerencia ya calculada para este video (si existe) */
+  sugerencia?: PhonSuggestion;
   onGlossChange: (gloss: string) => void;
   onVideoChange: (url: string | undefined, isLocal: boolean) => void;
+  onSuggestion: (s: PhonSuggestion) => void;
   onNext: () => void;
 }
 
 export default function PasoVideo({
   gloss,
   videoUrl,
+  sugerencia,
   onGlossChange,
   onVideoChange,
+  onSuggestion,
   onNext,
 }: PasoVideoProps) {
   const { state } = useAuth();
@@ -38,7 +45,34 @@ export default function PasoVideo({
   const [loadingList, setLoadingList] = useState(false);
   const [fetchingId, setFetchingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState<AnalyzeProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const runAnalysis = useCallback(async () => {
+    if (!videoUrl) return;
+    setError(null);
+    setAnalyzing({ phase: "modelos", done: 0, total: 3 });
+    try {
+      // Import dinámico: el WASM de MediaPipe solo se paga al usarlo.
+      const { analyzeSignVideo } = await import(
+        "@/lib/vision/phon/analyze_video"
+      );
+      const s = await analyzeSignVideo(videoUrl, setAnalyzing);
+      if (s.framesWithHand < 3) {
+        setError(
+          "No se detectaron manos en el video. Puedes anotar manualmente.",
+        );
+      } else {
+        onSuggestion(s);
+      }
+    } catch {
+      setError(
+        "No se pudo analizar el video (¿origen sin CORS?). Puedes anotar manualmente.",
+      );
+    } finally {
+      setAnalyzing(null);
+    }
+  }, [videoUrl, onSuggestion]);
 
   useEffect(() => {
     if (state !== "signedIn") return;
@@ -106,19 +140,60 @@ export default function PasoVideo({
 
       {/* Video elegido */}
       {videoUrl && (
-        <div className="overflow-hidden rounded-xl border-2 border-green bg-black">
-          <video src={videoUrl} controls className="aspect-video w-full" />
-          <div className="flex items-center justify-between bg-green-tint px-4 py-2">
-            <span className="text-sm font-semibold text-green-deep">
-              Video listo
-            </span>
-            <button
-              onClick={() => onVideoChange(undefined, false)}
-              className="text-sm font-medium text-gray-600 hover:text-ink"
-            >
-              Cambiar
-            </button>
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-xl border-2 border-green bg-black">
+            <video src={videoUrl} controls className="aspect-video w-full" />
+            <div className="flex items-center justify-between bg-green-tint px-4 py-2">
+              <span className="text-sm font-semibold text-green-deep">
+                Video listo
+              </span>
+              <button
+                onClick={() => onVideoChange(undefined, false)}
+                className="text-sm font-medium text-gray-600 hover:text-ink"
+              >
+                Cambiar
+              </button>
+            </div>
           </div>
+
+          {/* Pre-anotación automática */}
+          {analyzing ? (
+            <div className="rounded-xl border border-accent bg-accent-tint/40 p-4">
+              <p className="text-sm font-semibold text-accent-deep">
+                {analyzing.phase === "modelos"
+                  ? `Cargando modelos… (${analyzing.done}/${analyzing.total})`
+                  : `Analizando la seña… (${analyzing.done}/${analyzing.total} cuadros)`}
+              </p>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                <div
+                  className="h-full rounded-full bg-accent transition-all"
+                  style={{
+                    width: `${Math.round((analyzing.done / analyzing.total) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : sugerencia ? (
+            <div className="flex items-center justify-between rounded-xl border border-accent bg-accent-tint/40 px-4 py-3">
+              <p className="text-sm font-semibold text-accent-deep">
+                Video analizado: los pasos vienen pre-llenados. Revísalos y
+                corrige lo que haga falta.
+              </p>
+              <button
+                onClick={() => void runAnalysis()}
+                className="shrink-0 text-xs font-medium text-gray-600 hover:text-ink"
+              >
+                Reanalizar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => void runAnalysis()}
+              className="w-full rounded-xl border-2 border-dashed border-accent bg-accent-tint/30 px-4 py-3 text-sm font-semibold text-accent-deep transition-colors hover:bg-accent-tint/60"
+            >
+              Analizar la seña automáticamente (manos, cuerpo y rostro)
+            </button>
+          )}
         </div>
       )}
 

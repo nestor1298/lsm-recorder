@@ -144,9 +144,29 @@ export default function AnotarGuiadoPage() {
             <PasoVideo
               gloss={draft.gloss}
               videoUrl={draft.video_url}
+              sugerencia={draft.sugerencia}
               onGlossChange={(gloss) => update({ gloss })}
               onVideoChange={(url, isLocal) =>
-                update({ video_url: url, video_is_local: isLocal })
+                update({
+                  video_url: url,
+                  video_is_local: isLocal,
+                  sugerencia: undefined,
+                })
+              }
+              onSuggestion={(s) =>
+                // Pre-llenar todos los campos fonológicos con la sugerencia;
+                // cada paso la muestra para corregirla.
+                update({
+                  sugerencia: s,
+                  cm_id: s.cmCandidates[0]?.cm_id ?? draft.cm_id,
+                  location_code: s.location_code ?? draft.location_code,
+                  contact: s.contact ?? draft.contact,
+                  contour: s.contour,
+                  plane: s.plane,
+                  eyebrows: s.eyebrows,
+                  mouth: s.mouth,
+                  two_handed: s.two_handed ?? draft.two_handed,
+                })
               }
               onNext={() => goTo("cm")}
             />
@@ -154,6 +174,7 @@ export default function AnotarGuiadoPage() {
           {paso === "cm" && (
             <PasoCM
               selectedCmId={draft.cm_id}
+              sugeridas={draft.sugerencia?.cmCandidates}
               onSelect={(cm: CMEntry) => update({ cm_id: cm.cm_id })}
               onNext={() => goTo("ubicacion")}
               onBack={() => goTo("video")}
@@ -176,9 +197,13 @@ export default function AnotarGuiadoPage() {
               contour={draft.contour}
               local={draft.local}
               plane={draft.plane}
+              eyebrows={draft.eyebrows}
+              mouth={draft.mouth}
               onContourChange={(contour) => update({ contour })}
               onLocalChange={(local) => update({ local })}
               onPlaneChange={(plane) => update({ plane })}
+              onEyebrowsChange={(eyebrows) => update({ eyebrows })}
+              onMouthChange={(mouth) => update({ mouth })}
               onNext={() => goTo("resumen")}
               onBack={() => goTo("ubicacion")}
             />

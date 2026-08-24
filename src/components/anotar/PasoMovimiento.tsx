@@ -3,10 +3,26 @@
 import { useState } from "react";
 import type {
   ContourMovement,
+  EyebrowPosition,
   LocalMovement,
+  MouthShape,
   MovementPlane,
 } from "@/lib/types";
 import { CONTOUR_ES, LOCAL_ES, PLANE_ES } from "@/lib/anotar_labels";
+
+const EYEBROWS_ES: Record<EyebrowPosition, string> = {
+  NEUTRAL: "Neutrales",
+  RAISED: "Levantadas",
+  FURROWED: "Fruncidas",
+};
+
+const MOUTH_ES: Record<MouthShape, string> = {
+  NEUTRAL: "Neutral",
+  OPEN: "Abierta",
+  CLOSED: "Cerrada",
+  ROUNDED: "Redonda (o)",
+  STRETCHED: "Estirada",
+};
 
 /**
  * Paso 4 — describir el movimiento.
@@ -181,9 +197,13 @@ interface PasoMovimientoProps {
   contour?: ContourMovement;
   local?: LocalMovement;
   plane?: MovementPlane;
+  eyebrows?: EyebrowPosition;
+  mouth?: MouthShape;
   onContourChange: (v: ContourMovement | undefined) => void;
   onLocalChange: (v: LocalMovement | undefined) => void;
   onPlaneChange: (v: MovementPlane | undefined) => void;
+  onEyebrowsChange: (v: EyebrowPosition | undefined) => void;
+  onMouthChange: (v: MouthShape | undefined) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -192,13 +212,19 @@ export default function PasoMovimiento({
   contour,
   local,
   plane,
+  eyebrows,
+  mouth,
   onContourChange,
   onLocalChange,
   onPlaneChange,
+  onEyebrowsChange,
+  onMouthChange,
   onNext,
   onBack,
 }: PasoMovimientoProps) {
-  const [showDetail, setShowDetail] = useState(Boolean(local || plane));
+  const [showDetail, setShowDetail] = useState(
+    Boolean(local || plane || eyebrows || mouth),
+  );
 
   return (
     <div className="space-y-6">
@@ -253,7 +279,9 @@ export default function PasoMovimiento({
         onClick={() => setShowDetail(!showDetail)}
         className="text-sm font-semibold text-accent-deep hover:underline"
       >
-        {showDetail ? "Menos detalle" : "Más detalle (dedos, muñeca, plano)"}
+        {showDetail
+          ? "Menos detalle"
+          : "Más detalle (dedos, muñeca, plano, rostro)"}
       </button>
 
       {showDetail && (
@@ -304,6 +332,53 @@ export default function PasoMovimiento({
                   {PLANE_ES[p]}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Rostro (RNM) */}
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink">
+              ¿Qué hace el rostro?
+            </p>
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                  Cejas
+                </span>
+                {(Object.keys(EYEBROWS_ES) as EyebrowPosition[]).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() =>
+                      onEyebrowsChange(eyebrows === v ? undefined : v)
+                    }
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      eyebrows === v
+                        ? "bg-ink text-white"
+                        : "bg-white text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {EYEBROWS_ES[v]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                  Boca
+                </span>
+                {(Object.keys(MOUTH_ES) as MouthShape[]).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => onMouthChange(mouth === v ? undefined : v)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      mouth === v
+                        ? "bg-ink text-white"
+                        : "bg-white text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {MOUTH_ES[v]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

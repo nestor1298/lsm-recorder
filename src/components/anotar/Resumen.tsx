@@ -91,6 +91,30 @@ export default function Resumen({
           .filter(Boolean)
           .join(" · ") || "Se queda quieta",
     },
+    ...(draft.eyebrows || draft.mouth
+      ? [
+          {
+            paso: "movimiento" as PasoId,
+            titulo: "Rostro",
+            valor: [
+              draft.eyebrows &&
+                { RAISED: "Cejas levantadas", FURROWED: "Ceño fruncido", NEUTRAL: "" }[
+                  draft.eyebrows
+                ],
+              draft.mouth &&
+                {
+                  OPEN: "Boca abierta",
+                  CLOSED: "Boca cerrada",
+                  ROUNDED: "Boca redonda",
+                  STRETCHED: "Boca estirada",
+                  NEUTRAL: "",
+                }[draft.mouth],
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          },
+        ]
+      : []),
   ];
 
   return (
