@@ -27,6 +27,8 @@ interface TimelineCanalesProps {
   selectedSegmentId: string | null;
   onSegmentSelect: (id: string) => void;
   onSeek: (ms: number) => void;
+  /** notifica qué canal se tocó, para abrir su editor */
+  onChannelSelect?: (canal: string) => void;
 }
 
 interface Canal {
@@ -107,6 +109,7 @@ export default function TimelineCanales({
   selectedSegmentId,
   onSegmentSelect,
   onSeek,
+  onChannelSelect,
 }: TimelineCanalesProps) {
   const sorted = useMemo(
     () => [...segments].sort((a, b) => a.start_ms - b.start_ms),
@@ -143,6 +146,7 @@ export default function TimelineCanales({
                     onClick={() => {
                       onSegmentSelect(s.id);
                       onSeek((s.start_ms + s.end_ms) / 2);
+                      if (canal.id !== "segmento") onChannelSelect?.(canal.id);
                     }}
                     title={`${canal.label}: ${canal.cell(s)}`}
                     className={`absolute top-1 h-6 overflow-hidden truncate rounded-md border px-1.5 text-left text-[10px] font-medium transition-colors ${

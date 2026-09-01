@@ -60,19 +60,24 @@ interface PasoUbicacionProps {
   onLocationChange: (code: string | undefined) => void;
   onContactChange: (contact: ContactType | undefined) => void;
   onLateralityChange: (laterality: Laterality | undefined) => void;
+}
+
+interface PasoUbicacionProps2 extends PasoUbicacionProps {
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function PasoUbicacion({
+/**
+ * Editor del canal Lugar (silueta + contacto), reusable en el flujo
+ * guiado y en los canales del modo experto.
+ */
+export function EditorUbicacion({
   locationCode,
   contact,
   laterality,
   onLocationChange,
   onContactChange,
   onLateralityChange,
-  onNext,
-  onBack,
 }: PasoUbicacionProps) {
   const [zone, setZone] = useState<BodyZone>("full");
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -89,15 +94,6 @@ export default function PasoUbicacion({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-ink">
-          ¿Dónde se hace la seña?
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Toca el punto en el cuerpo. Puedes acercar por zona.
-        </p>
-      </div>
-
       {/* Zoom por zona */}
       <div className="flex items-center gap-2">
         {(Object.keys(ZONE_ES) as BodyZone[]).map((z) => (
@@ -319,6 +315,24 @@ export default function PasoUbicacion({
         </div>
       )}
 
+    </div>
+  );
+}
+
+export default function PasoUbicacion({
+  onNext,
+  onBack,
+  ...editor
+}: PasoUbicacionProps2) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-ink">¿Dónde se hace la seña?</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Toca el punto en el cuerpo. Puedes acercar por zona.
+        </p>
+      </div>
+      <EditorUbicacion {...editor} />
       <div className="flex justify-between border-t border-gray-100 pt-4">
         <button
           onClick={onBack}
@@ -328,7 +342,7 @@ export default function PasoUbicacion({
         </button>
         <button
           onClick={onNext}
-          disabled={!selected}
+          disabled={!editor.locationCode}
           className="rounded-full bg-ink px-8 py-3 font-semibold text-paper transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Siguiente

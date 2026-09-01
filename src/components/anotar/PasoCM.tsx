@@ -75,16 +75,19 @@ interface PasoCMProps {
   onBack: () => void;
 }
 
-export default function PasoCM({
+/**
+ * Editor del canal Mano (familias → forma exacta, con sugerencias del
+ * video), reusable en el guiado y en los canales del modo experto.
+ */
+export function EditorCM({
   selectedCmId,
   sugeridas,
-  nondominant,
-  nondominantSuggested,
   onSelect,
-  onNondominantChange,
-  onNext,
-  onBack,
-}: PasoCMProps) {
+}: {
+  selectedCmId?: number;
+  sugeridas?: CMCandidate[];
+  onSelect: (cm: CMEntry) => void;
+}) {
   const selectedCM = useMemo(
     () => CM_INVENTORY.find((c) => c.cm_id === selectedCmId) ?? null,
     [selectedCmId],
@@ -106,17 +109,6 @@ export default function PasoCM({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-ink">
-          ¿Cómo está la mano en el video?
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          {familyId
-            ? "Ahora elige la forma exacta."
-            : "Primero elige la forma general."}
-        </p>
-      </div>
-
       {/* Sugerencias del análisis del video */}
       {sugeridas && sugeridas.length > 0 && (
         <div className="rounded-2xl border border-accent bg-accent-tint/30 p-4">
@@ -235,6 +227,41 @@ export default function PasoCM({
           </div>
         </div>
       )}
+
+    </div>
+  );
+}
+
+export default function PasoCM({
+  selectedCmId,
+  sugeridas,
+  nondominant,
+  nondominantSuggested,
+  onSelect,
+  onNondominantChange,
+  onNext,
+  onBack,
+}: PasoCMProps) {
+  const selectedCM = useMemo(
+    () => CM_INVENTORY.find((c) => c.cm_id === selectedCmId) ?? null,
+    [selectedCmId],
+  );
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-ink">
+          ¿Cómo está la mano en el video?
+        </h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Primero la forma general, luego la exacta.
+        </p>
+      </div>
+
+      <EditorCM
+        selectedCmId={selectedCmId}
+        sugeridas={sugeridas}
+        onSelect={onSelect}
+      />
 
       {/* Bimanualidad (tipología de Cruz Aldrete) */}
       {selectedCM && (

@@ -328,14 +328,12 @@ export function RepeticionControl({
   );
 }
 
-interface PasoMovimientoProps {
+interface EditorMovimientoProps {
   contour?: ContourMovement;
   local?: LocalMovement;
   plane?: MovementPlane;
   direction?: MovementDirection;
   repetition?: Repetition;
-  eyebrows?: EyebrowPosition;
-  mouth?: MouthShape;
   directionSuggested?: boolean;
   repetitionSuggested?: boolean;
   onContourChange: (v: ContourMovement | undefined) => void;
@@ -343,20 +341,28 @@ interface PasoMovimientoProps {
   onPlaneChange: (v: MovementPlane | undefined) => void;
   onDirectionChange: (v: MovementDirection | undefined) => void;
   onRepetitionChange: (v: Repetition | undefined) => void;
+}
+
+interface PasoMovimientoProps extends EditorMovimientoProps {
+  eyebrows?: EyebrowPosition;
+  mouth?: MouthShape;
   onEyebrowsChange: (v: EyebrowPosition | undefined) => void;
   onMouthChange: (v: MouthShape | undefined) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function PasoMovimiento({
+/**
+ * Editor del canal Movimiento (contorno por glifo, dirección,
+ * repetición, y bajo "más detalle" el movimiento local y el plano).
+ * Reusable en el guiado y en los canales del modo experto.
+ */
+export function EditorMovimiento({
   contour,
   local,
   plane,
   direction,
   repetition,
-  eyebrows,
-  mouth,
   directionSuggested,
   repetitionSuggested,
   onContourChange,
@@ -364,26 +370,11 @@ export default function PasoMovimiento({
   onPlaneChange,
   onDirectionChange,
   onRepetitionChange,
-  onEyebrowsChange,
-  onMouthChange,
-  onNext,
-  onBack,
-}: PasoMovimientoProps) {
-  const [showDetail, setShowDetail] = useState(
-    Boolean(local || plane || eyebrows || mouth),
-  );
+}: EditorMovimientoProps) {
+  const [showDetail, setShowDetail] = useState(Boolean(local || plane));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-ink">
-          ¿Cómo se mueve la mano?
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Elige la trayectoria que dibuja la mano en el aire.
-        </p>
-      </div>
-
       {/* Contorno por glifo */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {CONTOURS.map((c) => {
@@ -440,7 +431,7 @@ export default function PasoMovimiento({
       >
         {showDetail
           ? "Menos detalle"
-          : "Más detalle (dedos, muñeca, plano, rostro)"}
+          : "Más detalle (dedos, muñeca, plano)"}
       </button>
 
       {showDetail && (
@@ -494,54 +485,100 @@ export default function PasoMovimiento({
             </div>
           </div>
 
-          {/* Rostro (RNM) */}
-          <div>
-            <p className="mb-2 text-sm font-semibold text-ink">
-              ¿Qué hace el rostro?
-            </p>
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
-                  Cejas
-                </span>
-                {(Object.keys(EYEBROWS_ES) as EyebrowPosition[]).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() =>
-                      onEyebrowsChange(eyebrows === v ? undefined : v)
-                    }
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                      eyebrows === v
-                        ? "bg-ink text-white"
-                        : "bg-white text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {EYEBROWS_ES[v]}
-                  </button>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
-                  Boca
-                </span>
-                {(Object.keys(MOUTH_ES) as MouthShape[]).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => onMouthChange(mouth === v ? undefined : v)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
-                      mouth === v
-                        ? "bg-ink text-white"
-                        : "bg-white text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {MOUTH_ES[v]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Editor del canal Rostro (RNM básico): cejas y boca por chips.
+ * Reusable en el guiado y en los canales del modo experto.
+ */
+export function EditorRostro({
+  eyebrows,
+  mouth,
+  onEyebrowsChange,
+  onMouthChange,
+}: {
+  eyebrows?: EyebrowPosition;
+  mouth?: MouthShape;
+  onEyebrowsChange: (v: EyebrowPosition | undefined) => void;
+  onMouthChange: (v: MouthShape | undefined) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+          Cejas
+        </span>
+        {(Object.keys(EYEBROWS_ES) as EyebrowPosition[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => onEyebrowsChange(eyebrows === v ? undefined : v)}
+            aria-pressed={eyebrows === v}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              eyebrows === v
+                ? "bg-ink text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {EYEBROWS_ES[v]}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="w-14 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+          Boca
+        </span>
+        {(Object.keys(MOUTH_ES) as MouthShape[]).map((v) => (
+          <button
+            key={v}
+            onClick={() => onMouthChange(mouth === v ? undefined : v)}
+            aria-pressed={mouth === v}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              mouth === v
+                ? "bg-ink text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {MOUTH_ES[v]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function PasoMovimiento({
+  eyebrows,
+  mouth,
+  onEyebrowsChange,
+  onMouthChange,
+  onNext,
+  onBack,
+  ...editor
+}: PasoMovimientoProps) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-ink">¿Cómo se mueve la mano?</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Elige la trayectoria que dibuja la mano en el aire.
+        </p>
+      </div>
+
+      <EditorMovimiento {...editor} />
+
+      <div className="space-y-3 rounded-2xl bg-gray-50 p-4">
+        <p className="text-sm font-semibold text-ink">¿Qué hace el rostro?</p>
+        <EditorRostro
+          eyebrows={eyebrows}
+          mouth={mouth}
+          onEyebrowsChange={onEyebrowsChange}
+          onMouthChange={onMouthChange}
+        />
+      </div>
 
       <div className="flex justify-between border-t border-gray-100 pt-4">
         <button
