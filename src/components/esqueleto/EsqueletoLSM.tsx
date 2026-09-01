@@ -65,19 +65,18 @@ function Bone({
   radius: number;
   color: string;
 }) {
-  const ref = useRef<THREE.Mesh>(null);
+  // Transform declarativo (sin efectos): garantiza el primer frame.
   const len = from.distanceTo(to);
-  useEffect(() => {
-    const m = ref.current;
-    if (!m) return;
-    m.position.copy(from).add(to).multiplyScalar(0.5);
-    m.quaternion.setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      to.clone().sub(from).normalize(),
-    );
-  });
+  const mid = from.clone().add(to).multiplyScalar(0.5);
+  const quat = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    to.clone().sub(from).normalize(),
+  );
   return (
-    <mesh ref={ref}>
+    <mesh
+      position={[mid.x, mid.y, mid.z]}
+      quaternion={[quat.x, quat.y, quat.z, quat.w]}
+    >
       <capsuleGeometry args={[radius, Math.max(0.001, len - radius), 4, 10]} />
       <meshStandardMaterial color={color} />
     </mesh>
@@ -255,13 +254,11 @@ function SkeletonScene({
   const { camera, invalidate } = useThree();
 
   useEffect(() => {
-    if (lateral) camera.position.set(0.85, 0.25, 0.15);
-    else camera.position.set(0, 0.22, 0.95);
-    camera.lookAt(0, 0.05, 0);
+    if (lateral) camera.position.set(1.05, 0.28, 0.2);
+    else camera.position.set(0, 0.25, 1.15);
+    camera.lookAt(0, 0.06, 0);
     invalidate();
   }, [lateral, camera, invalidate]);
-
-  useEffect(() => invalidate(), [pose, invalidate]);
 
   const V = (v: { x: number; y: number; z: number }) =>
     new THREE.Vector3(v.x, v.y, v.z);
@@ -385,9 +382,18 @@ export default function EsqueletoLSM({
     >
       <div className="relative aspect-square w-full" aria-label={descripcion} role="img">
         {webgl ? (
+          // Posición inicial en el prop: R3F aplica `camera` después de
+          // los efectos hijos, así que fijarla solo en un useEffect deja
+          // el primer frame con la cámara default (z=5, en el far plane).
           <Canvas
-            frameloop="demand"
-            camera={{ fov: 35, near: 0.05, far: 5 }}
+            frameloop="always"
+            dpr={[1, 2]}
+            camera={{
+              fov: 35,
+              near: 0.05,
+              far: 10,
+              position: [0, 0.25, 1.15],
+            }}
             gl={{ antialias: true }}
           >
             <SkeletonScene pose={pose} lateral={lateral} />

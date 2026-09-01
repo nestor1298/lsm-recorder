@@ -231,7 +231,7 @@ export default function Resumen({
         <div className="divide-y divide-gray-100 bg-paper">
           {filas.map((f) => (
             <button
-              key={f.paso}
+              key={f.titulo}
               onClick={() => onEdit(f.paso)}
               className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors hover:bg-gray-50"
             >
