@@ -175,15 +175,33 @@ export interface NotacionInput {
   contour?: ContourMovement;
   local?: LocalMovement;
   plane?: MovementPlane;
+  direction?: MovementDirection;
+  repetition?: { count: number };
+  palmFacing?: PalmFacing;
+  fingerPointing?: FingerPointing;
+  /** esquema estructural: D, M, DM, MD, DMD… */
+  esquema?: string;
 }
 
+/** Abreviatura OR: pa↑ pa↓ paF paM paD paF… — compacta y legible */
+const OR_ABBR: Record<string, string> = {
+  UP: "↑",
+  DOWN: "↓",
+  FORWARD: "⊗",
+  BACK: "⊙",
+  LEFT: "←",
+  RIGHT: "→",
+  NEUTRAL: "·",
+};
+
 /**
- * Notación lineal estilo Cruz Aldrete: CM + UB + MV.
+ * Notación lineal estilo Cruz Aldrete: [esquema] CM + UB + OR + MV.
  * Es una lectura compacta de la anotación, no una transcripción exhaustiva.
- * Ej.: "B̂  ·  Fr(toca)  ·  MV: arco"
+ * Ej.: "DMD  ·  B̂  ·  Fr(toca)  ·  OR: ⊙/↑  ·  MV: arco ↑ ×2"
  */
 export function buildNotacion(input: NotacionInput): string {
   const parts: string[] = [];
+  if (input.esquema && input.esquema !== "M") parts.push(input.esquema);
   if (input.cm) parts.push(input.cm.cruz_aldrete_notation);
   if (input.locationCode) {
     const contacto = input.contact
@@ -191,8 +209,16 @@ export function buildNotacion(input: NotacionInput): string {
       : "";
     parts.push(`${input.locationCode}${contacto}`);
   }
+  if (input.palmFacing || input.fingerPointing) {
+    parts.push(
+      `OR: ${OR_ABBR[input.palmFacing ?? "NEUTRAL"]}/${OR_ABBR[input.fingerPointing ?? "NEUTRAL"]}`,
+    );
+  }
   const mv: string[] = [];
   if (input.contour) mv.push(CONTOUR_NOTATION[input.contour]);
+  if (input.direction) mv.push(directionLabel(input.direction));
+  if (input.repetition && input.repetition.count > 1)
+    mv.push(`×${input.repetition.count}`);
   if (input.local) mv.push(LOCAL_ES[input.local].toLowerCase());
   if (input.plane) mv.push(PLANE_ES[input.plane].toLowerCase());
   if (mv.length) parts.push(`MV: ${mv.join(", ")}`);

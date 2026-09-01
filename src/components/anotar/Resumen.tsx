@@ -105,6 +105,11 @@ export default function Resumen({
     contour: draft.contour,
     local: draft.local,
     plane: draft.plane,
+    direction: draft.direction,
+    repetition: draft.repetition,
+    palmFacing: draft.palm_facing,
+    fingerPointing: draft.finger_pointing,
+    esquema: esquemaDMD(draft),
   });
 
   const filas: {
