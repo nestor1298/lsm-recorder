@@ -7,15 +7,19 @@ import type {
   MovementPlane,
   PalmFacing,
   FingerPointing,
+  ForearmRotation,
   BodyRegion,
-  ContactType,
-  Laterality,
   EyebrowPosition,
   MouthShape,
   HeadMovement,
 } from "@/lib/types";
 import { UB_LOCATIONS } from "@/lib/ub_inventory";
+import { CM_INVENTORY } from "@/lib/data";
 import BodySilhouette from "./BodySilhouette";
+import {
+  DireccionControl,
+  RepeticionControl,
+} from "@/components/anotar/PasoMovimiento";
 
 interface AnnotationFormProps {
   segment: PSHRSegment;
@@ -100,6 +104,7 @@ const FINGER_POINTINGS: FingerPointing[] = [
   "RIGHT",
   "NEUTRAL",
 ];
+const FOREARM_ROTATIONS: ForearmRotation[] = ["NEUTRAL", "PRONE", "SUPINE"];
 const BODY_REGIONS: BodyRegion[] = [
   "HEAD",
   "FACE",
@@ -163,7 +168,7 @@ export default function AnnotationForm({
 
       {/* Movement (only for STROKE segments) */}
       {isMovement && (
-        <div>
+        <div className="space-y-3">
           <h4 className="mb-2 text-xs font-semibold text-gray-700">
             Movimiento (MV)
           </h4>
@@ -187,6 +192,37 @@ export default function AnnotationForm({
               onChange={(v) => onUpdate({ movement_plane: v })}
             />
           </div>
+          <DireccionControl
+            value={segment.direction}
+            onChange={(v) => onUpdate({ direction: v })}
+          />
+          <RepeticionControl
+            value={segment.repetition}
+            onChange={(v) => onUpdate({ repetition: v })}
+          />
+          <div>
+            <label className="mb-1 block text-[10px] font-medium overline-label text-gray-500">
+              CM final (osc-CM / cambios progresivos)
+            </label>
+            <select
+              value={segment.end_cm_id ?? ""}
+              onChange={(e) =>
+                onUpdate({
+                  end_cm_id: e.target.value
+                    ? Number(e.target.value)
+                    : undefined,
+                })
+              }
+              className="w-full rounded border border-gray-200 bg-paper px-2 py-1.5 text-xs text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="">Sin cambio de forma</option>
+              {CM_INVENTORY.map((cm) => (
+                <option key={cm.cm_id} value={cm.cm_id}>
+                  #{cm.cm_id} · {cm.cruz_aldrete_notation}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -195,7 +231,7 @@ export default function AnnotationForm({
         <h4 className="mb-2 text-xs font-semibold text-gray-700">
           Orientación (OR)
         </h4>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <SelectField
             label="Palma hacia"
             value={segment.palm_facing}
@@ -207,6 +243,12 @@ export default function AnnotationForm({
             value={segment.finger_pointing}
             options={FINGER_POINTINGS}
             onChange={(v) => onUpdate({ finger_pointing: v })}
+          />
+          <SelectField
+            label="Antebrazo"
+            value={segment.forearm_rotation}
+            options={FOREARM_ROTATIONS}
+            onChange={(v) => onUpdate({ forearm_rotation: v })}
           />
         </div>
       </div>

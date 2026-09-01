@@ -4,8 +4,58 @@ import { useMemo, useState } from "react";
 import { CM_INVENTORY } from "@/lib/data";
 import { CM_FAMILIES, getCMFamilyId } from "@/lib/families";
 import { MiniHand } from "@/components/learn/MiniHand";
-import type { CMEntry } from "@/lib/types";
+import type { CMEntry, NonDominantSpec } from "@/lib/types";
 import type { CMCandidate } from "@/lib/vision/phon/phon_features";
+import { RELATION_ES, PROVENANCE_CHIP } from "@/lib/anotar_labels";
+
+/** Selector compacto de CM para la mano base (TAB primero) */
+function SelectorCMBase({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (cm_id: number | undefined) => void;
+}) {
+  const ordered = useMemo(() => {
+    // VALIDAR-LSM: tab_capable aproximado; la lingüista revisa la lista
+    return [...CM_INVENTORY].sort(
+      (a, b) => Number(b.tab_capable ?? false) - Number(a.tab_capable ?? false),
+    );
+  }, []);
+  return (
+    <div>
+      <p className="mb-1 text-xs text-gray-500">
+        ¿Qué forma tiene la mano base? La mano base suele usar pocas formas
+        (aparecen primero).
+      </p>
+      <div className="grid max-h-48 grid-cols-5 gap-1.5 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2 sm:grid-cols-7">
+        {ordered.map((cm) => {
+          const isSelected = cm.cm_id === value;
+          return (
+            <button
+              key={cm.cm_id}
+              onClick={() => onChange(isSelected ? undefined : cm.cm_id)}
+              aria-pressed={isSelected}
+              title={`CM #${cm.cm_id} · ${cm.cruz_aldrete_notation}`}
+              className={`flex flex-col items-center rounded-lg border-2 p-1 transition-colors ${
+                isSelected
+                  ? "border-accent bg-accent-tint"
+                  : cm.tab_capable
+                    ? "border-gold-tint bg-white hover:border-gray-300"
+                    : "border-transparent bg-white hover:border-gray-300"
+              }`}
+            >
+              <MiniHand cm={cm} size={36} />
+              <span className="text-[9px] font-bold text-gray-600">
+                #{cm.cm_id}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Paso 2 — elegir la configuración de mano (CM).
@@ -17,7 +67,10 @@ interface PasoCMProps {
   selectedCmId?: number;
   /** Candidatas del análisis automático del video */
   sugeridas?: CMCandidate[];
+  nondominant?: NonDominantSpec;
+  nondominantSuggested?: boolean;
   onSelect: (cm: CMEntry) => void;
+  onNondominantChange: (nd: NonDominantSpec | undefined) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -25,7 +78,10 @@ interface PasoCMProps {
 export default function PasoCM({
   selectedCmId,
   sugeridas,
+  nondominant,
+  nondominantSuggested,
   onSelect,
+  onNondominantChange,
   onNext,
   onBack,
 }: PasoCMProps) {
@@ -177,6 +233,63 @@ export default function PasoCM({
               Como en la seña {selectedCM.example_sign}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Bimanualidad (tipología de Cruz Aldrete) */}
+      {selectedCM && (
+        <div className="space-y-3 rounded-2xl bg-gray-50 p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+            ¿Usa las dos manos?
+            {nondominantSuggested && nondominant && (
+              <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-semibold text-accent-deep">
+                {PROVENANCE_CHIP}
+              </span>
+            )}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onNondominantChange(undefined)}
+              aria-pressed={!nondominant}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                !nondominant
+                  ? "bg-ink text-paper"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              No, una mano
+            </button>
+            {(
+              ["SIMETRICA", "ALTERNADA", "BASE_PASIVA"] as const
+            ).map((rel) => (
+              <button
+                key={rel}
+                onClick={() =>
+                  onNondominantChange(
+                    nondominant?.relation === rel
+                      ? undefined
+                      : { ...nondominant, relation: rel },
+                  )
+                }
+                aria-pressed={nondominant?.relation === rel}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  nondominant?.relation === rel
+                    ? "bg-ink text-paper"
+                    : "bg-white text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {RELATION_ES[rel]}
+              </button>
+            ))}
+          </div>
+          {nondominant?.relation === "BASE_PASIVA" && (
+            <SelectorCMBase
+              value={nondominant.cm_id}
+              onChange={(cm_id) =>
+                onNondominantChange({ ...nondominant, cm_id })
+              }
+            />
+          )}
         </div>
       )}
 

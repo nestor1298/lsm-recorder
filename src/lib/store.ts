@@ -61,10 +61,26 @@ export function updateSignRecording(
 
 // ── Annotations ─────────────────────────────────────────────────
 
+/**
+ * Migración LSM-PN 1.0 → 1.1: deriva la tipología bimanual desde los
+ * booleanos históricos. two_handed+symmetrical → simétrica;
+ * two_handed solo → base pasiva con CM pendiente (cm_id ausente).
+ */
+export function migrateAnnotation(a: SignAnnotation): SignAnnotation {
+  if (a.nondominant || !a.two_handed) return a;
+  return {
+    ...a,
+    nondominant: {
+      relation: a.symmetrical ? "SIMETRICA" : "BASE_PASIVA",
+    },
+  };
+}
+
 export function getAnnotations(): SignAnnotation[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(ANNOTATIONS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const list: SignAnnotation[] = raw ? JSON.parse(raw) : [];
+  return list.map(migrateAnnotation);
 }
 
 export function saveAnnotation(annotation: SignAnnotation): void {
@@ -106,36 +122,52 @@ export function createAnnotation(cmId: number, gloss: string): SignAnnotation {
 }
 
 export function exportAnnotationAsLSMPN(annotation: SignAnnotation): object {
+  const a = migrateAnnotation(annotation);
+  const esquema = [...a.segments]
+    .sort((x, y) => x.start_ms - y.start_ms)
+    .map((s) => (s.type === "M" ? "M" : "D"))
+    .join("");
   return {
-    schema_version: "1.0",
-    gloss: annotation.gloss,
-    cm_id: annotation.cm_id,
-    dominant_hand: annotation.dominant_hand,
-    two_handed: annotation.two_handed,
-    symmetrical: annotation.symmetrical,
-    segments: annotation.segments.map((seg) => ({
+    schema_version: "1.1",
+    gloss: a.gloss,
+    cm_id: a.cm_id,
+    dominant_hand: a.dominant_hand,
+    esquema,
+    // Compatibilidad 1.0 (derivados de nondominant)
+    two_handed: a.two_handed,
+    symmetrical: a.symmetrical,
+    ...(a.nondominant && { nondominant: a.nondominant }),
+    segments: a.segments.map((seg) => ({
       type: seg.type,
       phase: seg.phase,
       timing: { start_ms: seg.start_ms, end_ms: seg.end_ms },
-      ...(seg.cm_id && { cm: { cm_id: seg.cm_id } }),
+      ...(seg.cm_id && {
+        cm: { cm_id: seg.cm_id, ...(seg.end_cm_id && { end_cm_id: seg.end_cm_id }) },
+      }),
       ...(seg.body_region && {
         location: {
           body_region: seg.body_region,
+          location_code: seg.location_code,
           contact: seg.contact,
           laterality: seg.laterality,
         },
       }),
-      ...(seg.contour_movement && {
+      ...((seg.contour_movement || seg.direction || seg.repetition) && {
         movement: {
           contour: seg.contour_movement,
           local: seg.local_movement,
           plane: seg.movement_plane,
+          ...(seg.direction && { direction: seg.direction }),
+          ...(seg.repetition && { repetition: seg.repetition }),
         },
       }),
-      ...(seg.palm_facing && {
+      ...((seg.palm_facing || seg.finger_pointing || seg.forearm_rotation) && {
         orientation: {
           palm_facing: seg.palm_facing,
           finger_pointing: seg.finger_pointing,
+          ...(seg.forearm_rotation && {
+            forearm_rotation: seg.forearm_rotation,
+          }),
         },
       }),
       ...((seg.eyebrows || seg.mouth || seg.head_movement) && {
@@ -145,8 +177,12 @@ export function exportAnnotationAsLSMPN(annotation: SignAnnotation): object {
           head_movement: seg.head_movement,
         },
       }),
+      ...(seg.provenance &&
+        Object.keys(seg.provenance).length > 0 && {
+          provenance: seg.provenance,
+        }),
     })),
-    notes: annotation.notes,
-    status: annotation.status,
+    notes: a.notes,
+    status: a.status,
   };
 }

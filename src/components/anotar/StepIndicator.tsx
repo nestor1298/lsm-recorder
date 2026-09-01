@@ -47,6 +47,29 @@ const STEP_META: Record<PasoId, { label: string; icon: React.ReactNode }> = {
       </svg>
     ),
   },
+  orientacion: {
+    label: "Palma",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+        <rect
+          x="7"
+          y="5"
+          width="10"
+          height="14"
+          rx="4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M12 9v6m0 0-2.4-2.4M12 15l2.4-2.4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
   movimiento: {
     label: "Movimiento",
     icon: (

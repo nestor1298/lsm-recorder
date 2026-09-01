@@ -6,9 +6,18 @@ import type {
   EyebrowPosition,
   LocalMovement,
   MouthShape,
+  MovementDirection,
   MovementPlane,
+  Repetition,
 } from "@/lib/types";
-import { CONTOUR_ES, LOCAL_ES, PLANE_ES } from "@/lib/anotar_labels";
+import {
+  CONTOUR_ES,
+  LOCAL_ES,
+  PLANE_ES,
+  REPETITION_ES,
+  directionLabel,
+  PROVENANCE_CHIP,
+} from "@/lib/anotar_labels";
 
 const EYEBROWS_ES: Record<EyebrowPosition, string> = {
   NEUTRAL: "Neutrales",
@@ -193,15 +202,147 @@ const PLANES: MovementPlane[] = [
   "OBLIQUE",
 ];
 
+/** Flechas de dirección: 6 botones combinables (máx. dos ejes) */
+export function DireccionControl({
+  value,
+  suggested,
+  onChange,
+}: {
+  value?: MovementDirection;
+  suggested?: boolean;
+  onChange: (v: MovementDirection | undefined) => void;
+}) {
+  const d = value ?? { x: 0, y: 0, z: 0 };
+  const toggle = (axis: "x" | "y" | "z", dir: -1 | 1) => {
+    const next: MovementDirection = { ...d, [axis]: d[axis] === dir ? 0 : dir };
+    onChange(next.x === 0 && next.y === 0 && next.z === 0 ? undefined : next);
+  };
+  const btn = (
+    label: string,
+    axis: "x" | "y" | "z",
+    dir: -1 | 1,
+    glyph: string,
+  ) => (
+    <button
+      key={label}
+      onClick={() => toggle(axis, dir)}
+      aria-pressed={d[axis] === dir}
+      aria-label={label}
+      className={`rounded-xl border-2 px-3 py-2.5 text-lg font-bold transition-colors ${
+        d[axis] === dir
+          ? "border-accent bg-accent-tint text-accent-deep"
+          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+      }`}
+    >
+      {glyph}
+    </button>
+  );
+  return (
+    <div>
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+        ¿Hacia dónde va?
+        {suggested && value && (
+          <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-semibold text-accent-deep">
+            {PROVENANCE_CHIP}
+          </span>
+        )}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {btn("Arriba", "y", 1, "↑")}
+        {btn("Abajo", "y", -1, "↓")}
+        {btn("A la izquierda", "x", -1, "←")}
+        {btn("A la derecha", "x", 1, "→")}
+        {btn("Hacia mí", "z", -1, "⊙")}
+        {btn("Al frente", "z", 1, "⊗")}
+        <span className="ml-1 text-xs text-gray-500">
+          {value ? directionLabel(value) : "Sin dirección marcada"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** ¿Se repite? no / 2 veces / varias, con tipo cuando aplica */
+export function RepeticionControl({
+  value,
+  suggested,
+  onChange,
+}: {
+  value?: Repetition;
+  suggested?: boolean;
+  onChange: (v: Repetition | undefined) => void;
+}) {
+  const count = value?.count ?? 1;
+  return (
+    <div>
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+        ¿Se repite el movimiento?
+        {suggested && value && (
+          <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-semibold text-accent-deep">
+            {PROVENANCE_CHIP}
+          </span>
+        )}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { c: 1, label: "No" },
+          { c: 2, label: "2 veces" },
+          { c: 3, label: "Varias" },
+        ].map(({ c, label }) => (
+          <button
+            key={c}
+            onClick={() =>
+              onChange(
+                c === 1 ? undefined : { count: c, type: value?.type ?? "IGUAL" },
+              )
+            }
+            aria-pressed={count === c}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+              count === c
+                ? "bg-ink text-paper"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        {value && (
+          <div className="flex gap-1.5">
+            {(Object.keys(REPETITION_ES) as Repetition["type"][]).map((t) => (
+              <button
+                key={t}
+                onClick={() => onChange({ ...value, type: t })}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                  value.type === t
+                    ? "bg-accent-tint text-accent-deep"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {REPETITION_ES[t]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface PasoMovimientoProps {
   contour?: ContourMovement;
   local?: LocalMovement;
   plane?: MovementPlane;
+  direction?: MovementDirection;
+  repetition?: Repetition;
   eyebrows?: EyebrowPosition;
   mouth?: MouthShape;
+  directionSuggested?: boolean;
+  repetitionSuggested?: boolean;
   onContourChange: (v: ContourMovement | undefined) => void;
   onLocalChange: (v: LocalMovement | undefined) => void;
   onPlaneChange: (v: MovementPlane | undefined) => void;
+  onDirectionChange: (v: MovementDirection | undefined) => void;
+  onRepetitionChange: (v: Repetition | undefined) => void;
   onEyebrowsChange: (v: EyebrowPosition | undefined) => void;
   onMouthChange: (v: MouthShape | undefined) => void;
   onNext: () => void;
@@ -212,11 +353,17 @@ export default function PasoMovimiento({
   contour,
   local,
   plane,
+  direction,
+  repetition,
   eyebrows,
   mouth,
+  directionSuggested,
+  repetitionSuggested,
   onContourChange,
   onLocalChange,
   onPlaneChange,
+  onDirectionChange,
+  onRepetitionChange,
   onEyebrowsChange,
   onMouthChange,
   onNext,
@@ -273,6 +420,18 @@ export default function PasoMovimiento({
           <span className="text-sm font-bold">Se queda quieta</span>
         </button>
       </div>
+
+      {/* Dirección y repetición (matriz segmental de Cruz Aldrete) */}
+      <DireccionControl
+        value={direction}
+        suggested={directionSuggested}
+        onChange={onDirectionChange}
+      />
+      <RepeticionControl
+        value={repetition}
+        suggested={repetitionSuggested}
+        onChange={onRepetitionChange}
+      />
 
       {/* Más detalle: movimiento local + plano */}
       <button

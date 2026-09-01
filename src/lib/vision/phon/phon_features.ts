@@ -15,6 +15,11 @@ import type {
   MovementPlane,
   EyebrowPosition,
   MouthShape,
+  MovementDirection,
+  PalmFacing,
+  FingerPointing,
+  NonDominantRelation,
+  Repetition,
 } from "@/lib/types";
 import { CM_INVENTORY } from "@/lib/data";
 
@@ -29,6 +34,8 @@ export interface PhonFrame {
   timestampMs: number;
   /** 21 landmarks de la mano dominante detectada (normalizados 0..1) */
   hand?: Pt[];
+  /** 21 landmarks de la otra mano (cuando hay dos) */
+  otherHand?: Pt[];
   /** ¿se detectaron 2 manos en este frame? */
   twoHands?: boolean;
   /** 33 landmarks de pose (normalizados) */
@@ -48,9 +55,18 @@ export interface PhonSuggestion {
   contact?: ContactType;
   contour?: ContourMovement;
   plane?: MovementPlane;
+  direction?: MovementDirection;
+  repetition?: Repetition;
+  palm_facing?: PalmFacing;
+  finger_pointing?: FingerPointing;
   eyebrows?: EyebrowPosition;
   mouth?: MouthShape;
   two_handed?: boolean;
+  /** Relación bimanual inferida de las trayectorias de ambas manos */
+  nondominant_relation?: NonDominantRelation;
+  /** Corte D-M-D: extremos quietos con lugar distinto al núcleo */
+  inicio?: { location_code?: string };
+  fin?: { location_code?: string };
   framesAnalyzed: number;
   framesWithHand: number;
 }
@@ -337,6 +353,143 @@ export function classifyTrajectory(
   return { contour, plane, moving: true };
 }
 
+// ── Orientación (OR) desde los landmarks de la mano ─────────────
+// Marco de la persona señante (video SIN espejo): x_señante = −x_imagen,
+// y_arriba = −y_imagen, z_frente = −z_mediapipe (z crece alejándose de
+// cámara y la cámara está de frente a la persona).
+
+function toSigner(v: Pt): Pt {
+  return { x: -v.x, y: -v.y, z: -v.z };
+}
+
+function classifyAxis(
+  v: Pt,
+): "UP" | "DOWN" | "FORWARD" | "BACK" | "LEFT" | "RIGHT" {
+  const ax = Math.abs(v.x);
+  const ay = Math.abs(v.y);
+  const az = Math.abs(v.z);
+  if (ay >= ax && ay >= az) return v.y > 0 ? "UP" : "DOWN";
+  if (ax >= az) return v.x > 0 ? "RIGHT" : "LEFT";
+  return v.z > 0 ? "FORWARD" : "BACK";
+}
+
+/**
+ * Palma y dedos desde los 21 landmarks. `signerRightHand` indica si la
+ * mano observada es la derecha de la persona (invierte la normal).
+ * Umbrales: el eje dominante gana; sin umbral mínimo porque siempre hay
+ * una orientación (la incertidumbre se resuelve con la moda entre frames).
+ */
+export function observeOrientation(
+  hand: Pt[],
+  signerRightHand: boolean,
+): { palm: PalmFacing; fingers: FingerPointing } {
+  const wrist = hand[0];
+  const idxMcp = hand[5];
+  const pnkMcp = hand[17];
+  const a = sub(idxMcp, wrist);
+  const b = sub(pnkMcp, wrist);
+  // normal en coords de imagen; para mano derecha real apunta fuera de
+  // la palma con este orden de cross
+  let n = {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  };
+  if (!signerRightHand) n = { x: -n.x, y: -n.y, z: -n.z };
+  const palmDir = toSigner(n);
+
+  const fingersVec = toSigner(sub(mid(hand[8], hand[12]), mid(hand[5], hand[9])));
+
+  return {
+    palm: classifyAxis(palmDir),
+    fingers: classifyAxis(fingersVec),
+  };
+}
+
+// ── Dirección y repetición desde la trayectoria ─────────────────
+
+/**
+ * Dirección neta del movimiento (marco señante, solo x/y: la z de los
+ * landmarks es demasiado ruidosa para dirección). Umbral: 15% del ancho
+ * de hombros por eje.
+ */
+export function observeDirection(
+  points: { x: number; y: number }[],
+  shoulderW: number,
+): MovementDirection | undefined {
+  if (points.length < 3 || !shoulderW) return undefined;
+  const dxImg = points[points.length - 1].x - points[0].x;
+  const dyImg = points[points.length - 1].y - points[0].y;
+  const th = shoulderW * 0.15;
+  const x = -dxImg > th ? 1 : -dxImg < -th ? -1 : 0;
+  const y = -dyImg > th ? 1 : -dyImg < -th ? -1 : 0;
+  if (x === 0 && y === 0) return undefined;
+  return { x: x as -1 | 0 | 1, y: y as -1 | 0 | 1, z: 0 };
+}
+
+/**
+ * Repetición por reversiones sobre el eje principal de la trayectoria
+ * (detrended): 2+ reversiones ≈ se repite. count 2 ó 3 (varias).
+ */
+export function observeRepetition(
+  points: { x: number; y: number }[],
+  shoulderW: number,
+): Repetition | undefined {
+  if (points.length < 6 || !shoulderW) return undefined;
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const range = (v: number[]) => Math.max(...v) - Math.min(...v);
+  const useX = range(xs) >= range(ys);
+  const sig = useX ? xs : ys;
+  const minSwing = shoulderW * 0.12;
+  let reversals = 0;
+  let dirSign = 0;
+  let swing = 0;
+  for (let i = 1; i < sig.length; i++) {
+    const d = sig[i] - sig[i - 1];
+    const s = Math.sign(d);
+    if (s === 0) continue;
+    if (dirSign === 0) dirSign = s;
+    else if (s !== dirSign) {
+      if (swing > minSwing) reversals++;
+      dirSign = s;
+      swing = 0;
+    }
+    swing += Math.abs(d);
+  }
+  if (reversals < 2) return undefined;
+  return { count: reversals >= 4 ? 3 : 2, type: "IGUAL" };
+}
+
+/**
+ * Relación bimanual desde las trayectorias de ambas manos:
+ * base casi quieta (<25% del camino dominante) → base pasiva;
+ * velocidades verticales correlacionadas → simétrica; anticorrelacionadas
+ * → alternada.
+ */
+export function observeRelation(
+  domTraj: { x: number; y: number }[],
+  baseTraj: { x: number; y: number }[],
+): NonDominantRelation {
+  const pathLen = (pts: { x: number; y: number }[]) => {
+    let l = 0;
+    for (let i = 1; i < pts.length; i++)
+      l += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    return l;
+  };
+  const domPath = pathLen(domTraj);
+  const basePath = pathLen(baseTraj);
+  if (domPath < 1e-6 || basePath < domPath * 0.25) return "BASE_PASIVA";
+  const n = Math.min(domTraj.length, baseTraj.length);
+  let corr = 0;
+  for (let i = 1; i < n; i++) {
+    const vd = domTraj[i].y - domTraj[i - 1].y;
+    const vb = baseTraj[i].y - baseTraj[i - 1].y;
+    corr += vd * vb;
+  }
+  return corr >= 0 ? "SIMETRICA" : "ALTERNADA";
+}
+
 // ── RNM desde blendshapes faciales ──────────────────────────────
 
 export function observeFace(face: Record<string, number>): {
@@ -422,15 +575,83 @@ export function aggregate(
     plane = t.plane;
   }
 
-  // RNM: moda sobre frames con cara
-  const faces = frames.filter((f) => f.face).map((f) => observeFace(f.face!));
-  const eyebrows = mode(faces.map((f) => f.eyebrows));
-  const mouth = mode(faces.map((f) => f.mouth));
+  // OR: moda de palma/dedos en el núcleo. La mano del lado izquierdo de
+  // la imagen es la derecha de la persona (video sin espejo).
+  const signerRightHand = dominantSide === "left";
+  const orients = cmFrames.map((f) =>
+    observeOrientation(f.hand!, signerRightHand),
+  );
+  const palm_facing = mode(orients.map((o) => o.palm));
+  const finger_pointing = mode(orients.map((o) => o.fingers));
 
+  // Dirección y repetición sobre la trayectoria completa
+  const direction = t.moving ? observeDirection(traj, shoulderW) : undefined;
+  const repetition = t.moving ? observeRepetition(traj, shoulderW) : undefined;
+
+  // Relación bimanual
   const twoHandedRatio =
     withHand.length > 0
       ? withHand.filter((f) => f.twoHands).length / withHand.length
       : 0;
+  let nondominant_relation: NonDominantRelation | undefined;
+  if (twoHandedRatio > 0.5) {
+    const both = withHand.filter((f) => f.otherHand);
+    const centroid = (h: Pt[]) => ({
+      x: h.reduce((s, p) => s + p.x, 0) / h.length,
+      y: h.reduce((s, p) => s + p.y, 0) / h.length,
+    });
+    if (both.length >= 4) {
+      nondominant_relation = observeRelation(
+        both.map((f) => centroid(f.hand!)),
+        both.map((f) => centroid(f.otherHand!)),
+      );
+    } else {
+      nondominant_relation = "SIMETRICA";
+    }
+  }
+
+  // Corte D-M-D: ventanas quietas al inicio/fin con lugar distinto
+  let inicio: { location_code?: string } | undefined;
+  let fin: { location_code?: string } | undefined;
+  if (withHand.length >= 8 && shoulderW > 0) {
+    const speeds: number[] = [0];
+    for (let i = 1; i < traj.length; i++) {
+      speeds.push(
+        Math.hypot(traj[i].x - traj[i - 1].x, traj[i].y - traj[i - 1].y),
+      );
+    }
+    const maxS = Math.max(...speeds);
+    const quiet = speeds.map((s) => s < Math.max(1e-4, maxS * 0.2));
+    const locAt = (idxs: number[]): string | undefined => {
+      const obs = idxs
+        .map((i) => withHand[i])
+        .filter((f) => f.pose)
+        .map((f) => observeLocation(f.hand!, f.pose!, dominantSide))
+        .filter((o): o is LocationObs => Boolean(o));
+      return mode(obs.map((o) => o.code));
+    };
+    let lead = 0;
+    while (lead < quiet.length && quiet[lead]) lead++;
+    let trail = 0;
+    while (trail < quiet.length && quiet[quiet.length - 1 - trail]) trail++;
+    if (lead >= 3) {
+      const loc = locAt([...Array(lead).keys()]);
+      if (loc && loc !== location_code) inicio = { location_code: loc };
+    }
+    if (trail >= 3) {
+      const idxs = Array.from(
+        { length: trail },
+        (_, k) => withHand.length - 1 - k,
+      );
+      const loc = locAt(idxs);
+      if (loc && loc !== location_code) fin = { location_code: loc };
+    }
+  }
+
+  // RNM: moda sobre frames con cara
+  const faces = frames.filter((f) => f.face).map((f) => observeFace(f.face!));
+  const eyebrows = mode(faces.map((f) => f.eyebrows));
+  const mouth = mode(faces.map((f) => f.mouth));
 
   return {
     cmCandidates,
@@ -438,9 +659,16 @@ export function aggregate(
     contact,
     contour,
     plane,
+    direction,
+    repetition,
+    palm_facing,
+    finger_pointing,
     eyebrows: eyebrows === "NEUTRAL" ? undefined : eyebrows,
     mouth: mouth === "NEUTRAL" ? undefined : mouth,
     two_handed: twoHandedRatio > 0.5 ? true : undefined,
+    nondominant_relation,
+    inicio,
+    fin,
     framesAnalyzed: frames.length,
     framesWithHand: withHand.length,
   };

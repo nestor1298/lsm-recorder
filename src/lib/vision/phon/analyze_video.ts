@@ -197,8 +197,10 @@ export async function analyzeSignVideo(
 
     const frames: PhonFrame[] = rawFrames.map((fr) => {
       // mano dominante de este frame: la del lado dominante; si solo hay
-      // una mano, esa.
+      // una mano, esa. La otra (si existe) va aparte para la relación
+      // bimanual.
       let chosen: Pt[] | undefined;
+      let other: Pt[] | undefined;
       if (fr.hands.length === 1) chosen = fr.hands[0];
       else if (fr.hands.length > 1) {
         chosen = fr.hands.reduce((best, hd) => {
@@ -207,10 +209,12 @@ export async function analyzeSignVideo(
           const want = dominantSide === "right";
           return (want ? cx > bx : cx < bx) ? hd : best;
         });
+        other = fr.hands.find((hd) => hd !== chosen);
       }
       return {
         timestampMs: fr.timestampMs,
         hand: chosen,
+        otherHand: other,
         twoHands: fr.hands.length >= 2,
         pose: fr.pose,
         face: fr.face,
