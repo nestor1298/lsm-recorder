@@ -349,21 +349,18 @@ export default function EsqueletoLSM({
     setWebgl(Boolean(c.getContext("webgl2") ?? c.getContext("webgl")));
   }, []);
 
-  // bucle "Ver" en modo standalone
+  // bucle "Ver" en modo standalone: el efecto captura el tiempo actual y
+  // avanza un frame; al notificar onTimeChange cambia timeMs y el efecto
+  // se re-crea, continuando desde ahí (sin refs mutados en render).
   useEffect(() => {
     if (!playing || !onTimeChange) return;
-    let last = performance.now();
-    const tick = (now: number) => {
-      const dt = (now - last) * speed;
-      last = now;
-      onTimeChange((timeMsRef.current + dt) % durationMs);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
+    const started = performance.now();
+    rafRef.current = requestAnimationFrame((now) => {
+      const dt = (now - started) * speed;
+      onTimeChange((timeMs + dt) % durationMs);
+    });
     return () => cancelAnimationFrame(rafRef.current);
-  }, [playing, speed, durationMs, onTimeChange]);
-  const timeMsRef = useRef(timeMs);
-  timeMsRef.current = timeMs;
+  }, [playing, speed, durationMs, onTimeChange, timeMs]);
 
   const pose = useMemo(
     () => poseAtTime(annotation, timeMs),

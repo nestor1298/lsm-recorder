@@ -24,6 +24,12 @@ export interface CMEntry {
   distal_override: string | null;
   frequency_tier: 1 | 2 | 3 | 4;
   notes: string;
+  /**
+   * Documentada como mano base (TAB) en señas asimétricas.
+   * // VALIDAR-LSM: lista aproximada por alpha_code (B/A/S/1/5/C/O);
+   * // debe revisarla la lingüista.
+   */
+  tab_capable?: boolean;
 }
 
 export type FingerGroup =

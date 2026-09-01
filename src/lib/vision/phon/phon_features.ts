@@ -15,6 +15,11 @@ import type {
   MovementPlane,
   EyebrowPosition,
   MouthShape,
+  MovementDirection,
+  PalmFacing,
+  FingerPointing,
+  NonDominantRelation,
+  Repetition,
 } from "@/lib/types";
 import { CM_INVENTORY } from "@/lib/data";
 
@@ -48,9 +53,15 @@ export interface PhonSuggestion {
   contact?: ContactType;
   contour?: ContourMovement;
   plane?: MovementPlane;
+  direction?: MovementDirection;
+  repetition?: Repetition;
+  palm_facing?: PalmFacing;
+  finger_pointing?: FingerPointing;
   eyebrows?: EyebrowPosition;
   mouth?: MouthShape;
   two_handed?: boolean;
+  /** Relación bimanual inferida de las trayectorias de ambas manos */
+  nondominant_relation?: NonDominantRelation;
   framesAnalyzed: number;
   framesWithHand: number;
 }

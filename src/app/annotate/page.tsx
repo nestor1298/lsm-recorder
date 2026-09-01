@@ -9,12 +9,26 @@ import {
   deleteAnnotation,
   exportAnnotationAsLSMPN,
 } from "@/lib/store";
-import type { SignAnnotation, PSHRSegment, CMEntry } from "@/lib/types";
+import type {
+  SignAnnotation,
+  PSHRSegment,
+  CMEntry,
+  NonDominantSpec,
+} from "@/lib/types";
+import dynamic from "next/dynamic";
 import HandVisualization from "@/components/HandVisualization";
 import PSHRTimeline from "@/components/PSHRTimeline";
+import TimelineCanales from "@/components/TimelineCanales";
 import AnnotationForm from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
 import HandLandmarkOverlay from "@/components/HandLandmarkOverlay";
+import { RELATION_ES } from "@/lib/anotar_labels";
+import { SelectorCMCompacto } from "@/components/anotar/selectores_compactos";
+
+const EsqueletoLSM = dynamic(
+  () => import("@/components/esqueleto/EsqueletoLSM"),
+  { ssr: false },
+);
 
 const STATUS_ES: Record<string, string> = {
   draft: "borrador",
@@ -68,6 +82,16 @@ export default function AnnotatePage() {
     }
     setCurrentTimeMs(ms);
   }, []);
+
+  // Al seleccionar un segmento, el esqueleto (y el video) saltan a su centro
+  const handleSegmentSelect = useCallback(
+    (id: string | null) => {
+      setSelectedSegmentId(id);
+      const seg = current?.segments.find((s) => s.id === id);
+      if (seg) handleSeek((seg.start_ms + seg.end_ms) / 2);
+    },
+    [current, handleSeek],
+  );
 
   const handleSegmentAdd = useCallback(
     (segment: PSHRSegment) => {
@@ -408,8 +432,23 @@ export default function AnnotatePage() {
               onSegmentAdd={handleSegmentAdd}
               onSegmentUpdate={handleSegmentUpdate}
               onSegmentDelete={handleSegmentDelete}
-              onSegmentSelect={setSelectedSegmentId}
+              onSegmentSelect={handleSegmentSelect}
               selectedSegmentId={selectedSegmentId}
+            />
+          </div>
+
+          {/* Canales fonológicos (una pista por matriz) */}
+          <div className="relative rounded-xl border border-gray-200 bg-paper p-4">
+            <h3 className="mb-3 text-sm font-semibold text-ink">
+              Canales fonológicos
+            </h3>
+            <TimelineCanales
+              segments={current.segments}
+              durationMs={videoDuration}
+              currentTimeMs={currentTimeMs}
+              selectedSegmentId={selectedSegmentId}
+              onSegmentSelect={(id) => handleSegmentSelect(id)}
+              onSeek={handleSeek}
             />
           </div>
 
@@ -429,8 +468,17 @@ export default function AnnotatePage() {
           )}
         </div>
 
-        {/* Right: Hand viz + Global props */}
+        {/* Right: Esqueleto + Hand viz + Global props */}
         <div className="space-y-4">
+          {/* Esqueleto 3D: función pura de las matrices anotadas */}
+          <EsqueletoLSM
+            annotation={current}
+            timeMs={currentTimeMs}
+            durationMs={videoDuration}
+            standalone={!current.video_url}
+            onTimeChange={handleSeek}
+          />
+
           {/* Hand Visualization */}
           <div className="rounded-xl border border-gray-200 bg-paper p-4">
             <h3 className="mb-3 text-sm font-semibold text-ink">
@@ -474,43 +522,68 @@ export default function AnnotatePage() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={current.two_handed}
-                onChange={(e) => {
-                  const updated = {
-                    ...current,
-                    two_handed: e.target.checked,
-                    updated_at: new Date().toISOString(),
-                  };
-                  setCurrent(updated);
-                  saveAnnotation(updated);
-                }}
-                className="h-4 w-4 rounded border-gray-300 text-accent-deep"
-              />
-              <span className="text-xs text-gray-700">Seña bimanual</span>
-            </label>
-
-            {current.two_handed && (
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={current.symmetrical}
-                  onChange={(e) => {
-                    const updated = {
-                      ...current,
-                      symmetrical: e.target.checked,
-                      updated_at: new Date().toISOString(),
-                    };
-                    setCurrent(updated);
-                    saveAnnotation(updated);
-                  }}
-                  className="h-4 w-4 rounded border-gray-300 text-accent-deep"
-                />
-                <span className="text-xs text-gray-700">Simétrica</span>
+            {/* Bimanualidad (tipología Cruz Aldrete) */}
+            <div>
+              <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                Las dos manos
               </label>
-            )}
+              <div className="flex flex-wrap gap-1">
+                {(
+                  [undefined, "SIMETRICA", "ALTERNADA", "BASE_PASIVA", "INDEPENDIENTE"] as const
+                ).map((rel) => {
+                  const isSelected = current.nondominant?.relation === rel ||
+                    (!rel && !current.nondominant);
+                  const label = rel ? RELATION_ES[rel] : "Una mano";
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => {
+                        const nondominant: NonDominantSpec | undefined = rel
+                          ? { ...current.nondominant, relation: rel }
+                          : undefined;
+                        const updated = {
+                          ...current,
+                          nondominant,
+                          two_handed: Boolean(nondominant),
+                          symmetrical: nondominant?.relation === "SIMETRICA",
+                          updated_at: new Date().toISOString(),
+                        };
+                        setCurrent(updated);
+                        saveAnnotation(updated);
+                      }}
+                      className={`rounded px-2 py-1 text-[10px] font-medium ${
+                        isSelected
+                          ? "bg-ink text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {(current.nondominant?.relation === "BASE_PASIVA" ||
+                current.nondominant?.relation === "INDEPENDIENTE") && (
+                <div className="mt-2">
+                  <p className="mb-1 text-[10px] text-gray-500">
+                    CM de la mano base
+                    {!current.nondominant.cm_id && " (pendiente)"}
+                  </p>
+                  <SelectorCMCompacto
+                    value={current.nondominant.cm_id}
+                    onChange={(cm_id) => {
+                      const updated = {
+                        ...current,
+                        nondominant: { ...current.nondominant!, cm_id },
+                        updated_at: new Date().toISOString(),
+                      };
+                      setCurrent(updated);
+                      saveAnnotation(updated);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-gray-500">
