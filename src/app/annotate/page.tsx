@@ -19,7 +19,7 @@ import dynamic from "next/dynamic";
 import HandVisualization from "@/components/HandVisualization";
 import PSHRTimeline from "@/components/PSHRTimeline";
 import TimelineCanales from "@/components/TimelineCanales";
-import AnnotationForm from "@/components/AnnotationForm";
+import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
 import HandLandmarkOverlay from "@/components/HandLandmarkOverlay";
 import { RELATION_ES } from "@/lib/anotar_labels";
@@ -48,6 +48,9 @@ export default function AnnotatePage() {
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showHands, setShowHands] = useState(false);
+  const [focusChannel, setFocusChannel] = useState<CanalId | null>(null);
+  // Video subido en esta sesión (objectURL: no sobrevive recargas)
+  const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -66,6 +69,12 @@ export default function AnnotatePage() {
     () => current?.segments.find((s) => s.id === selectedSegmentId) ?? null,
     [current, selectedSegmentId],
   );
+
+  // Al cambiar de anotación, el video subido de la sesión se descarta
+  useEffect(() => {
+    setLocalVideoUrl(null);
+    setFocusChannel(null);
+  }, [current?.id]);
 
   // Video time sync
   useEffect(() => {
@@ -380,43 +389,77 @@ export default function AnnotatePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Video + Timeline */}
         <div className="space-y-4 lg:col-span-2">
-          {/* Video player */}
+          {/* Video player (grabación propia espejada, o archivo subido) */}
           <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-black">
-            {current.video_url ? (
+            {localVideoUrl || current.video_url ? (
               <>
                 <video
                   ref={videoRef}
-                  src={current.video_url}
+                  src={localVideoUrl ?? current.video_url}
                   controls
                   className="aspect-video w-full"
-                  style={{ transform: "scaleX(-1)" }}
+                  style={
+                    localVideoUrl ? undefined : { transform: "scaleX(-1)" }
+                  }
                 />
                 {showHands && (
-                  <HandLandmarkOverlay videoRef={videoRef} mirrored enabled />
+                  <HandLandmarkOverlay
+                    videoRef={videoRef}
+                    mirrored={!localVideoUrl}
+                    enabled
+                  />
                 )}
               </>
             ) : (
               <div className="flex aspect-video items-center justify-center bg-gray-900">
                 <div className="text-center">
                   <p className="text-sm text-gray-400">Sin video adjunto</p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Usa la línea de tiempo para definir segmentos PSHR
+                  <label className="mt-3 inline-block cursor-pointer rounded-full border-[1.5px] border-paper/60 px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-paper/10">
+                    Subir un video
+                    <input
+                      type="file"
+                      accept="video/webm,video/mp4,video/quicktime"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setLocalVideoUrl(URL.createObjectURL(f));
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Solo para esta sesión de anotación (no se sube al corpus)
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          {current.video_url && (
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input
-                type="checkbox"
-                checked={showHands}
-                onChange={(e) => setShowHands(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-accent-deep focus:ring-accent"
-              />
-              Detectar manos (overlay de landmarks)
-            </label>
+          {(localVideoUrl || current.video_url) && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={showHands}
+                  onChange={(e) => setShowHands(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-accent-deep focus:ring-accent"
+                />
+                Detectar manos (overlay de landmarks)
+              </label>
+              <label className="cursor-pointer text-xs font-medium text-gray-500 hover:text-ink">
+                {localVideoUrl ? "Cambiar video" : "Usar otro video"}
+                <input
+                  type="file"
+                  accept="video/webm,video/mp4,video/quicktime"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setLocalVideoUrl(URL.createObjectURL(f));
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           )}
 
           {/* PSHR Timeline */}
@@ -449,6 +492,7 @@ export default function AnnotatePage() {
               selectedSegmentId={selectedSegmentId}
               onSegmentSelect={(id) => handleSegmentSelect(id)}
               onSeek={handleSeek}
+              onChannelSelect={(c) => setFocusChannel(c as CanalId)}
             />
           </div>
 
@@ -460,6 +504,7 @@ export default function AnnotatePage() {
               </h3>
               <AnnotationForm
                 segment={selectedSegment}
+                focusChannel={focusChannel}
                 onUpdate={(updates) =>
                   handleSegmentUpdate(selectedSegment.id, updates)
                 }
@@ -475,7 +520,7 @@ export default function AnnotatePage() {
             annotation={current}
             timeMs={currentTimeMs}
             durationMs={videoDuration}
-            standalone={!current.video_url}
+            standalone={!current.video_url && !localVideoUrl}
             onTimeChange={handleSeek}
           />
 

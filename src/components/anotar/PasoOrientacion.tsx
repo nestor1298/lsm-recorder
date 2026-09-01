@@ -1,7 +1,16 @@
 "use client";
 
-import type { PalmFacing, FingerPointing } from "@/lib/types";
-import { PALM_ES, FINGER_ES, PROVENANCE_CHIP } from "@/lib/anotar_labels";
+import type {
+  PalmFacing,
+  FingerPointing,
+  ForearmRotation,
+} from "@/lib/types";
+import {
+  PALM_ES,
+  FINGER_ES,
+  FOREARM_ES,
+  PROVENANCE_CHIP,
+} from "@/lib/anotar_labels";
 
 /**
  * Paso 4 — orientación (OR): hacia dónde mira la palma y hacia dónde
@@ -137,39 +146,40 @@ function CardGroup<T extends Dir>({
   );
 }
 
-interface PasoOrientacionProps {
+interface EditorOrientacionProps {
   palmFacing?: PalmFacing;
   fingerPointing?: FingerPointing;
+  forearmRotation?: ForearmRotation;
   /** procedencia de los campos (para el chip Sugerido) */
   palmSuggested?: boolean;
   fingerSuggested?: boolean;
   onPalmChange: (v: PalmFacing | undefined) => void;
   onFingerChange: (v: FingerPointing | undefined) => void;
+  /** presente solo donde se expone el antebrazo (modo experto) */
+  onForearmChange?: (v: ForearmRotation | undefined) => void;
+}
+
+interface PasoOrientacionProps extends EditorOrientacionProps {
   onNext: () => void;
   onBack: () => void;
 }
 
-export default function PasoOrientacion({
+/**
+ * Editor del canal Palma (orientación OR), reusable en el guiado y en
+ * los canales del modo experto (donde además expone el antebrazo).
+ */
+export function EditorOrientacion({
   palmFacing,
   fingerPointing,
+  forearmRotation,
   palmSuggested,
   fingerSuggested,
   onPalmChange,
   onFingerChange,
-  onNext,
-  onBack,
-}: PasoOrientacionProps) {
+  onForearmChange,
+}: EditorOrientacionProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-ink">
-          ¿Cómo está orientada la mano?
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Mira tu propia mano al hacer la seña.
-        </p>
-      </div>
-
       <CardGroup
         title="¿Hacia dónde mira la palma?"
         options={PALM_ORDER}
@@ -186,6 +196,52 @@ export default function PasoOrientacion({
         suggested={fingerSuggested}
         onChange={onFingerChange}
       />
+      {onForearmChange && (
+        <div>
+          <p className="mb-2 text-sm font-semibold text-ink">
+            Rotación del antebrazo
+          </p>
+          <div className="flex gap-1.5">
+            {(Object.keys(FOREARM_ES) as ForearmRotation[]).map((v) => (
+              <button
+                key={v}
+                onClick={() =>
+                  onForearmChange(forearmRotation === v ? undefined : v)
+                }
+                aria-pressed={forearmRotation === v}
+                className={`rounded-full px-4 py-2 text-xs font-semibold ${
+                  forearmRotation === v
+                    ? "bg-ink text-paper"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {FOREARM_ES[v]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PasoOrientacion({
+  onNext,
+  onBack,
+  ...editor
+}: PasoOrientacionProps) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-ink">
+          ¿Cómo está orientada la mano?
+        </h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Mira tu propia mano al hacer la seña.
+        </p>
+      </div>
+
+      <EditorOrientacion {...editor} />
 
       <div className="flex justify-between border-t border-gray-100 pt-4">
         <button

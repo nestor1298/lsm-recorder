@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { href: "/learn", label: "Aprender" },
   { href: "/inventario", label: "Inventario" },
   { href: "/record", label: "Grabar" },
-  { href: "/anotar", label: "Anotar" },
+  { href: "/annotate", label: "Anotar" },
   { href: "/mis-grabaciones", label: "Mis grabaciones" },
 ];
 
