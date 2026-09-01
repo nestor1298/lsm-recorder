@@ -131,6 +131,42 @@ export const RELATION_ES: Record<NonDominantRelation, string> = {
 /** Chip de procedencia */
 export const PROVENANCE_CHIP = "Sugerido";
 
+/**
+ * Descripción textual de la pose de un segmento, generada desde las
+ * matrices (sirve de aria-label del recuadro 3D y como prueba de que la
+ * notación es legible): "Mano derecha en la barbilla, palma hacia mí,
+ * dedos arriba".
+ */
+export function describeSegmentPose(
+  seg:
+    | {
+        location_code?: string;
+        palm_facing?: PalmFacing;
+        finger_pointing?: FingerPointing;
+        contour_movement?: ContourMovement;
+        direction?: MovementDirection;
+        repetition?: { count: number };
+      }
+    | undefined,
+  dominantHand: "LEFT" | "RIGHT",
+): string {
+  if (!seg) return "Pose de reposo";
+  const parts: string[] = [
+    `Mano ${dominantHand === "RIGHT" ? "derecha" : "izquierda"}`,
+  ];
+  const lugar = ubName(seg.location_code);
+  if (lugar) parts.push(`en ${lugar.toLowerCase()}`);
+  if (seg.palm_facing) parts.push(PALM_ES[seg.palm_facing].toLowerCase());
+  if (seg.finger_pointing)
+    parts.push(FINGER_ES[seg.finger_pointing].toLowerCase());
+  if (seg.contour_movement)
+    parts.push(`movimiento ${CONTOUR_ES[seg.contour_movement].toLowerCase()}`);
+  if (seg.direction) parts.push(directionLabel(seg.direction));
+  if (seg.repetition && seg.repetition.count > 1)
+    parts.push(`repetido ${seg.repetition.count} veces`);
+  return parts.join(", ");
+}
+
 /** Datos mínimos para componer la notación de una anotación guiada. */
 export interface NotacionInput {
   cm: CMEntry | null;
