@@ -155,6 +155,8 @@ export default function AnotarGuiadoPage() {
             ? { relation: s.nondominant_relation }
             : undefined,
         ),
+        ...setIf("inicio", s.inicio),
+        ...setIf("fin", s.fin),
         provenance: prov,
       });
     },
