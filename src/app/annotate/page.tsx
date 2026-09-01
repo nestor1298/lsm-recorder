@@ -21,7 +21,8 @@ import PSHRTimeline from "@/components/PSHRTimeline";
 import TimelineCanales from "@/components/TimelineCanales";
 import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
-import HandLandmarkOverlay from "@/components/HandLandmarkOverlay";
+import EsqueletoOverlay from "@/components/EsqueletoOverlay";
+import { applySuggestion } from "@/lib/vision/phon/apply_suggestion";
 import { RELATION_ES } from "@/lib/anotar_labels";
 import { SelectorCMCompacto } from "@/components/anotar/selectores_compactos";
 
@@ -36,7 +37,7 @@ const STATUS_ES: Record<string, string> = {
   reviewed: "revisada",
 };
 
-type View = "list" | "select_cm" | "annotate";
+type View = "list" | "annotate";
 
 export default function AnnotatePage() {
   const [view, setView] = useState<View>("list");
@@ -46,9 +47,8 @@ export default function AnnotatePage() {
     null,
   );
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showHands, setShowHands] = useState(false);
   const [focusChannel, setFocusChannel] = useState<CanalId | null>(null);
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
   // Video subido en esta sesión (objectURL: no sobrevive recargas)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -84,6 +84,64 @@ export default function AnnotatePage() {
     video.addEventListener("timeupdate", handler);
     return () => video.removeEventListener("timeupdate", handler);
   }, [current]);
+
+  /**
+   * Subir video: lo muestra y corre el análisis de visión. Si la
+   * anotación está vacía, aplica la propuesta (segmentos + canales con
+   * procedencia auto); si ya hay segmentos, pide confirmación.
+   */
+  const handleUploadVideo = useCallback(
+    async (file: File) => {
+      const url = URL.createObjectURL(file);
+      setLocalVideoUrl(url);
+      if (!current) return;
+      setAnalyzing("Cargando modelos…");
+      try {
+        const { analyzeSignVideo } = await import(
+          "@/lib/vision/phon/analyze_video"
+        );
+        const sug = await analyzeSignVideo(url, (p) =>
+          setAnalyzing(
+            p.phase === "modelos"
+              ? `Cargando modelos… (${p.done}/${p.total})`
+              : `Analizando la seña… (${p.done}/${p.total})`,
+          ),
+        );
+        if (sug.framesWithHand < 3) {
+          setAnalyzing(null);
+          return;
+        }
+        // duración del video subido
+        const probe = document.createElement("video");
+        probe.preload = "metadata";
+        probe.src = url;
+        await new Promise<void>((res) => {
+          probe.onloadedmetadata = () => res();
+          probe.onerror = () => res();
+        });
+        const durMs = isFinite(probe.duration) ? probe.duration * 1000 : 1500;
+        setCurrent((cur) => {
+          if (!cur) return cur;
+          if (
+            cur.segments.length > 0 &&
+            !window.confirm(
+              "El análisis reemplazará los segmentos actuales. ¿Continuar?",
+            )
+          ) {
+            return cur;
+          }
+          const updated = applySuggestion(cur, sug, durMs);
+          saveAnnotation(updated);
+          return updated;
+        });
+      } catch {
+        // sin análisis: el video queda para anotar a mano
+      } finally {
+        setAnalyzing(null);
+      }
+    },
+    [current],
+  );
 
   const handleSeek = useCallback((ms: number) => {
     if (videoRef.current) {
@@ -149,8 +207,10 @@ export default function AnnotatePage() {
     [current],
   );
 
-  const handleCreateAnnotation = useCallback((cm: CMEntry) => {
-    const ann = createAnnotation(cm.cm_id, cm.example_sign);
+  // Sin elegir CM: la detecta la visión al subir el video; el nombre se
+  // edita en el encabezado.
+  const handleNewAnnotation = useCallback(() => {
+    const ann = createAnnotation(0, "NUEVA SEÑA");
     setCurrent(ann);
     setAnnotations(getAnnotations());
     setView("annotate");
@@ -169,18 +229,6 @@ export default function AnnotatePage() {
     a.click();
     URL.revokeObjectURL(url);
   }, [current]);
-
-  const filteredCMs = useMemo(() => {
-    if (!searchQuery) return CM_INVENTORY;
-    const q = searchQuery.toLowerCase();
-    return CM_INVENTORY.filter(
-      (cm) =>
-        cm.example_sign.toLowerCase().includes(q) ||
-        cm.cruz_aldrete_notation.toLowerCase().includes(q) ||
-        (cm.alpha_code?.toLowerCase().includes(q) ?? false) ||
-        cm.cm_id.toString() === q,
-    );
-  }, [searchQuery]);
 
   // ── List View ─────────────────────────────────────────────────
   if (view === "list") {
@@ -202,7 +250,7 @@ export default function AnnotatePage() {
             </p>
           </div>
           <button
-            onClick={() => setView("select_cm")}
+            onClick={handleNewAnnotation}
             className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
           >
             Nueva anotación
@@ -218,7 +266,7 @@ export default function AnnotatePage() {
               Crea tu primera anotación LSM-PN eligiendo una configuración de mano
             </p>
             <button
-              onClick={() => setView("select_cm")}
+              onClick={handleNewAnnotation}
               className="mt-4 rounded-full bg-ink px-6 py-2 text-sm font-semibold text-white hover:bg-gray-800"
             >
               Comenzar
@@ -280,44 +328,8 @@ export default function AnnotatePage() {
     );
   }
 
-  // ── CM Selection View ─────────────────────────────────────────
-  if (view === "select_cm") {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-ink">Elige una configuración de mano</h1>
-          <button
-            onClick={() => setView("list")}
-            className="rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
-          >
-            Cancelar
-          </button>
-        </div>
-
-        <input
-          type="text"
-          placeholder="Busca por glosa, notación o código..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
-        />
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredCMs.map((cm) => (
-            <SignCard
-              key={cm.cm_id}
-              cm={cm}
-              compact
-              onSelect={handleCreateAnnotation}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   // ── Annotation View ───────────────────────────────────────────
-  if (!current || !selectedCM) {
+  if (!current) {
     return (
       <div className="py-12 text-center">
         <p className="text-gray-500">No se encontró la anotación.</p>
@@ -350,11 +362,26 @@ export default function AnnotatePage() {
             Volver
           </button>
           <div>
-            <h1 className="text-xl font-bold text-ink">
-              {current.gloss}{" "}
-              <span className="text-sm font-normal text-gray-500">
-                CM #{current.cm_id}
-              </span>
+            <h1 className="flex items-center gap-2 text-xl font-bold text-ink">
+              <input
+                value={current.gloss}
+                onChange={(e) => {
+                  const updated = {
+                    ...current,
+                    gloss: e.target.value.toUpperCase(),
+                    updated_at: new Date().toISOString(),
+                  };
+                  setCurrent(updated);
+                  saveAnnotation(updated);
+                }}
+                aria-label="Nombre de la seña"
+                className="w-44 rounded-lg border border-transparent bg-transparent px-1 font-bold uppercase text-ink hover:border-gray-200 focus:border-accent focus:outline-none"
+              />
+              {current.cm_id > 0 && (
+                <span className="text-sm font-normal text-gray-500">
+                  CM #{current.cm_id}
+                </span>
+              )}
             </h1>
             <p className="text-xs text-gray-500">
               {current.segments.length} segmentos &middot; {STATUS_ES[current.status] ?? current.status}
@@ -402,13 +429,10 @@ export default function AnnotatePage() {
                     localVideoUrl ? undefined : { transform: "scaleX(-1)" }
                   }
                 />
-                {showHands && (
-                  <HandLandmarkOverlay
-                    videoRef={videoRef}
-                    mirrored={!localVideoUrl}
-                    enabled
-                  />
-                )}
+                <EsqueletoOverlay
+                  videoRef={videoRef}
+                  mirrored={!localVideoUrl}
+                />
               </>
             ) : (
               <div className="flex aspect-video items-center justify-center bg-gray-900">
@@ -422,7 +446,7 @@ export default function AnnotatePage() {
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) setLocalVideoUrl(URL.createObjectURL(f));
+                        if (f) void handleUploadVideo(f);
                         e.target.value = "";
                       }}
                     />
@@ -437,15 +461,9 @@ export default function AnnotatePage() {
 
           {(localVideoUrl || current.video_url) && (
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={showHands}
-                  onChange={(e) => setShowHands(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-accent-deep focus:ring-accent"
-                />
-                Detectar manos (overlay de landmarks)
-              </label>
+              <p className="text-xs text-gray-500">
+                {analyzing ?? "Esqueleto detectado en el video (referencia); el modelo 3D dibuja lo anotado."}
+              </p>
               <label className="cursor-pointer text-xs font-medium text-gray-500 hover:text-ink">
                 {localVideoUrl ? "Cambiar video" : "Usar otro video"}
                 <input
@@ -454,7 +472,7 @@ export default function AnnotatePage() {
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) setLocalVideoUrl(URL.createObjectURL(f));
+                    if (f) void handleUploadVideo(f);
                     e.target.value = "";
                   }}
                 />
@@ -654,7 +672,7 @@ export default function AnnotatePage() {
 
           {/* Sign details */}
           <div className="rounded-xl border border-gray-200 bg-paper p-4">
-            <SignCard cm={selectedCM} />
+            {selectedCM && <SignCard cm={selectedCM} />}
           </div>
         </div>
       </div>

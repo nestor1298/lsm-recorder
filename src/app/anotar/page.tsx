@@ -33,6 +33,10 @@ const EsqueletoLSM = dynamic(
   () => import("@/components/esqueleto/EsqueletoLSM"),
   { ssr: false },
 );
+const EsqueletoOverlay = dynamic(
+  () => import("@/components/EsqueletoOverlay"),
+  { ssr: false },
+);
 
 /**
  * /anotar — flujo guiado de anotación LSM-PN.
@@ -217,7 +221,7 @@ export default function AnotarGuiadoPage() {
           <div className="lg:col-span-2">
             <div className="space-y-4 lg:sticky lg:top-6">
               {draft.video_url && (
-                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+                <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-black">
                   <video
                     ref={videoRef}
                     src={draft.video_url}
@@ -226,6 +230,7 @@ export default function AnotarGuiadoPage() {
                     playsInline
                     className="aspect-video w-full"
                   />
+                  <EsqueletoOverlay videoRef={videoRef} />
                 </div>
               )}
               <EsqueletoLSM
@@ -263,7 +268,7 @@ export default function AnotarGuiadoPage() {
                 })
               }
               onSuggestion={handleSuggestion}
-              onNext={() => goTo("cm")}
+              onNext={() => goTo("ubicacion")}
             />
           )}
           {paso === "cm" && (
@@ -276,8 +281,8 @@ export default function AnotarGuiadoPage() {
               onNondominantChange={(nondominant) =>
                 update({ nondominant }, ["nondominant"])
               }
-              onNext={() => goTo("ubicacion")}
-              onBack={() => goTo("video")}
+              onNext={() => goTo("resumen")}
+              onBack={() => goTo("resumen")}
             />
           )}
           {paso === "ubicacion" && (
@@ -293,7 +298,7 @@ export default function AnotarGuiadoPage() {
                 update({ laterality }, ["laterality"])
               }
               onNext={() => goTo("orientacion")}
-              onBack={() => goTo("cm")}
+              onBack={() => goTo("video")}
             />
           )}
           {paso === "orientacion" && (

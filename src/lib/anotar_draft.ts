@@ -31,9 +31,13 @@ export type PasoId =
   | "movimiento"
   | "resumen";
 
+/**
+ * Pasos visibles del flujo guiado. La CM no se pregunta: la detecta el
+ * análisis de visión (el usuario promedio no es lingüista); el paso
+ * "cm" existe solo como editor de corrección accesible desde Resumen.
+ */
 export const PASOS: PasoId[] = [
   "video",
-  "cm",
   "ubicacion",
   "orientacion",
   "movimiento",

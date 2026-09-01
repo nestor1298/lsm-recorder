@@ -268,18 +268,35 @@ function SkeletonScene({
     <>
       <ambientLight intensity={0.85} />
       <directionalLight position={[1, 2, 2]} intensity={0.9} />
-      {/* tronco y cabeza */}
-      <mesh position={[0, -0.08, 0]}>
-        <capsuleGeometry args={[0.15, 0.3, 4, 12]} />
-        <meshStandardMaterial color={colors.ink} />
-      </mesh>
+      {/* Esqueleto de líneas: sin volúmenes — solo huesos y
+          articulaciones, como una figura de palitos limpia. */}
+      {/* columna y línea de hombros */}
+      <Bone
+        from={new THREE.Vector3(0, SKEL.shoulderY, 0)}
+        to={new THREE.Vector3(0, -0.28, 0)}
+        radius={0.008}
+        color={colors.ink}
+      />
+      <Bone
+        from={new THREE.Vector3(-SKEL.shoulderX, SKEL.shoulderY, 0)}
+        to={new THREE.Vector3(SKEL.shoulderX, SKEL.shoulderY, 0)}
+        radius={0.008}
+        color={colors.ink}
+      />
+      {/* cuello y cabeza como aro */}
+      <Bone
+        from={new THREE.Vector3(0, SKEL.shoulderY, 0)}
+        to={new THREE.Vector3(hc.x, hc.y - SKEL.headRadius, hc.z)}
+        radius={0.007}
+        color={colors.ink}
+      />
       <group rotation={[pose.headTilt.x, 0, pose.headTilt.z]}>
         <mesh position={[hc.x, hc.y, hc.z]}>
-          <sphereGeometry args={[SKEL.headRadius, 16, 16]} />
+          <torusGeometry args={[SKEL.headRadius, 0.008, 8, 28]} />
           <meshStandardMaterial color={colors.ink} />
         </mesh>
       </group>
-      <Face pose={pose} ink={colors.paper} />
+      <Face pose={pose} ink={colors.ink} />
       {/* brazos */}
       {(["left", "right"] as const).map((sideKey) => {
         const arm = pose[sideKey];
@@ -290,18 +307,18 @@ function SkeletonScene({
             <Bone
               from={V(arm.shoulder)}
               to={V(arm.elbow)}
-              radius={0.028}
+              radius={0.009}
               color={colors.ink}
             />
             <Bone
               from={V(arm.elbow)}
               to={V(arm.wrist)}
-              radius={0.024}
+              radius={0.008}
               color={colors.ink}
             />
-            <Joint at={V(arm.shoulder)} r={0.032} color={colors.accent} />
-            <Joint at={V(arm.elbow)} r={0.026} color={colors.accent} />
-            <Joint at={V(arm.wrist)} r={0.02} color={colors.accent} />
+            <Joint at={V(arm.shoulder)} r={0.016} color={colors.accent} />
+            <Joint at={V(arm.elbow)} r={0.014} color={colors.accent} />
+            <Joint at={V(arm.wrist)} r={0.012} color={colors.accent} />
             <Hand arm={arm} side={side} color={handColor} />
           </group>
         );
