@@ -61,10 +61,26 @@ export function updateSignRecording(
 
 // ── Annotations ─────────────────────────────────────────────────
 
+/**
+ * Migración LSM-PN 1.0 → 1.1: deriva la tipología bimanual desde los
+ * booleanos históricos. two_handed+symmetrical → simétrica;
+ * two_handed solo → base pasiva con CM pendiente (cm_id ausente).
+ */
+export function migrateAnnotation(a: SignAnnotation): SignAnnotation {
+  if (a.nondominant || !a.two_handed) return a;
+  return {
+    ...a,
+    nondominant: {
+      relation: a.symmetrical ? "SIMETRICA" : "BASE_PASIVA",
+    },
+  };
+}
+
 export function getAnnotations(): SignAnnotation[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(ANNOTATIONS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const list: SignAnnotation[] = raw ? JSON.parse(raw) : [];
+  return list.map(migrateAnnotation);
 }
 
 export function saveAnnotation(annotation: SignAnnotation): void {

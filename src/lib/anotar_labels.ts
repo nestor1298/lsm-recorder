@@ -9,6 +9,12 @@ import type {
   ContactType,
   Laterality,
   CMEntry,
+  PalmFacing,
+  FingerPointing,
+  ForearmRotation,
+  RepetitionType,
+  NonDominantRelation,
+  MovementDirection,
 } from "./types";
 import { UB_LOCATIONS } from "./ub_inventory";
 
@@ -64,6 +70,66 @@ export const LATERALITY_ES: Record<Laterality, string> = {
   CONTRALATERAL: "Lado contrario",
   MIDLINE: "Al centro",
 };
+
+// ── Orientación (OR) — redactada desde la persona señante ───────
+
+export const PALM_ES: Record<PalmFacing, string> = {
+  UP: "Palma arriba",
+  DOWN: "Palma abajo",
+  FORWARD: "Palma al frente",
+  BACK: "Palma hacia mí",
+  LEFT: "Palma hacia dentro",
+  RIGHT: "Palma hacia fuera",
+  NEUTRAL: "Palma de canto",
+};
+
+export const FINGER_ES: Record<FingerPointing, string> = {
+  UP: "Dedos arriba",
+  DOWN: "Dedos abajo",
+  FORWARD: "Dedos al frente",
+  BACK: "Dedos hacia mí",
+  LEFT: "Dedos hacia dentro",
+  RIGHT: "Dedos hacia fuera",
+  NEUTRAL: "Dedos de canto",
+};
+
+export const FOREARM_ES: Record<ForearmRotation, string> = {
+  NEUTRAL: "Neutra",
+  PRONE: "Prona",
+  SUPINE: "Supina",
+};
+
+// ── Movimiento: dirección y repetición ──────────────────────────
+
+export const REPETITION_ES: Record<RepetitionType, string> = {
+  IGUAL: "Igual",
+  ALTERNADA: "Alternada",
+  PROGRESIVA: "Progresiva",
+};
+
+/** Dirección legible: "arriba y al frente" */
+export function directionLabel(d: MovementDirection): string {
+  const parts: string[] = [];
+  if (d.y === 1) parts.push("arriba");
+  if (d.y === -1) parts.push("abajo");
+  if (d.x === 1) parts.push("a la derecha");
+  if (d.x === -1) parts.push("a la izquierda");
+  if (d.z === 1) parts.push("al frente");
+  if (d.z === -1) parts.push("hacia mí");
+  return parts.join(" y ") || "sin dirección";
+}
+
+// ── Bimanualidad ────────────────────────────────────────────────
+
+export const RELATION_ES: Record<NonDominantRelation, string> = {
+  SIMETRICA: "Igual y al mismo tiempo",
+  ALTERNADA: "Igual pero alternando",
+  BASE_PASIVA: "La otra mano es base",
+  INDEPENDIENTE: "Cada mano hace algo distinto",
+};
+
+/** Chip de procedencia */
+export const PROVENANCE_CHIP = "Sugerido";
 
 /** Datos mínimos para componer la notación de una anotación guiada. */
 export interface NotacionInput {

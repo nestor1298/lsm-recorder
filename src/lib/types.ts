@@ -125,6 +125,45 @@ export type BodyRegion = "HEAD" | "FACE" | "NECK" | "TRUNK" | "ARM" | "FOREARM" 
 export type Laterality = "IPSILATERAL" | "CONTRALATERAL" | "MIDLINE";
 export type SegmentType = "M" | "D" | "T";
 export type Phase = "PREPARATION" | "STROKE" | "HOLD" | "RETRACTION";
+/** Rotación del antebrazo (Cruz Aldrete: OR) — solo modo experto la expone */
+export type ForearmRotation = "NEUTRAL" | "PRONE" | "SUPINE";
+/**
+ * Dirección del movimiento en el marco de la persona señante:
+ * x: -1 izquierda / 1 derecha; y: -1 abajo / 1 arriba; z: -1 hacia mí / 1 al frente.
+ */
+export interface MovementDirection {
+  x: -1 | 0 | 1;
+  y: -1 | 0 | 1;
+  z: -1 | 0 | 1;
+}
+export type RepetitionType = "IGUAL" | "ALTERNADA" | "PROGRESIVA";
+export interface Repetition {
+  count: number;
+  type: RepetitionType;
+}
+/**
+ * Tipología bimanual de Cruz Aldrete. Sustituye a los booleanos
+ * two_handed/symmetrical (que se conservan solo por compatibilidad y
+ * se derivan en la migración de store.ts).
+ */
+export type NonDominantRelation =
+  | "SIMETRICA"
+  | "ALTERNADA"
+  | "BASE_PASIVA"
+  | "INDEPENDIENTE";
+export interface NonDominantSpec {
+  relation: NonDominantRelation;
+  /** Obligatoria en base_pasiva/independiente; en simétrica/alternada se hereda */
+  cm_id?: number;
+  palm_facing?: PalmFacing;
+  finger_pointing?: FingerPointing;
+  /** Solo independiente */
+  location_code?: string;
+  provenance?: ProvenanceMap;
+}
+/** Procedencia por campo: máquina propone, persona Sorda dispone. */
+export type AnnotProvenance = "auto" | "humano" | "auto_confirmado";
+export type ProvenanceMap = Partial<Record<string, AnnotProvenance>>;
 export type EyebrowPosition = "NEUTRAL" | "RAISED" | "FURROWED";
 export type MouthShape = "NEUTRAL" | "OPEN" | "CLOSED" | "ROUNDED" | "STRETCHED";
 export type HeadMovement = "NONE" | "NOD" | "SHAKE" | "TILT_LEFT" | "TILT_RIGHT" | "TILT_BACK" | "TILT_DOWN";
@@ -145,12 +184,18 @@ export interface PSHRSegment {
   contour_movement?: ContourMovement;
   local_movement?: LocalMovement;
   movement_plane?: MovementPlane;
+  direction?: MovementDirection;
+  repetition?: Repetition;
   palm_facing?: PalmFacing;
   finger_pointing?: FingerPointing;
+  forearm_rotation?: ForearmRotation;
+  /** CM final del segmento (osc-CM / cambios progresivos) */
+  end_cm_id?: number;
   // Non-manual
   eyebrows?: EyebrowPosition;
   mouth?: MouthShape;
   head_movement?: HeadMovement;
+  provenance?: ProvenanceMap;
 }
 
 export interface SignAnnotation {
@@ -165,8 +210,12 @@ export interface SignAnnotation {
   // PSHR segments
   segments: PSHRSegment[];
   // Global properties
+  /** @deprecated derivado de nondominant; se mantiene por compatibilidad */
   two_handed: boolean;
+  /** @deprecated derivado de nondominant; se mantiene por compatibilidad */
   symmetrical: boolean;
+  /** Tipología bimanual (fuente de verdad desde LSM-PN 1.1) */
+  nondominant?: NonDominantSpec;
   notes: string;
   status: "draft" | "complete" | "reviewed";
 }
