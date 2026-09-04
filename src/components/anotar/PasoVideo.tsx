@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getJson } from "@/lib/api-client";
 import type { PhonSuggestion } from "@/lib/vision/phon/phon_features";
 import type { AnalyzeProgress } from "@/lib/vision/phon/analyze_video";
+import type { Pose3DTrack } from "@/lib/vision/pose3d";
 
 /**
  * Paso 1 — elegir el video a anotar y darle nombre a la seña.
@@ -28,6 +29,8 @@ interface PasoVideoProps {
   onGlossChange: (gloss: string) => void;
   onVideoChange: (url: string | undefined, isLocal: boolean) => void;
   onSuggestion: (s: PhonSuggestion) => void;
+  /** Esqueleto 3D reconstruido del video (no se persiste) */
+  onTrack?: (t: Pose3DTrack) => void;
   onNext: () => void;
 }
 
@@ -38,6 +41,7 @@ export default function PasoVideo({
   onGlossChange,
   onVideoChange,
   onSuggestion,
+  onTrack,
   onNext,
 }: PasoVideoProps) {
   const { state } = useAuth();
@@ -57,7 +61,11 @@ export default function PasoVideo({
       const { analyzeSignVideo } = await import(
         "@/lib/vision/phon/analyze_video"
       );
-      const s = await analyzeSignVideo(videoUrl, setAnalyzing);
+      const { suggestion: s, track } = await analyzeSignVideo(
+        videoUrl,
+        setAnalyzing,
+      );
+      onTrack?.(track);
       if (s.framesWithHand < 3) {
         setError(
           "No se detectaron manos en el video. Puedes anotar manualmente.",
@@ -72,7 +80,7 @@ export default function PasoVideo({
     } finally {
       setAnalyzing(null);
     }
-  }, [videoUrl, onSuggestion]);
+  }, [videoUrl, onSuggestion, onTrack]);
 
   useEffect(() => {
     if (state !== "signedIn") return;

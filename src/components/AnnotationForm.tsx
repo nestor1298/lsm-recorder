@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import type { PSHRSegment, HeadMovement } from "@/lib/types";
 import { UB_LOCATIONS } from "@/lib/ub_inventory";
 import { CM_INVENTORY } from "@/lib/data";
+import { PALM_ES, FINGER_ES, CONTOUR_ES } from "@/lib/anotar_labels";
 import { EditorCM } from "@/components/anotar/PasoCM";
 import { EditorUbicacion } from "@/components/anotar/PasoUbicacion";
 import { EditorOrientacion } from "@/components/anotar/PasoOrientacion";
@@ -150,7 +151,10 @@ export default function AnnotationForm({
 
       {seccion(
         "palma",
-        [segment.palm_facing, segment.finger_pointing]
+        [
+          segment.palm_facing && PALM_ES[segment.palm_facing],
+          segment.finger_pointing && FINGER_ES[segment.finger_pointing],
+        ]
           .filter(Boolean)
           .join(" · ") || "Sin orientación",
         <EditorOrientacion
@@ -165,7 +169,8 @@ export default function AnnotationForm({
 
       {seccion(
         "movimiento",
-        segment.contour_movement ?? (isMovement ? "Sin contorno" : "Detención"),
+        (segment.contour_movement && CONTOUR_ES[segment.contour_movement]) ??
+          (isMovement ? "Sin contorno" : "Detención"),
         isMovement ? (
           <EditorMovimiento
             contour={segment.contour_movement}

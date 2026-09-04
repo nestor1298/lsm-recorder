@@ -20,6 +20,7 @@ import type {
   ProvenanceMap,
 } from "@/lib/types";
 import type { PhonSuggestion } from "@/lib/vision/phon/phon_features";
+import type { Pose3DTrack } from "@/lib/vision/pose3d";
 import StepIndicator from "@/components/anotar/StepIndicator";
 import PasoVideo from "@/components/anotar/PasoVideo";
 import PasoCM from "@/components/anotar/PasoCM";
@@ -29,14 +30,13 @@ import PasoMovimiento from "@/components/anotar/PasoMovimiento";
 import Resumen from "@/components/anotar/Resumen";
 
 // El recuadro 3D usa WebGL: solo en cliente.
-const EsqueletoLSM = dynamic(
-  () => import("@/components/esqueleto/EsqueletoLSM"),
+const EsqueletoMP3D = dynamic(
+  () => import("@/components/esqueleto/EsqueletoMP3D"),
   { ssr: false },
 );
-const EsqueletoOverlay = dynamic(
-  () => import("@/components/EsqueletoOverlay"),
-  { ssr: false },
-);
+const VisorVideo = dynamic(() => import("@/components/VisorVideo"), {
+  ssr: false,
+});
 
 /**
  * /anotar — flujo guiado de anotación LSM-PN.
@@ -57,6 +57,7 @@ export default function AnotarGuiadoPage() {
   const [hydrated, setHydrated] = useState(false);
   const [timeMs, setTimeMs] = useState(0);
   const [durationMs, setDurationMs] = useState(DEFAULT_DURATION_MS);
+  const [track3D, setTrack3D] = useState<Pose3DTrack | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const rafRef = useRef(0);
 
@@ -221,25 +222,9 @@ export default function AnotarGuiadoPage() {
           <div className="lg:col-span-2">
             <div className="space-y-4 lg:sticky lg:top-6">
               {draft.video_url && (
-                <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-black">
-                  <video
-                    ref={videoRef}
-                    src={draft.video_url}
-                    controls
-                    loop
-                    playsInline
-                    className="aspect-video w-full"
-                  />
-                  <EsqueletoOverlay videoRef={videoRef} />
-                </div>
+                <VisorVideo src={draft.video_url} videoRef={videoRef} />
               )}
-              <EsqueletoLSM
-                annotation={previewAnnotation}
-                timeMs={timeMs}
-                durationMs={durationMs}
-                standalone={!draft.video_url}
-                onTimeChange={setTimeMs}
-              />
+              <EsqueletoMP3D track={track3D} timeMs={timeMs} />
               <p className="text-center text-sm font-semibold uppercase text-gray-600">
                 {draft.gloss.trim() || "…"}
               </p>
@@ -268,6 +253,7 @@ export default function AnotarGuiadoPage() {
                 })
               }
               onSuggestion={handleSuggestion}
+              onTrack={setTrack3D}
               onNext={() => goTo("ubicacion")}
             />
           )}

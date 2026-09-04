@@ -19,6 +19,14 @@ import {
   type PhonSuggestion,
   type Pt,
 } from "./phon_features";
+import {
+  assignHands,
+  graftHand,
+  toScene,
+  type P3,
+  type Pose3DFrame,
+  type Pose3DTrack,
+} from "../pose3d";
 
 const WASM_BASE =
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -28,6 +36,12 @@ const POSE_MODEL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 const FACE_MODEL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+
+/** Resultado del análisis: matrices propuestas + esqueleto 3D reconstruido */
+export interface AnalyzeResult {
+  suggestion: PhonSuggestion;
+  track: Pose3DTrack;
+}
 
 export interface AnalyzeProgress {
   phase: "modelos" | "frames";
@@ -67,7 +81,7 @@ async function seekTo(video: HTMLVideoElement, t: number): Promise<void> {
 export async function analyzeSignVideo(
   videoUrl: string,
   onProgress?: (p: AnalyzeProgress) => void,
-): Promise<PhonSuggestion> {
+): Promise<AnalyzeResult> {
   onProgress?.({ phase: "modelos", done: 0, total: 3 });
 
   const video = document.createElement("video");
@@ -146,7 +160,9 @@ export async function analyzeSignVideo(
     const rawFrames: {
       timestampMs: number;
       hands: Pt[][];
+      handsWorld: P3[][];
       pose?: Pt[];
+      poseWorld?: P3[];
       face?: Record<string, number>;
     }[] = [];
 
@@ -162,7 +178,15 @@ export async function analyzeSignVideo(
         hands: h.landmarks.map((hl) =>
           hl.map((q) => ({ x: q.x, y: q.y, z: q.z })),
         ),
+        handsWorld: (h.worldLandmarks ?? []).map((hl) =>
+          hl.map((q) => ({ x: q.x, y: q.y, z: q.z })),
+        ),
         pose: p.landmarks[0]?.map((q) => ({ x: q.x, y: q.y, z: q.z })),
+        poseWorld: p.worldLandmarks?.[0]?.map((q) => ({
+          x: q.x,
+          y: q.y,
+          z: q.z,
+        })),
         face: f.faceBlendshapes?.[0]
           ? Object.fromEntries(
               f.faceBlendshapes[0].categories.map((c) => [
@@ -221,7 +245,32 @@ export async function analyzeSignVideo(
       };
     });
 
-    return aggregate(frames, dominantSide);
+    // ── Esqueleto 3D: pose world + manos injertadas en las muñecas ──
+    const t0 = rawFrames[0]?.timestampMs ?? 0;
+    const trackFrames: Pose3DFrame[] = [];
+    for (const fr of rawFrames) {
+      if (!fr.poseWorld || fr.poseWorld.length < 33) continue;
+      const pose = fr.poseWorld.map(toScene);
+      const { left, right } = assignHands(fr.hands, fr.pose);
+      const graft = (idx: number | undefined, wristIdx: number) => {
+        if (idx === undefined) return undefined;
+        const hw = fr.handsWorld[idx];
+        if (!hw || hw.length === 0) return undefined;
+        return graftHand(hw.map(toScene), pose[wristIdx]);
+      };
+      trackFrames.push({
+        tMs: fr.timestampMs - t0,
+        pose,
+        left: graft(left, 15),
+        right: graft(right, 16),
+      });
+    }
+    const track: Pose3DTrack = {
+      frames: trackFrames,
+      durationMs: Math.round(duration * 1000),
+    };
+
+    return { suggestion: aggregate(frames, dominantSide), track };
   } finally {
     hand.close();
     pose.close();

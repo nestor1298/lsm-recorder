@@ -20,13 +20,14 @@ import HandVisualization from "@/components/HandVisualization";
 import TimelineCanales from "@/components/TimelineCanales";
 import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
-import EsqueletoOverlay from "@/components/EsqueletoOverlay";
+import VisorVideo from "@/components/VisorVideo";
+import type { Pose3DTrack } from "@/lib/vision/pose3d";
 import { applySuggestion } from "@/lib/vision/phon/apply_suggestion";
 import { RELATION_ES } from "@/lib/anotar_labels";
 import { SelectorCMCompacto } from "@/components/anotar/selectores_compactos";
 
-const EsqueletoLSM = dynamic(
-  () => import("@/components/esqueleto/EsqueletoLSM"),
+const EsqueletoMP3D = dynamic(
+  () => import("@/components/esqueleto/EsqueletoMP3D"),
   { ssr: false },
 );
 
@@ -50,6 +51,8 @@ export default function AnnotatePage() {
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   // Video subido en esta sesión (objectURL: no sobrevive recargas)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null);
+  // Esqueleto 3D reconstruido del video analizado (vive en la sesión)
+  const [track3D, setTrack3D] = useState<Pose3DTrack | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -73,6 +76,7 @@ export default function AnnotatePage() {
   useEffect(() => {
     setLocalVideoUrl(null);
     setFocusChannel(null);
+    setTrack3D(null);
   }, [current?.id]);
 
   // Video time sync
@@ -99,13 +103,14 @@ export default function AnnotatePage() {
         const { analyzeSignVideo } = await import(
           "@/lib/vision/phon/analyze_video"
         );
-        const sug = await analyzeSignVideo(url, (p) =>
+        const { suggestion: sug, track } = await analyzeSignVideo(url, (p) =>
           setAnalyzing(
             p.phase === "modelos"
               ? `Cargando modelos… (${p.done}/${p.total})`
               : `Analizando la seña… (${p.done}/${p.total})`,
           ),
         );
+        setTrack3D(track);
         if (sug.framesWithHand < 3) {
           setAnalyzing(null);
           return;
@@ -415,53 +420,41 @@ export default function AnnotatePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: Video + Timeline */}
         <div className="space-y-4 lg:col-span-2">
-          {/* Video player (grabación propia espejada, o archivo subido) */}
-          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-black">
-            {localVideoUrl || current.video_url ? (
-              <>
-                <video
-                  ref={videoRef}
-                  src={localVideoUrl ?? current.video_url}
-                  controls
-                  className="aspect-video w-full"
-                  style={
-                    localVideoUrl ? undefined : { transform: "scaleX(-1)" }
-                  }
-                />
-                <EsqueletoOverlay
-                  videoRef={videoRef}
-                  mirrored={!localVideoUrl}
-                />
-              </>
-            ) : (
-              <div className="flex aspect-video items-center justify-center bg-gray-900">
-                <div className="text-center">
-                  <p className="text-sm text-gray-400">Sin video adjunto</p>
-                  <label className="mt-3 inline-block cursor-pointer rounded-full border-[1.5px] border-paper/60 px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-paper/10">
-                    Subir un video
-                    <input
-                      type="file"
-                      accept="video/webm,video/mp4,video/quicktime"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) void handleUploadVideo(f);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Solo para esta sesión de anotación (no se sube al corpus)
-                  </p>
-                </div>
+          {/* Video: se adapta a cualquier proporción y es redimensionable */}
+          {localVideoUrl || current.video_url ? (
+            <VisorVideo
+              src={localVideoUrl ?? current.video_url!}
+              videoRef={videoRef}
+              mirrored={!localVideoUrl}
+            />
+          ) : (
+            <div className="flex aspect-video items-center justify-center rounded-xl border border-gray-200 bg-gray-900">
+              <div className="text-center">
+                <p className="text-sm text-gray-400">Sin video adjunto</p>
+                <label className="mt-3 inline-block cursor-pointer rounded-full border-[1.5px] border-paper/60 px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-paper/10">
+                  Subir un video
+                  <input
+                    type="file"
+                    accept="video/webm,video/mp4,video/quicktime"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleUploadVideo(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-gray-500">
+                  Solo para esta sesión de anotación (no se sube al corpus)
+                </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {(localVideoUrl || current.video_url) && (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-gray-500">
-                {analyzing ?? "Esqueleto detectado en el video (referencia); el modelo 3D dibuja lo anotado."}
+                {analyzing ?? "Esqueleto detectado sobre el video"}
               </p>
               <label className="cursor-pointer text-xs font-medium text-gray-500 hover:text-ink">
                 {localVideoUrl ? "Cambiar video" : "Usar otro video"}
@@ -518,13 +511,7 @@ export default function AnnotatePage() {
         {/* Right: Esqueleto + Hand viz + Global props */}
         <div className="space-y-4">
           {/* Esqueleto 3D: función pura de las matrices anotadas */}
-          <EsqueletoLSM
-            annotation={current}
-            timeMs={currentTimeMs}
-            durationMs={videoDuration}
-            standalone={!current.video_url && !localVideoUrl}
-            onTimeChange={handleSeek}
-          />
+          <EsqueletoMP3D track={track3D} timeMs={currentTimeMs} />
 
           {/* Hand Visualization */}
           <div className="rounded-xl border border-gray-200 bg-paper p-4">
