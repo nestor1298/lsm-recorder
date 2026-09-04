@@ -18,6 +18,7 @@ import {
   useState,
 } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { SignAnnotation } from "@/lib/types";
 import {
@@ -100,7 +101,9 @@ function Joint({
   );
 }
 
-// ── Mano: paleta + 5 dedos × falanges, desde HandPose ───────────
+// ── Mano alámbrica: misma estructura que el overlay del video ────
+// (muñeca → nudillos, cadena de nudillos, falanges como líneas con
+// puntos en las articulaciones — nada de volúmenes).
 
 const FINGER_OFFSETS: { key: keyof HandPose; x: number }[] = [
   { key: "index", x: 0.028 },
@@ -109,6 +112,53 @@ const FINGER_OFFSETS: { key: keyof HandPose; x: number }[] = [
   { key: "pinky", x: -0.026 },
 ];
 const PHALANX_LEN = [0.032, 0.024, 0.018];
+const WIRE_R = 0.0028;
+const DOT_R = 0.005;
+
+function WireSeg({
+  from,
+  to,
+  color,
+}: {
+  from: [number, number, number];
+  to: [number, number, number];
+  color: string;
+}) {
+  const a = new THREE.Vector3(...from);
+  const b = new THREE.Vector3(...to);
+  const len = a.distanceTo(b);
+  const mid = a.clone().add(b).multiplyScalar(0.5);
+  const quat = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    b.clone().sub(a).normalize(),
+  );
+  return (
+    <mesh
+      position={[mid.x, mid.y, mid.z]}
+      quaternion={[quat.x, quat.y, quat.z, quat.w]}
+    >
+      <capsuleGeometry args={[WIRE_R, Math.max(0.001, len - WIRE_R), 3, 6]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
+
+function Dot({
+  at,
+  color,
+  r = DOT_R,
+}: {
+  at: [number, number, number];
+  color: string;
+  r?: number;
+}) {
+  return (
+    <mesh position={at}>
+      <sphereGeometry args={[r, 8, 8]} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
 
 function Finger({
   pose,
@@ -125,15 +175,14 @@ function Finger({
   const spread = pose.carpalSpread * sx * 2;
   const seg = (i: number, flex: number, children?: React.ReactNode) => (
     <group rotation={[flex, 0, i === 0 ? spread : 0]}>
-      <mesh position={[0, PHALANX_LEN[i] / 2, 0]}>
-        <capsuleGeometry args={[0.0055, PHALANX_LEN[i] - 0.008, 3, 6]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
+      <WireSeg from={[0, 0, 0]} to={[0, PHALANX_LEN[i], 0]} color={color} />
+      <Dot at={[0, PHALANX_LEN[i], 0]} color={color} r={0.004} />
       <group position={[0, PHALANX_LEN[i], 0]}>{children}</group>
     </group>
   );
   return (
     <group position={[x * sx, 0.078, 0]} rotation={[pose.carpalFlex, 0, 0]}>
+      <Dot at={[0, 0, 0]} color={color} />
       {seg(0, pose.mcpFlex, seg(1, pose.pipFlex, seg(2, pose.dipFlex)))}
     </group>
   );
@@ -154,16 +203,13 @@ function Thumb({
       position={[0.038 * sx, 0.02, 0.01]}
       rotation={[pose.cmcOpposition, pose.cmcRotation * sx, -0.6 * sx]}
     >
+      <Dot at={[0, 0, 0]} color={color} />
       <group rotation={[pose.mcpFlex, 0, 0]}>
-        <mesh position={[0, 0.016, 0]}>
-          <capsuleGeometry args={[0.0065, 0.022, 3, 6]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
+        <WireSeg from={[0, 0, 0]} to={[0, 0.032, 0]} color={color} />
+        <Dot at={[0, 0.032, 0]} color={color} r={0.004} />
         <group position={[0, 0.032, 0]} rotation={[pose.ipFlex, 0, 0]}>
-          <mesh position={[0, 0.011, 0]}>
-            <capsuleGeometry args={[0.0055, 0.014, 3, 6]} />
-            <meshStandardMaterial color={color} />
-          </mesh>
+          <WireSeg from={[0, 0, 0]} to={[0, 0.022, 0]} color={color} />
+          <Dot at={[0, 0.022, 0]} color={color} r={0.0035} />
         </group>
       </group>
     </group>
@@ -180,16 +226,39 @@ function Hand({
   color: string;
 }) {
   const q = arm.wristQuat;
+  const sx = side === "R" ? 1 : -1;
+  const knuckleY = 0.078;
+  const thumbBase: [number, number, number] = [0.038 * sx, 0.02, 0.01];
   return (
     <group
       position={[arm.wrist.x, arm.wrist.y, arm.wrist.z]}
       quaternion={[q.x, q.y, q.z, q.w]}
     >
-      {/* palma */}
-      <mesh position={[0, 0.045, 0]}>
-        <boxGeometry args={[0.075, 0.075, 0.022]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
+      {/* Palma alámbrica: muñeca→nudillos + cadena entre nudillos +
+          muñeca→base del pulgar y muñeca→nudillo del meñique (0-17) */}
+      <Dot at={[0, 0, 0]} color={color} r={0.006} />
+      {[FINGER_OFFSETS[0], FINGER_OFFSETS[3]].map(({ key, x }) => (
+        <WireSeg
+          key={`ray-${key}`}
+          from={[0, 0, 0]}
+          to={[x * sx, knuckleY, 0]}
+          color={color}
+        />
+      ))}
+      {FINGER_OFFSETS.slice(0, -1).map(({ key, x }, i) => (
+        <WireSeg
+          key={`chain-${key}`}
+          from={[x * sx, knuckleY, 0]}
+          to={[FINGER_OFFSETS[i + 1].x * sx, knuckleY, 0]}
+          color={color}
+        />
+      ))}
+      <WireSeg from={[0, 0, 0]} to={thumbBase} color={color} />
+      <WireSeg
+        from={thumbBase}
+        to={[FINGER_OFFSETS[0].x * sx, knuckleY, 0]}
+        color={color}
+      />
       {FINGER_OFFSETS.map(({ key, x }) => (
         <Finger
           key={key}
@@ -243,22 +312,9 @@ function Face({ pose, ink }: { pose: SkeletonPose; ink: string }) {
 
 // ── Escena ──────────────────────────────────────────────────────
 
-function SkeletonScene({
-  pose,
-  lateral,
-}: {
-  pose: SkeletonPose;
-  lateral: boolean;
-}) {
+function SkeletonScene({ pose }: { pose: SkeletonPose }) {
   const colors = useBrandColors();
-  const { camera, invalidate } = useThree();
-
-  useEffect(() => {
-    if (lateral) camera.position.set(1.05, 0.28, 0.2);
-    else camera.position.set(0, 0.25, 1.15);
-    camera.lookAt(0, 0.06, 0);
-    invalidate();
-  }, [lateral, camera, invalidate]);
+  const { invalidate } = useThree();
 
   const V = (v: { x: number; y: number; z: number }) =>
     new THREE.Vector3(v.x, v.y, v.z);
@@ -266,6 +322,14 @@ function SkeletonScene({
 
   return (
     <>
+      {/* Órbita libre con el cursor (arrastrar = rotar, rueda = zoom) */}
+      <OrbitControls
+        makeDefault
+        target={[0, 0.06, 0]}
+        enablePan={false}
+        minDistance={0.45}
+        maxDistance={2.5}
+      />
       <ambientLight intensity={0.85} />
       <directionalLight position={[1, 2, 2]} intensity={0.9} />
       {/* Esqueleto de líneas: sin volúmenes — solo huesos y
@@ -274,25 +338,25 @@ function SkeletonScene({
       <Bone
         from={new THREE.Vector3(0, SKEL.shoulderY, 0)}
         to={new THREE.Vector3(0, -0.28, 0)}
-        radius={0.008}
+        radius={0.005}
         color={colors.ink}
       />
       <Bone
         from={new THREE.Vector3(-SKEL.shoulderX, SKEL.shoulderY, 0)}
         to={new THREE.Vector3(SKEL.shoulderX, SKEL.shoulderY, 0)}
-        radius={0.008}
+        radius={0.005}
         color={colors.ink}
       />
       {/* cuello y cabeza como aro */}
       <Bone
         from={new THREE.Vector3(0, SKEL.shoulderY, 0)}
         to={new THREE.Vector3(hc.x, hc.y - SKEL.headRadius, hc.z)}
-        radius={0.007}
+        radius={0.005}
         color={colors.ink}
       />
       <group rotation={[pose.headTilt.x, 0, pose.headTilt.z]}>
         <mesh position={[hc.x, hc.y, hc.z]}>
-          <torusGeometry args={[SKEL.headRadius, 0.008, 8, 28]} />
+          <torusGeometry args={[SKEL.headRadius, 0.005, 8, 28]} />
           <meshStandardMaterial color={colors.ink} />
         </mesh>
       </group>
@@ -307,18 +371,18 @@ function SkeletonScene({
             <Bone
               from={V(arm.shoulder)}
               to={V(arm.elbow)}
-              radius={0.009}
+              radius={0.006}
               color={colors.ink}
             />
             <Bone
               from={V(arm.elbow)}
               to={V(arm.wrist)}
-              radius={0.008}
+              radius={0.005}
               color={colors.ink}
             />
-            <Joint at={V(arm.shoulder)} r={0.016} color={colors.accent} />
-            <Joint at={V(arm.elbow)} r={0.014} color={colors.accent} />
-            <Joint at={V(arm.wrist)} r={0.012} color={colors.accent} />
+            <Joint at={V(arm.shoulder)} r={0.011} color={colors.accent} />
+            <Joint at={V(arm.elbow)} r={0.01} color={colors.accent} />
+            <Joint at={V(arm.wrist)} r={0.009} color={colors.accent} />
             <Hand arm={arm} side={side} color={handColor} />
           </group>
         );
@@ -349,7 +413,6 @@ export default function EsqueletoLSM({
   onTimeChange,
   className = "",
 }: EsqueletoLSMProps) {
-  const [lateral, setLateral] = useState(false);
   const [webgl, setWebgl] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -391,8 +454,6 @@ export default function EsqueletoLSM({
 
   const descripcion = describeSegmentPose(activeSeg, annotation.dominant_hand);
 
-  const toggleView = useCallback(() => setLateral((l) => !l), []);
-
   return (
     <div
       className={`overflow-hidden rounded-2xl border border-gray-200 bg-paper ${className}`}
@@ -413,7 +474,7 @@ export default function EsqueletoLSM({
             }}
             gl={{ antialias: true }}
           >
-            <SkeletonScene pose={pose} lateral={lateral} />
+            <SkeletonScene pose={pose} />
           </Canvas>
         ) : (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
@@ -421,12 +482,6 @@ export default function EsqueletoLSM({
             pose: {descripcion}.
           </div>
         )}
-        <button
-          onClick={toggleView}
-          className="absolute right-2 top-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-        >
-          {lateral ? "Vista frontal" : "Vista lateral"}
-        </button>
       </div>
 
       {/* Descripción textual (lectores de pantalla y validación humana) */}

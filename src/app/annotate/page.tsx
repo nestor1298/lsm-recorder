@@ -17,7 +17,6 @@ import type {
 } from "@/lib/types";
 import dynamic from "next/dynamic";
 import HandVisualization from "@/components/HandVisualization";
-import PSHRTimeline from "@/components/PSHRTimeline";
 import TimelineCanales from "@/components/TimelineCanales";
 import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
@@ -480,28 +479,10 @@ export default function AnnotatePage() {
             </div>
           )}
 
-          {/* PSHR Timeline */}
-          <div className="rounded-xl border border-gray-200 bg-paper p-4">
-            <h3 className="mb-3 text-sm font-semibold text-ink">
-              Línea de tiempo PSHR
-            </h3>
-            <PSHRTimeline
-              segments={current.segments}
-              durationMs={videoDuration}
-              currentTimeMs={currentTimeMs}
-              onSeek={handleSeek}
-              onSegmentAdd={handleSegmentAdd}
-              onSegmentUpdate={handleSegmentUpdate}
-              onSegmentDelete={handleSegmentDelete}
-              onSegmentSelect={handleSegmentSelect}
-              selectedSegmentId={selectedSegmentId}
-            />
-          </div>
-
           {/* Canales fonológicos (una pista por matriz) */}
           <div className="relative rounded-xl border border-gray-200 bg-paper p-4">
             <h3 className="mb-3 text-sm font-semibold text-ink">
-              Canales fonológicos
+              Línea de tiempo y canales
             </h3>
             <TimelineCanales
               segments={current.segments}
@@ -511,6 +492,9 @@ export default function AnnotatePage() {
               onSegmentSelect={(id) => handleSegmentSelect(id)}
               onSeek={handleSeek}
               onChannelSelect={(c) => setFocusChannel(c as CanalId)}
+              onSegmentUpdate={handleSegmentUpdate}
+              onSegmentAdd={handleSegmentAdd}
+              onSegmentDelete={handleSegmentDelete}
             />
           </div>
 
