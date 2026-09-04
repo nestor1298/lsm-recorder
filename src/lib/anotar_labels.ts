@@ -128,6 +128,14 @@ export const RELATION_ES: Record<NonDominantRelation, string> = {
   INDEPENDIENTE: "Cada mano hace algo distinto",
 };
 
+/** Fases del segmento (Cruz Aldrete / Liddell & Johnson) en es-MX */
+export const PHASE_ES: Record<string, string> = {
+  PREPARATION: "Preparación",
+  STROKE: "Núcleo",
+  HOLD: "Detención",
+  RETRACTION: "Retracción",
+};
+
 /** Chip de procedencia */
 export const PROVENANCE_CHIP = "Sugerido";
 

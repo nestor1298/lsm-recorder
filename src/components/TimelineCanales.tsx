@@ -8,9 +8,10 @@
  * fonológico. Tocar una celda selecciona el segmento y abre su editor.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PSHRSegment, Phase } from "@/lib/types";
 import {
+  PHASE_ES,
   CONTOUR_ES,
   PALM_ES,
   FINGER_ES,
@@ -20,6 +21,14 @@ import {
 } from "@/lib/anotar_labels";
 
 const MIN_SEG_MS = 80;
+
+const MOUTH_CELL_ES: Record<string, string> = {
+  OPEN: "abierta",
+  CLOSED: "cerrada",
+  ROUNDED: "redonda",
+  STRETCHED: "estirada",
+  NEUTRAL: "neutral",
+};
 
 const PHASE_LABEL: Record<Phase, string> = {
   PREPARATION: "P",
@@ -93,7 +102,7 @@ const CANALES: Canal[] = [
             ? "ceño"
             : undefined,
         s.mouth && s.mouth !== "NEUTRAL"
-          ? `boca ${s.mouth.toLowerCase()}`
+          ? `boca ${MOUTH_CELL_ES[s.mouth] ?? s.mouth.toLowerCase()}`
           : undefined,
       ]
         .filter(Boolean)
@@ -158,11 +167,15 @@ export default function TimelineCanales({
   );
 
   // ── Drag global (scrub / resize / move) ───────────────────────
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
+  // Se resuelve con listeners de ventana: el arrastre continúa aunque
+  // el cursor salga del panel y no depende de pointer capture.
+  const [dragging, setDragging] = useState(false);
+
+  const applyDrag = useCallback(
+    (clientX: number) => {
       const drag = dragRef.current;
       if (!drag) return;
-      const ms = clientXToMs(e.clientX);
+      const ms = clientXToMs(clientX);
       if (drag.kind === "scrub") {
         onSeek(ms);
         return;
@@ -188,22 +201,34 @@ export default function TimelineCanales({
     [segments, total, clientXToMs, onSeek, onSegmentUpdate],
   );
 
-  const endDrag = useCallback((e: React.PointerEvent) => {
-    dragRef.current = null;
-    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-  }, []);
+  useEffect(() => {
+    if (!dragging) return;
+    const move = (ev: PointerEvent) => {
+      ev.preventDefault();
+      applyDrag(ev.clientX);
+    };
+    const up = () => {
+      dragRef.current = null;
+      setDragging(false);
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  }, [dragging, applyDrag]);
 
   const startDrag = (e: React.PointerEvent, state: DragState) => {
     e.stopPropagation();
+    e.preventDefault();
     dragRef.current = state;
-    (e.currentTarget.closest("[data-tlroot]") as HTMLElement | null)
-      ?.setPointerCapture?.(e.pointerId);
+    setDragging(true);
   };
 
   const handleRulerDown = (e: React.PointerEvent) => {
-    dragRef.current = { kind: "scrub" };
-    (e.currentTarget.closest("[data-tlroot]") as HTMLElement | null)
-      ?.setPointerCapture?.(e.pointerId);
     const ms = clientXToMs(e.clientX);
     if (addMode) {
       const half = Math.min(total * 0.05, 250);
@@ -215,22 +240,17 @@ export default function TimelineCanales({
         end_ms: Math.min(total, ms + half),
       });
       setAddMode(null);
-      dragRef.current = null;
       return;
     }
+    dragRef.current = { kind: "scrub" };
+    setDragging(true);
     onSeek(ms);
   };
 
   const selected = sorted.find((s) => s.id === selectedSegmentId);
 
   return (
-    <div
-      data-tlroot
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      className="select-none"
-    >
+    <div data-tlroot className="select-none">
       {/* Controles: agregar / eliminar */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <span className="text-xs font-medium text-gray-500">Agregar:</span>
@@ -247,7 +267,7 @@ export default function TimelineCanales({
                 : `${PHASE_COLOR[ph]} hover:opacity-80`
             }`}
           >
-            {PHASE_LABEL[ph]} · {ph.toLowerCase()}
+            {PHASE_LABEL[ph]} · {PHASE_ES[ph].toLowerCase()}
           </button>
         ))}
         {addMode && (
@@ -341,7 +361,7 @@ export default function TimelineCanales({
                       onClick={() => onSegmentSelect(s.id)}
                       className="flex-1 cursor-grab truncate px-1 text-left active:cursor-grabbing"
                     >
-                      {s.type === "M" ? "M" : "D"} · {PHASE_LABEL[s.phase]}
+                      {s.type === "M" ? "M" : "D"} · {PHASE_ES[s.phase]}
                     </button>
                     {/* extremo derecho */}
                     <div
@@ -396,15 +416,20 @@ export default function TimelineCanales({
             </div>
           ))}
 
-          {/* Playhead (arrastrable desde la regla) */}
+          {/* Playhead: la aguja se arrastra directamente */}
           <div
-            className="pointer-events-none absolute bottom-0 top-0 z-10 w-0.5 bg-coral"
+            className="absolute bottom-0 top-0 z-10 w-0.5 bg-coral"
             style={{
               left: `calc(6rem + (100% - 6rem) * ${Math.min(1, currentTimeMs / total)})`,
             }}
-            aria-hidden
           >
-            <span className="absolute -left-[5px] top-0 h-3 w-3 rounded-full bg-coral" />
+            <button
+              onPointerDown={(e) => startDrag(e, { kind: "scrub" })}
+              aria-label="Arrastrar la aguja de tiempo"
+              className={`absolute -left-2.5 -top-1 h-5 w-5 cursor-ew-resize rounded-full border-2 border-paper bg-coral shadow ${
+                dragging ? "scale-110" : ""
+              }`}
+            />
           </div>
         </div>
       </div>
