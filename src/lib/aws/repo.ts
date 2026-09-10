@@ -21,6 +21,10 @@ import {
   type SessionItem,
   type RecordingItem,
   type RecordingStatus,
+  annotPk,
+  annotSk,
+  annotGsi1Sk,
+  type AnnotationItem,
 } from "./keys";
 
 const now = (): string => new Date().toISOString();
@@ -257,6 +261,121 @@ export async function withdrawRecording(
         UpdateExpression: "SET withdrawn = :t",
         ConditionExpression: "participant_id = :uid",
         ExpressionAttributeValues: { ":t": true, ":uid": userId },
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Anotaciones ─────────────────────────────────────────────────────────────
+
+/**
+ * Crea o actualiza una anotación. La condición impide sobrescribir la
+ * anotación de otra persona aunque coincida el id (los ids los genera el
+ * cliente con crypto.randomUUID).
+ */
+export async function putAnnotation(
+  userId: string,
+  ann: {
+    id: string;
+    gloss: string;
+    cm_id: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    recording_id?: string;
+    schema_version: string;
+    segment_count: number;
+    payload: Record<string, unknown>;
+  },
+): Promise<void> {
+  const item: AnnotationItem = {
+    pk: annotPk(ann.id),
+    sk: annotSk(ann.id),
+    entity: "annotation",
+    gsi1pk: partPk(userId),
+    gsi1sk: annotGsi1Sk(ann.updated_at),
+    annotation_id: ann.id,
+    annotator_id: userId,
+    gloss: ann.gloss,
+    cm_id: ann.cm_id,
+    status: ann.status,
+    ...(ann.recording_id ? { recording_id: ann.recording_id } : {}),
+    schema_version: ann.schema_version,
+    segment_count: ann.segment_count,
+    created_at: ann.created_at,
+    updated_at: ann.updated_at,
+    payload: ann.payload,
+    deleted: false,
+  };
+  await ddbDoc().send(
+    new PutCommand({
+      TableName: awsEnv.corpusTable(),
+      Item: item,
+      ConditionExpression:
+        "attribute_not_exists(pk) OR annotator_id = :uid",
+      ExpressionAttributeValues: { ":uid": userId },
+    }),
+  );
+}
+
+/** Lee una anotación propia (null si no existe o es de alguien más). */
+export async function getOwnedAnnotation(
+  userId: string,
+  annotationId: string,
+): Promise<AnnotationItem | null> {
+  const res = await ddbDoc().send(
+    new GetCommand({
+      TableName: awsEnv.corpusTable(),
+      Key: { pk: annotPk(annotationId), sk: annotSk(annotationId) },
+    }),
+  );
+  const item = res.Item as AnnotationItem | undefined;
+  if (!item || item.annotator_id !== userId) return null;
+  return item;
+}
+
+/** Todas las anotaciones de quien llama, vía gsi1. */
+export async function listParticipantAnnotations(
+  userId: string,
+): Promise<AnnotationItem[]> {
+  const res = await ddbDoc().send(
+    new QueryCommand({
+      TableName: awsEnv.corpusTable(),
+      IndexName: "gsi1",
+      KeyConditionExpression:
+        "gsi1pk = :pk AND begins_with(gsi1sk, :prefix)",
+      ExpressionAttributeValues: {
+        ":pk": partPk(userId),
+        ":prefix": "ANNOT#",
+      },
+    }),
+  );
+  return (res.Items ?? []) as AnnotationItem[];
+}
+
+/**
+ * Borrado suave. El runtime no tiene permiso de DeleteItem (y en un
+ * corpus conviene poder auditar qué se retiró).
+ */
+export async function softDeleteAnnotation(
+  userId: string,
+  annotationId: string,
+): Promise<boolean> {
+  try {
+    await ddbDoc().send(
+      new UpdateCommand({
+        TableName: awsEnv.corpusTable(),
+        Key: { pk: annotPk(annotationId), sk: annotSk(annotationId) },
+        UpdateExpression: "SET deleted = :t, updated_at = :now",
+        ConditionExpression: "annotator_id = :uid",
+        ExpressionAttributeValues: {
+          ":t": true,
+          ":uid": userId,
+          ":now": new Date().toISOString(),
+        },
       }),
     );
     return true;

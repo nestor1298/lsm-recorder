@@ -31,6 +31,10 @@ export function parseRecordingId(
   return { sessionId, cmId };
 }
 
+export const annotPk = (annotationId: string): string => `ANNOT#${annotationId}`;
+export const annotSk = (annotationId: string): string => `ANNOT#${annotationId}`;
+export const annotGsi1Sk = (updatedAt: string): string => `ANNOT#${updatedAt}`;
+
 // ── Item shapes ─────────────────────────────────────────────────────────────
 export interface ParticipantItem {
   pk: string;
@@ -77,4 +81,38 @@ export interface RecordingItem {
   access_tier: AccessTier;
   withdrawn: boolean;
   notes?: string;
+}
+
+/**
+ * Anotación fonológica LSM-PN.
+ *
+ * El dueño es quien anota (`annotator_id`), no necesariamente quien grabó:
+ * una persona puede anotar el video de otra. Se lee por id (pk) y se
+ * lista por gsi1 (PART#{annotator} + ANNOT#{updated_at}), igual que las
+ * grabaciones.
+ *
+ * `payload` guarda el LSM-PN completo (segmentos y matrices). El borrado
+ * es suave (`deleted`) porque la policy del runtime no incluye
+ * DeleteItem, y porque en un corpus conviene poder auditar.
+ */
+export interface AnnotationItem {
+  pk: string;
+  sk: string;
+  entity: "annotation";
+  gsi1pk: string;
+  gsi1sk: string;
+  annotation_id: string;
+  annotator_id: string;
+  gloss: string;
+  cm_id: number;
+  status: string;
+  /** Grabación del corpus que se anotó, si la anotación viene de una */
+  recording_id?: string;
+  schema_version: string;
+  segment_count: number;
+  created_at: string;
+  updated_at: string;
+  /** LSM-PN completo: segments, nondominant, notes, dominant_hand… */
+  payload: Record<string, unknown>;
+  deleted?: boolean;
 }

@@ -24,6 +24,11 @@ import SignCard from "@/components/SignCard";
 import VisorVideo from "@/components/VisorVideo";
 import type { Pose3DTrack } from "@/lib/vision/pose3d";
 import { applySuggestion } from "@/lib/vision/phon/apply_suggestion";
+import { useAnnotationSync } from "@/hooks/useAnnotationSync";
+import EstadoSincronizacion, {
+  ChipSync,
+} from "@/components/EstadoSincronizacion";
+import { useAuth } from "@/hooks/useAuth";
 import { RELATION_ES } from "@/lib/anotar_labels";
 import { SelectorCMCompacto } from "@/components/anotar/selectores_compactos";
 
@@ -55,10 +60,26 @@ export default function AnnotatePage() {
   // Esqueleto 3D reconstruido del video analizado (vive en la sesión)
   const [track3D, setTrack3D] = useState<Pose3DTrack | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { state: authState } = useAuth();
+
+  // Sincronización con el corpus: localStorage sigue siendo el borrador
+  // y DynamoDB el registro compartido.
+  const sync = useAnnotationSync(
+    useCallback(() => setAnnotations(getAnnotations()), []),
+  );
 
   useEffect(() => {
     setAnnotations(getAnnotations());
   }, []);
+
+  /** Guarda en el borrador local y encola la subida al corpus. */
+  const persistir = useCallback(
+    (a: SignAnnotation) => {
+      saveAnnotation(a);
+      sync.encolar(a);
+    },
+    [sync],
+  );
 
   const selectedCM = useMemo(
     () =>
@@ -136,7 +157,7 @@ export default function AnnotatePage() {
             return cur;
           }
           const updated = applySuggestion(cur, sug, durMs);
-          saveAnnotation(updated);
+          persistir(updated);
           return updated;
         });
       } catch {
@@ -176,7 +197,7 @@ export default function AnnotatePage() {
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
-      saveAnnotation(updated);
+      persistir(updated);
       setSelectedSegmentId(segment.id);
     },
     [current],
@@ -193,9 +214,9 @@ export default function AnnotatePage() {
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
-      saveAnnotation(updated);
+      persistir(updated);
     },
-    [current],
+    [current, persistir],
   );
 
   const handleSegmentsReplace = useCallback(
@@ -207,9 +228,9 @@ export default function AnnotatePage() {
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
-      saveAnnotation(updated);
+      persistir(updated);
     },
-    [current],
+    [current, persistir],
   );
 
   const handleSegmentDelete = useCallback(
@@ -221,9 +242,9 @@ export default function AnnotatePage() {
         updated_at: new Date().toISOString(),
       };
       setCurrent(updated);
-      saveAnnotation(updated);
+      persistir(updated);
     },
-    [current],
+    [current, persistir],
   );
 
   // Sin elegir CM: la detecta la visión al subir el video; el nombre se
@@ -276,6 +297,14 @@ export default function AnnotatePage() {
           </button>
         </div>
 
+        <EstadoSincronizacion
+          fusionando={sync.fusionando}
+          ultimaFusion={sync.ultimaFusion}
+          error={sync.error}
+          sesionIniciada={authState === "signedIn"}
+          onRefrescar={sync.refrescar}
+        />
+
         {annotations.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-gray-300 p-12 text-center">
             <p className="text-lg font-medium text-gray-500">
@@ -312,7 +341,8 @@ export default function AnnotatePage() {
                     </div>
                     <div>
                       <p className="font-semibold text-ink">{ann.gloss}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                        <ChipSync estado={sync.estados[ann.id]} />
                         {ann.segments.length} segmentos &middot;{" "}
                         <span
                           className={
@@ -332,6 +362,8 @@ export default function AnnotatePage() {
                   <button
                     onClick={() => {
                       deleteAnnotation(ann.id);
+                      // borrado suave en el corpus (no bloquea si falla)
+                      void sync.eliminar(ann.id);
                       setAnnotations(getAnnotations());
                     }}
                     className="rounded px-3 py-1 text-xs text-coral-deep hover:bg-coral-tint"
@@ -396,7 +428,7 @@ export default function AnnotatePage() {
                     updated_at: new Date().toISOString(),
                   };
                   setCurrent(updated);
-                  saveAnnotation(updated);
+                  persistir(updated);
                 }}
                 aria-label="Nombre de la seña"
                 className="w-44 rounded-lg border border-transparent bg-transparent px-1 font-bold uppercase text-ink hover:border-gray-200 focus:border-accent focus:outline-none"
@@ -407,8 +439,10 @@ export default function AnnotatePage() {
                 </span>
               )}
             </h1>
-            <p className="text-xs text-gray-500">
-              {current.segments.length} segmentos &middot; {STATUS_ES[current.status] ?? current.status}
+            <p className="flex items-center gap-1.5 text-xs text-gray-500">
+              <ChipSync estado={sync.estados[current.id]} />
+              {current.segments.length} segmentos &middot;{" "}
+              {STATUS_ES[current.status] ?? current.status}
             </p>
           </div>
         </div>
@@ -427,7 +461,7 @@ export default function AnnotatePage() {
                 updated_at: new Date().toISOString(),
               };
               setCurrent(updated);
-              saveAnnotation(updated);
+              persistir(updated);
             }}
             className="rounded-full bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-deep"
           >
@@ -570,7 +604,7 @@ export default function AnnotatePage() {
                         updated_at: new Date().toISOString(),
                       };
                       setCurrent(updated);
-                      saveAnnotation(updated);
+                      persistir(updated);
                     }}
                     className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium ${
                       current.dominant_hand === hand
@@ -611,7 +645,7 @@ export default function AnnotatePage() {
                           updated_at: new Date().toISOString(),
                         };
                         setCurrent(updated);
-                        saveAnnotation(updated);
+                        persistir(updated);
                       }}
                       className={`rounded px-2 py-1 text-[10px] font-medium ${
                         isSelected
@@ -640,7 +674,7 @@ export default function AnnotatePage() {
                         updated_at: new Date().toISOString(),
                       };
                       setCurrent(updated);
-                      saveAnnotation(updated);
+                      persistir(updated);
                     }}
                   />
                 </div>
@@ -660,7 +694,7 @@ export default function AnnotatePage() {
                     updated_at: new Date().toISOString(),
                   };
                   setCurrent(updated);
-                  saveAnnotation(updated);
+                  persistir(updated);
                 }}
                 className="w-full rounded border border-gray-200 px-2 py-1.5 text-xs focus:border-accent focus:outline-none"
                 rows={3}

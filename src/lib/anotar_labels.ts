@@ -202,6 +202,14 @@ export const TIMELINE_ES = {
   listaSegmentos: "Lista de segmentos",
 } as const;
 
+/** Estados de sincronización con el corpus (es-MX) */
+export const SYNC_ES: Record<string, string> = {
+  local: "Solo en este dispositivo",
+  guardando: "Guardando…",
+  sincronizada: "En el corpus",
+  error: "No se pudo guardar",
+};
+
 /** Chip de procedencia */
 export const PROVENANCE_CHIP = "Sugerido";
 
