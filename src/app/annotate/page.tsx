@@ -18,6 +18,7 @@ import type {
 import dynamic from "next/dynamic";
 import HandVisualization from "@/components/HandVisualization";
 import TimelineMulticanal from "@/components/timeline/TimelineMulticanal";
+import ListaSegmentos from "@/components/timeline/ListaSegmentos";
 import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
 import VisorVideo from "@/components/VisorVideo";
@@ -510,6 +511,13 @@ export default function AnnotatePage() {
               onSegmentDelete={handleSegmentDelete}
             />
           </div>
+
+          {/* Ruta textual: llegar a un segmento sin gestos */}
+          <ListaSegmentos
+            annotation={current}
+            selectedSegmentId={selectedSegmentId}
+            onSelect={(id) => handleSegmentSelect(id)}
+          />
 
           {/* Segment Annotation Form */}
           {selectedSegment && (

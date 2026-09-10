@@ -52,6 +52,8 @@ import {
   FRAME_TICKS_BELOW_MS_PER_PX,
   GRAB_PX_FINE,
   GRAB_PX_COARSE,
+  FOLLOW_TRIGGER,
+  FOLLOW_JUMP,
 } from "@/lib/timeline/constants";
 import {
   moverFrontera,
@@ -74,6 +76,7 @@ import {
 import { CM_INVENTORY } from "@/lib/data";
 import { MiniHand } from "@/components/learn/MiniHand";
 import Regla from "./Regla";
+import PanelAtajos from "./PanelAtajos";
 
 const LABEL_W = 112; // ancho de la columna de etiquetas (px)
 
@@ -208,6 +211,7 @@ export default function TimelineMulticanal({
   const [view, setView] = useState<Viewport | null>(null);
   const [prefs, setPrefs] = useState<TimelinePrefs>(cargarPrefs);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [atajosAbierto, setAtajosAbierto] = useState(false);
   const [addMode, setAddMode] = useState<Phase | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
   // Gesto en curso: se previsualiza con transform sobre las capas y se
@@ -268,6 +272,23 @@ export default function TimelineMulticanal({
   }, [prefs]);
 
   const vista = view ?? fit(bounds, Math.max(1, ancho));
+
+  // Seguir la reproducción: cuando la aguja cruza el 80 % derecho, la
+  // vista SALTA una página (no sigue de forma continua: es más barato y
+  // marea menos). Sin animación, así que respeta prefers-reduced-motion.
+  useEffect(() => {
+    if (!prefs.seguirReproduccion || ancho <= 0) return;
+    const x = timeToPx(vista, currentTimeMs);
+    if (x > ancho * FOLLOW_TRIGGER) {
+      setView((v) =>
+        panBy(v ?? fit(bounds, ancho), ancho * FOLLOW_JUMP, bounds, ancho),
+      );
+    } else if (x < 0) {
+      setView((v) =>
+        panBy(v ?? fit(bounds, ancho), -ancho * FOLLOW_JUMP, bounds, ancho),
+      );
+    }
+  }, [currentTimeMs, prefs.seguirReproduccion, ancho, bounds, vista]);
   const px = useCallback((ms: number) => timeToPx(vista, ms), [vista]);
 
   const clientXToMs = useCallback(
@@ -750,6 +771,23 @@ export default function TimelineMulticanal({
                     )
                   }
                   aria-label={describirTramo(t, canal)}
+                  data-tramo
+                  onKeyDown={(e) => {
+                    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+                    // dentro de un canal, las flechas navegan entre tramos;
+                    // en la rejilla mueven la aguja (por eso no propaga)
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const fila = e.currentTarget.closest("[role='group']");
+                    const botones = Array.from(
+                      fila?.querySelectorAll<HTMLButtonElement>(
+                        "button[data-tramo]",
+                      ) ?? [],
+                    );
+                    const i = botones.indexOf(e.currentTarget);
+                    const j = e.key === "ArrowRight" ? i + 1 : i - 1;
+                    botones[Math.max(0, Math.min(botones.length - 1, j))]?.focus();
+                  }}
                   className={`flex flex-1 items-center gap-1 truncate px-1 text-left ${
                     esMaestro ? "cursor-grab active:cursor-grabbing" : ""
                   }`}
@@ -836,6 +874,20 @@ export default function TimelineMulticanal({
             {TIMELINE_ES.eliminarSegmento}
           </button>
         )}
+        {/* Atajos */}
+        <div className="relative">
+          <button
+            onClick={() => setAtajosAbierto((a) => !a)}
+            aria-expanded={atajosAbierto}
+            className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-semibold text-gray-700 hover:bg-gray-200"
+          >
+            {TIMELINE_ES.atajos}
+          </button>
+          {atajosAbierto && (
+            <PanelAtajos onClose={() => setAtajosAbierto(false)} />
+          )}
+        </div>
+
         {/* Menú de canales */}
         <div className="relative">
           <button
@@ -977,6 +1029,12 @@ export default function TimelineMulticanal({
           />
         </div>
       </div>
+
+      {vista.msPerPx <= FRAME_TICKS_BELOW_MS_PER_PX && !fps && (
+        <p className="mt-1 text-[10px] text-gray-400">
+          {TIMELINE_ES.cuadrosEstimados}
+        </p>
+      )}
 
       {segmentos.length === 0 && (
         <p className="mt-2 rounded-lg border border-dashed border-gray-300 p-3 text-center text-xs text-gray-400">
