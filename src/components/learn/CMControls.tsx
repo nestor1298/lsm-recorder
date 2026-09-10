@@ -217,9 +217,12 @@ export default function CMControls({
           {filtered.map((cm) => {
             const isSelected = selectedCM?.cm_id === cm.cm_id;
             return (
-              <div
+              <button
+                type="button"
                 key={cm.cm_id}
-                className={`group relative cursor-pointer rounded-lg border bg-paper p-1 transition-all hover:shadow-md ${
+                aria-pressed={isSelected}
+                aria-label={`Configuración ${cm.cm_id}`}
+                className={`group relative cursor-pointer rounded-lg border bg-paper p-1 transition-all hover:shadow-md focus-visible:outline-2 focus-visible:outline-accent ${
                   isSelected
                     ? "border-accent ring-2 ring-accent/50 shadow-lg"
                     : "border-gray-200"
@@ -239,7 +242,7 @@ export default function CMControls({
                     ✓
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
