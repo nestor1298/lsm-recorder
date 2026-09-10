@@ -17,7 +17,7 @@ import type {
 } from "@/lib/types";
 import dynamic from "next/dynamic";
 import HandVisualization from "@/components/HandVisualization";
-import TimelineCanales from "@/components/TimelineCanales";
+import TimelineMulticanal from "@/components/timeline/TimelineMulticanal";
 import AnnotationForm, { type CanalId } from "@/components/AnnotationForm";
 import SignCard from "@/components/SignCard";
 import VisorVideo from "@/components/VisorVideo";
@@ -197,6 +197,20 @@ export default function AnnotatePage() {
     [current],
   );
 
+  const handleSegmentsReplace = useCallback(
+    (segments: PSHRSegment[]) => {
+      if (!current) return;
+      const updated = {
+        ...current,
+        segments,
+        updated_at: new Date().toISOString(),
+      };
+      setCurrent(updated);
+      saveAnnotation(updated);
+    },
+    [current],
+  );
+
   const handleSegmentDelete = useCallback(
     (id: string) => {
       if (!current) return;
@@ -347,9 +361,14 @@ export default function AnnotatePage() {
     );
   }
 
+  // Duración de la línea de tiempo: la del video si existe; si no, la
+  // extensión de los segmentos (no un valor fijo, que aplastaría una
+  // seña de 900 ms dentro de una regla de 5 s).
   const videoDuration = videoRef.current?.duration
     ? videoRef.current.duration * 1000
-    : 5000; // Default 5s if no video
+    : current.segments.length
+      ? Math.max(...current.segments.map((s) => s.end_ms))
+      : 1000;
 
   return (
     <div className="space-y-6">
@@ -477,15 +496,16 @@ export default function AnnotatePage() {
             <h3 className="mb-3 text-sm font-semibold text-ink">
               Línea de tiempo y canales
             </h3>
-            <TimelineCanales
-              segments={current.segments}
+            <TimelineMulticanal
+              annotation={current}
               durationMs={videoDuration}
               currentTimeMs={currentTimeMs}
               selectedSegmentId={selectedSegmentId}
-              onSegmentSelect={(id) => handleSegmentSelect(id)}
               onSeek={handleSeek}
+              onSegmentSelect={(id) => handleSegmentSelect(id)}
               onChannelSelect={(c) => setFocusChannel(c as CanalId)}
               onSegmentUpdate={handleSegmentUpdate}
+              onSegmentsReplace={handleSegmentsReplace}
               onSegmentAdd={handleSegmentAdd}
               onSegmentDelete={handleSegmentDelete}
             />

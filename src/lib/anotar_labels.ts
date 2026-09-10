@@ -257,8 +257,8 @@ export interface NotacionInput {
   esquema?: string;
 }
 
-/** Abreviatura OR: pa↑ pa↓ paF paM paD paF… — compacta y legible */
-const OR_ABBR: Record<string, string> = {
+/** Glifo de dirección (OR y MV): ⊙ hacia mí, ⊗ al frente, flechas. */
+export const OR_GLIFO: Record<string, string> = {
   UP: "↑",
   DOWN: "↓",
   FORWARD: "⊗",
@@ -285,7 +285,7 @@ export function buildNotacion(input: NotacionInput): string {
   }
   if (input.palmFacing || input.fingerPointing) {
     parts.push(
-      `OR: ${OR_ABBR[input.palmFacing ?? "NEUTRAL"]}/${OR_ABBR[input.fingerPointing ?? "NEUTRAL"]}`,
+      `OR: ${OR_GLIFO[input.palmFacing ?? "NEUTRAL"]}/${OR_GLIFO[input.fingerPointing ?? "NEUTRAL"]}`,
     );
   }
   const mv: string[] = [];
