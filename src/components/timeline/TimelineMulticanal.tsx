@@ -28,9 +28,25 @@ import {
   timeToPx,
   pxToTime,
   clampView,
+  zoomAt,
+  panBy,
+  zoomToRange,
   type Bounds,
   type Viewport,
 } from "@/lib/timeline/viewport";
+import {
+  clasificarRueda,
+  clasificarTecla,
+  estadoPellizco,
+  factorPellizco,
+  panPellizco,
+  transformacionCapa,
+  type EstadoPellizco,
+} from "@/lib/timeline/gestures";
+import {
+  ZOOM_TO_RANGE_PADDING,
+  ASSUMED_FPS,
+} from "@/lib/timeline/constants";
 import { moverFrontera, frameMs } from "@/lib/timeline/boundaries";
 import {
   cargarPrefs,
@@ -184,6 +200,16 @@ export default function TimelineMulticanal({
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [addMode, setAddMode] = useState<Phase | null>(null);
   const [arrastrando, setArrastrando] = useState(false);
+  // Gesto en curso: se previsualiza con transform sobre las capas y se
+  // hace commit al soltar (nunca un render de React por cuadro).
+  const rejillaRef = useRef<HTMLDivElement>(null);
+  const gestoRef = useRef<{
+    vistaInicial: Viewport;
+    vistaActual: Viewport;
+    pellizco?: EstadoPellizco;
+  } | null>(null);
+  const punterosRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const rafRef = useRef(0);
 
   const segmentos = annotation.segments;
   const total = Math.max(
@@ -288,12 +314,211 @@ export default function TimelineMulticanal({
     };
   }, [arrastrando, aplicarArrastre]);
 
+  // ── Previsualización del gesto con transform ─────────────────
+  const capas = useCallback(
+    () =>
+      Array.from(
+        rejillaRef.current?.querySelectorAll<HTMLElement>("[data-capa]") ?? [],
+      ),
+    [],
+  );
+
+  const pintarGesto = useCallback(
+    (destino: Viewport) => {
+      const g = gestoRef.current;
+      if (!g) return;
+      g.vistaActual = destino;
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const { scaleX, translateX } = transformacionCapa(
+          g.vistaInicial,
+          g.vistaActual,
+        );
+        for (const capa of capas()) {
+          capa.style.transformOrigin = "left center";
+          capa.style.transform = `translateX(${translateX}px) scaleX(${scaleX})`;
+        }
+      });
+    },
+    [capas],
+  );
+
+  const terminarGesto = useCallback(() => {
+    const g = gestoRef.current;
+    gestoRef.current = null;
+    cancelAnimationFrame(rafRef.current);
+    for (const capa of capas()) capa.style.transform = "";
+    if (g) setView(g.vistaActual);
+  }, [capas]);
+
+  const iniciarGesto = useCallback(
+    (pellizco?: EstadoPellizco) => {
+      gestoRef.current = {
+        vistaInicial: vista,
+        vistaActual: vista,
+        pellizco,
+      };
+    },
+    [vista],
+  );
+
   const iniciarArrastre = (e: React.PointerEvent, st: DragState) => {
     e.stopPropagation();
     e.preventDefault();
     dragRef.current = st;
     setArrastrando(true);
   };
+
+  // ── Rueda y pellizco de trackpad ─────────────────────────────
+  useEffect(() => {
+    const el = rejillaRef.current;
+    if (!el || ancho <= 0) return;
+    const onWheel = (ev: WheelEvent) => {
+      const accion = clasificarRueda(ev);
+      if (accion.kind === "nada") return;
+      // Sin preventDefault el navegador hace zoom de la página entera.
+      ev.preventDefault();
+      const lienzo = lienzoRef.current?.getBoundingClientRect();
+      const anclaPx = lienzo
+        ? Math.max(0, Math.min(ancho, ev.clientX - lienzo.left))
+        : ancho / 2;
+      setView((v) => {
+        const actual = v ?? fit(bounds, ancho);
+        return accion.kind === "zoom"
+          ? zoomAt(actual, accion.factor, anclaPx, bounds, ancho)
+          : panBy(actual, accion.deltaPx, bounds, ancho);
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [ancho, bounds]);
+
+  // ── Pellizco táctil (dos punteros) ───────────────────────────
+  useEffect(() => {
+    const el = rejillaRef.current;
+    if (!el || ancho <= 0) return;
+
+    const posicion = (ev: PointerEvent) => ({ x: ev.clientX, y: ev.clientY });
+
+    const onDown = (ev: PointerEvent) => {
+      punterosRef.current.set(ev.pointerId, posicion(ev));
+      if (punterosRef.current.size === 2) {
+        // Un pellizco cancela cualquier arrastre de frontera en curso.
+        dragRef.current = null;
+        setArrastrando(false);
+        const [a, b] = [...punterosRef.current.values()];
+        iniciarGesto(estadoPellizco(a, b));
+      }
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      if (!punterosRef.current.has(ev.pointerId)) return;
+      punterosRef.current.set(ev.pointerId, posicion(ev));
+      const g = gestoRef.current;
+      if (punterosRef.current.size !== 2 || !g?.pellizco) return;
+      ev.preventDefault();
+      const [a, b] = [...punterosRef.current.values()];
+      const ahora = estadoPellizco(a, b);
+      const lienzo = lienzoRef.current?.getBoundingClientRect();
+      const anclaPx = lienzo
+        ? Math.max(0, Math.min(ancho, ahora.centroideX - lienzo.left))
+        : ancho / 2;
+      // Zoom por distancia y desplazamiento por centroide, en el mismo
+      // gesto continuo.
+      let destino = zoomAt(
+        g.vistaActual,
+        factorPellizco(g.pellizco, ahora),
+        anclaPx,
+        bounds,
+        ancho,
+      );
+      destino = panBy(destino, panPellizco(g.pellizco, ahora), bounds, ancho);
+      g.pellizco = ahora;
+      pintarGesto(destino);
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      punterosRef.current.delete(ev.pointerId);
+      if (punterosRef.current.size < 2 && gestoRef.current) terminarGesto();
+    };
+
+    el.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [ancho, bounds, iniciarGesto, pintarGesto, terminarGesto]);
+
+  // ── Teclado ──────────────────────────────────────────────────
+  const cuadroMs = 1000 / (fps ?? ASSUMED_FPS);
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const accion = clasificarTecla(e);
+      if (accion.kind === "nada") return;
+      e.preventDefault();
+      switch (accion.kind) {
+        case "zoom":
+          // forma funcional: varias pulsaciones seguidas se encadenan
+          setView((v) => {
+            const actual = v ?? fit(bounds, Math.max(1, ancho));
+            return zoomAt(
+              actual,
+              accion.factor,
+              timeToPx(actual, currentTimeMs),
+              bounds,
+              ancho,
+            );
+          });
+          break;
+        case "fit":
+          setView(fit(bounds, ancho));
+          break;
+        case "fitSeleccion": {
+          const sel = segmentos.find((s) => s.id === selectedSegmentId);
+          if (sel)
+            setView(
+              zoomToRange(
+                sel.start_ms,
+                sel.end_ms,
+                ancho,
+                ZOOM_TO_RANGE_PADDING,
+                bounds,
+              ),
+            );
+          break;
+        }
+        case "seek":
+          onSeek(
+            Math.max(
+              0,
+              Math.min(total, currentTimeMs + accion.cuadros * cuadroMs),
+            ),
+          );
+          break;
+        case "inicio":
+          onSeek(0);
+          break;
+        case "fin":
+          onSeek(total);
+          break;
+      }
+    },
+    [
+      bounds,
+      ancho,
+      currentTimeMs,
+      segmentos,
+      selectedSegmentId,
+      onSeek,
+      total,
+      cuadroMs,
+    ],
+  );
 
   const onReglaDown = (e: React.PointerEvent) => {
     const ms = Math.max(0, Math.min(total, clientXToMs(e.clientX)));
@@ -350,7 +575,7 @@ export default function TimelineMulticanal({
         </div>
         <div
           className="relative flex-1 overflow-hidden bg-gray-50"
-          style={{ height: alto }}
+          style={{ height: alto, touchAction: "none" }}
         >
           {/* carril de hueco: textura tenue = esa dimensión no se anotó */}
           <div
@@ -361,10 +586,14 @@ export default function TimelineMulticanal({
             }}
             aria-hidden
           />
+          <div data-capa className="absolute inset-0 will-change-transform">
           {tramos.map((t) => {
             const izq = px(t.startMs);
-            const ancho = Math.max(2, px(t.endMs) - izq);
-            if (izq > (lienzoRef.current?.clientWidth ?? ancho) || izq + ancho < 0)
+            const anchoTramo = Math.max(2, px(t.endMs) - izq);
+            if (
+              izq > (lienzoRef.current?.clientWidth ?? anchoTramo) ||
+              izq + anchoTramo < 0
+            )
               return null;
             const activo = t.segmentIds.includes(selectedSegmentId ?? "");
             const esMaestro = canal.maestro;
@@ -379,7 +608,7 @@ export default function TimelineMulticanal({
                       ? "border-accent bg-accent-tint text-accent-deep"
                       : "border-gray-200 bg-paper text-gray-700"
                 } ${activo && esMaestro ? "ring-2 ring-ink" : ""}`}
-                style={{ left: izq, width: ancho, height: alto - 8 }}
+                style={{ left: izq, width: anchoTramo, height: alto - 8 }}
               >
                 {esMaestro && (
                   <div
@@ -407,6 +636,17 @@ export default function TimelineMulticanal({
                     onSegmentSelect(t.segmentIds[0]);
                     if (!esMaestro) onChannelSelect?.(canal.id);
                   }}
+                  onDoubleClick={() =>
+                    setView(
+                      zoomToRange(
+                        t.startMs,
+                        t.endMs,
+                        ancho,
+                        ZOOM_TO_RANGE_PADDING,
+                        bounds,
+                      ),
+                    )
+                  }
                   aria-label={describirTramo(t, canal)}
                   className={`flex flex-1 items-center gap-1 truncate px-1 text-left ${
                     esMaestro ? "cursor-grab active:cursor-grabbing" : ""
@@ -417,9 +657,9 @@ export default function TimelineMulticanal({
                       {String(t.data?.type ?? "")} · {PHASE_ES[fase]}
                     </span>
                   ) : (
-                    <ContenidoTramo canal={canal} tramo={t} anchoPx={ancho} />
+                    <ContenidoTramo canal={canal} tramo={t} anchoPx={anchoTramo} />
                   )}
-                  {t.provenance === "auto" && ancho > 90 && (
+                  {t.provenance === "auto" && anchoTramo > 90 && (
                     <span className="ml-auto shrink-0 rounded bg-accent-tint px-1 text-[9px] font-semibold text-accent-deep">
                       {PROVENANCE_CHIP}
                     </span>
@@ -450,6 +690,7 @@ export default function TimelineMulticanal({
               </div>
             );
           })}
+          </div>
         </div>
       </div>
     );
@@ -558,7 +799,13 @@ export default function TimelineMulticanal({
       </div>
 
       {/* Rejilla */}
-      <div className="relative rounded-lg border border-gray-200">
+      <div
+        ref={rejillaRef}
+        onKeyDown={onKeyDown}
+        tabIndex={0}
+        aria-label="Línea de tiempo y canales"
+        className="relative rounded-lg border border-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
         {/* Regla */}
         <div className="flex items-stretch border-b border-gray-100">
           <div className="shrink-0 bg-paper" style={{ width: LABEL_W }} />
@@ -575,7 +822,9 @@ export default function TimelineMulticanal({
             tabIndex={0}
           >
             {ancho > 0 && (
-              <Regla view={vista} widthPx={ancho} fps={fps} />
+              <div data-capa className="will-change-transform">
+                <Regla view={vista} widthPx={ancho} fps={fps} />
+              </div>
             )}
           </div>
         </div>
