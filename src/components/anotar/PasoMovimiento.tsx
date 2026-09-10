@@ -15,23 +15,11 @@ import {
   LOCAL_ES,
   PLANE_ES,
   REPETITION_ES,
+  EYEBROWS_ES,
+  MOUTH_ES,
   directionLabel,
   PROVENANCE_CHIP,
 } from "@/lib/anotar_labels";
-
-const EYEBROWS_ES: Record<EyebrowPosition, string> = {
-  NEUTRAL: "Neutrales",
-  RAISED: "Levantadas",
-  FURROWED: "Fruncidas",
-};
-
-const MOUTH_ES: Record<MouthShape, string> = {
-  NEUTRAL: "Neutral",
-  OPEN: "Abierta",
-  CLOSED: "Cerrada",
-  ROUNDED: "Redonda (o)",
-  STRETCHED: "Estirada",
-};
 
 /**
  * Paso 4 — describir el movimiento.

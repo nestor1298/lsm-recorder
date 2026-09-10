@@ -15,6 +15,9 @@ import type {
   RepetitionType,
   NonDominantRelation,
   MovementDirection,
+  EyebrowPosition,
+  MouthShape,
+  HeadMovement,
 } from "./types";
 import { UB_LOCATIONS } from "./ub_inventory";
 
@@ -135,6 +138,69 @@ export const PHASE_ES: Record<string, string> = {
   HOLD: "Detención",
   RETRACTION: "Retracción",
 };
+
+// ── Rasgos no manuales (RNM) ────────────────────────────────────
+
+export const EYEBROWS_ES: Record<EyebrowPosition, string> = {
+  NEUTRAL: "Neutrales",
+  RAISED: "Levantadas",
+  FURROWED: "Fruncidas",
+};
+
+export const MOUTH_ES: Record<MouthShape, string> = {
+  NEUTRAL: "Neutral",
+  OPEN: "Abierta",
+  CLOSED: "Cerrada",
+  ROUNDED: "Redonda (o)",
+  STRETCHED: "Estirada",
+};
+
+export const HEAD_ES: Record<HeadMovement, string> = {
+  NONE: "Quieta",
+  NOD: "Asiente",
+  SHAKE: "Niega",
+  TILT_LEFT: "Inclinada izq.",
+  TILT_RIGHT: "Inclinada der.",
+  TILT_BACK: "Atrás",
+  TILT_DOWN: "Abajo",
+};
+
+// ── Canales de la línea de tiempo ───────────────────────────────
+// Nombre para la comunidad + término técnico (solo modo experto).
+
+export const CANAL_ES: Record<string, { label: string; tecnico?: string }> = {
+  segmentos: { label: "Segmentos", tecnico: "D / M / T" },
+  mano: { label: "Forma de la mano", tecnico: "CM" },
+  lugar: { label: "Lugar", tecnico: "UB" },
+  orientacion: { label: "Orientación", tecnico: "OR" },
+  movimiento: { label: "Movimiento", tecnico: "MV" },
+  rnm: { label: "Rasgos no manuales", tecnico: "RNM" },
+  manoBase: { label: "Mano base", tecnico: "TAB" },
+};
+
+/** Sub-filas dentro de un canal (orientación y RNM). */
+export const SUBFILA_ES: Record<string, string> = {
+  palma: "Palma",
+  dedos: "Dedos",
+  cejas: "Cejas",
+  boca: "Boca",
+  cabeza: "Cabeza",
+};
+
+/** Textos de la línea de tiempo (nada escrito a mano en componentes). */
+export const TIMELINE_ES = {
+  canales: "Canales",
+  ajustar: "Ajustar al clip",
+  ajustarSegmento: "Ajustar al segmento",
+  seguirReproduccion: "Seguir reproducción",
+  imantado: "Ajuste magnético",
+  atajos: "Atajos",
+  cuadrosEstimados: "cuadros estimados a 30 fps",
+  sinAnotar: "sin anotar",
+  agregar: "Agregar",
+  eliminarSegmento: "Eliminar segmento",
+  listaSegmentos: "Lista de segmentos",
+} as const;
 
 /** Chip de procedencia */
 export const PROVENANCE_CHIP = "Sugerido";
