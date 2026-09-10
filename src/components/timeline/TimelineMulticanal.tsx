@@ -19,6 +19,7 @@ import {
   CANALES,
   proyectar,
   describirTramo,
+  puntosDeCambio,
   type CanalDef,
   type CanalId,
   type Tramo,
@@ -27,6 +28,7 @@ import {
   fit,
   timeToPx,
   pxToTime,
+  snapMs,
   clampView,
   zoomAt,
   panBy,
@@ -46,8 +48,16 @@ import {
 import {
   ZOOM_TO_RANGE_PADDING,
   ASSUMED_FPS,
+  SNAP_THRESHOLD_PX,
+  FRAME_TICKS_BELOW_MS_PER_PX,
+  GRAB_PX_FINE,
+  GRAB_PX_COARSE,
 } from "@/lib/timeline/constants";
-import { moverFrontera, frameMs } from "@/lib/timeline/boundaries";
+import {
+  moverFrontera,
+  frameMs,
+  candidatosImantado,
+} from "@/lib/timeline/boundaries";
 import {
   cargarPrefs,
   guardarPrefs,
@@ -210,6 +220,18 @@ export default function TimelineMulticanal({
   } | null>(null);
   const punterosRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const rafRef = useRef(0);
+  // Edición de frontera: se previsualiza en el DOM y se escribe al
+  // soltar, para no llenar el historial ni re-renderizar por movimiento.
+  const edicionRef = useRef<{
+    candidatos: number[];
+    ultimo: PSHRSegment[] | null;
+  } | null>(null);
+  const indicadorRef = useRef<HTMLDivElement>(null);
+  const punteroGrueso = useRef(false);
+  useEffect(() => {
+    punteroGrueso.current =
+      window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+  }, []);
 
   const segmentos = annotation.segments;
   const total = Math.max(
@@ -259,8 +281,41 @@ export default function TimelineMulticanal({
   );
 
   // ── Arrastre (scrub / frontera / mover) ──────────────────────
+  /** Pinta la previsualización de la frontera directamente en el DOM. */
+  const pintarFrontera = useCallback(
+    (previos: PSHRSegment[], msFrontera: number, imantado: boolean) => {
+      const raiz = rejillaRef.current;
+      if (!raiz) return;
+      for (const seg of previos) {
+        const el = raiz.querySelector<HTMLElement>(`[data-seg="${seg.id}"]`);
+        if (!el) continue;
+        const izq = px(seg.start_ms);
+        el.style.left = `${izq}px`;
+        el.style.width = `${Math.max(2, px(seg.end_ms) - izq)}px`;
+      }
+      const ind = indicadorRef.current;
+      if (ind) {
+        const orden = [...previos].sort((a, b) => a.start_ms - b.start_ms);
+        const i = orden.findIndex(
+          (sg) => Math.abs(sg.end_ms - msFrontera) < 1 || Math.abs(sg.start_ms - msFrontera) < 1,
+        );
+        const a = orden[i];
+        const b = orden[i + 1];
+        ind.style.display = "block";
+        ind.style.left = `${LABEL_W + px(msFrontera)}px`;
+        ind.dataset.imantado = imantado ? "1" : "0";
+        ind.textContent =
+          `${Math.round(msFrontera)} ms` +
+          (a ? ` · ${Math.round(a.end_ms - a.start_ms)} ms` : "") +
+          (b ? ` | ${Math.round(b.end_ms - b.start_ms)} ms` : "") +
+          (imantado ? " ·imán" : "");
+      }
+    },
+    [px],
+  );
+
   const aplicarArrastre = useCallback(
-    (clientX: number) => {
+    (clientX: number, altKey = false) => {
       const drag = dragRef.current;
       if (!drag) return;
       const ms = clientXToMs(clientX);
@@ -270,27 +325,51 @@ export default function TimelineMulticanal({
       }
       const seg = segmentos.find((s) => s.id === drag.id);
       if (!seg) return;
+
       if (drag.kind === "frontera") {
-        onSegmentsReplace(
-          moverFrontera(segmentos, seg.id, drag.edge, ms, {
+        const ed = edicionRef.current;
+        // Imantado: se apaga con ⌥ mientras dura el arrastre.
+        const conIman = prefs.imantado && !altKey && ed;
+        let destino = ms;
+        let imantado = false;
+        if (conIman) {
+          const candidatos = candidatosImantado({
+            playheadMs: currentTimeMs,
             clip: { startMs: 0, endMs: total },
-            minDurMs: frameMs(fps),
-          }),
-        );
-      } else {
-        const w = seg.end_ms - seg.start_ms;
-        const start = Math.max(0, Math.min(total - w, ms - drag.agarreMs));
-        onSegmentUpdate(seg.id, { start_ms: start, end_ms: start + w });
+            cambios: ed!.candidatos,
+            // las marcas de cuadro solo cuentan cuando se están viendo
+            conCuadros: vista.msPerPx <= FRAME_TICKS_BELOW_MS_PER_PX,
+            fps,
+            cercaDeMs: ms,
+          });
+          const r = snapMs(ms, candidatos, vista.msPerPx, SNAP_THRESHOLD_PX);
+          destino = r.ms;
+          imantado = r.snapped;
+        }
+        const previos = moverFrontera(segmentos, seg.id, drag.edge, destino, {
+          clip: { startMs: 0, endMs: total },
+          minDurMs: frameMs(fps),
+        });
+        if (ed) ed.ultimo = previos;
+        pintarFrontera(previos, destino, imantado);
+        return;
       }
+
+      const w = seg.end_ms - seg.start_ms;
+      const start = Math.max(0, Math.min(total - w, ms - drag.agarreMs));
+      onSegmentUpdate(seg.id, { start_ms: start, end_ms: start + w });
     },
     [
       clientXToMs,
       onSeek,
       total,
       segmentos,
-      onSegmentsReplace,
       onSegmentUpdate,
       fps,
+      prefs.imantado,
+      currentTimeMs,
+      vista.msPerPx,
+      pintarFrontera,
     ],
   );
 
@@ -298,9 +377,16 @@ export default function TimelineMulticanal({
     if (!arrastrando) return;
     const move = (ev: PointerEvent) => {
       ev.preventDefault();
-      aplicarArrastre(ev.clientX);
+      aplicarArrastre(ev.clientX, ev.altKey);
     };
     const up = () => {
+      // La escritura ocurre AQUÍ, una sola vez, no en cada movimiento.
+      const ed = edicionRef.current;
+      if (dragRef.current?.kind === "frontera" && ed?.ultimo) {
+        onSegmentsReplace(ed.ultimo);
+      }
+      edicionRef.current = null;
+      if (indicadorRef.current) indicadorRef.current.style.display = "none";
       dragRef.current = null;
       setArrastrando(false);
     };
@@ -312,7 +398,7 @@ export default function TimelineMulticanal({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [arrastrando, aplicarArrastre]);
+  }, [arrastrando, aplicarArrastre, onSegmentsReplace]);
 
   // ── Previsualización del gesto con transform ─────────────────
   const capas = useCallback(
@@ -366,6 +452,13 @@ export default function TimelineMulticanal({
     e.stopPropagation();
     e.preventDefault();
     dragRef.current = st;
+    if (st.kind === "frontera") {
+      // los puntos de cambio de los DEMÁS canales son candidatos de imán
+      edicionRef.current = {
+        candidatos: puntosDeCambio(segmentos, annotation),
+        ultimo: null,
+      };
+    }
     setArrastrando(true);
   };
 
@@ -539,6 +632,8 @@ export default function TimelineMulticanal({
     onSeek(ms);
   };
 
+  // Trazo de 2 px, pero área efectiva mayor en táctil.
+  const agarrePx = punteroGrueso.current ? GRAB_PX_COARSE : GRAB_PX_FINE;
   const visibles = CANALES.filter((c) => canalVisible(prefs, c.id));
   const seleccionado = segmentos.find((s) => s.id === selectedSegmentId);
   const playheadPx = px(currentTimeMs);
@@ -601,7 +696,8 @@ export default function TimelineMulticanal({
             return (
               <div
                 key={`${t.key}-${t.startMs}`}
-                className={`absolute top-1 flex items-stretch overflow-hidden rounded-md border text-[10px] font-medium ${
+                data-seg={esMaestro ? t.segmentIds[0] : undefined}
+                className={`absolute top-1 flex items-stretch rounded-md border text-[10px] font-medium ${
                   esMaestro
                     ? PHASE_CLASS[fase]
                     : activo
@@ -611,7 +707,7 @@ export default function TimelineMulticanal({
                 style={{ left: izq, width: anchoTramo, height: alto - 8 }}
               >
                 {esMaestro && (
-                  <div
+                  <button
                     onPointerDown={(e) =>
                       iniciarArrastre(e, {
                         kind: "frontera",
@@ -619,9 +715,15 @@ export default function TimelineMulticanal({
                         edge: "start",
                       })
                     }
-                    className="w-2 shrink-0 cursor-ew-resize bg-current opacity-25 hover:opacity-60"
-                    aria-hidden
-                  />
+                    aria-label={`Mover el inicio del segmento, ${Math.round(t.startMs)} milisegundos`}
+                    style={{ width: agarrePx, marginLeft: -(agarrePx - 2) / 2 }}
+                    className="relative z-10 shrink-0 cursor-ew-resize focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    <span
+                      className="pointer-events-none absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-current opacity-40"
+                      aria-hidden
+                    />
+                  </button>
                 )}
                 <button
                   onPointerDown={(e) => {
@@ -666,7 +768,7 @@ export default function TimelineMulticanal({
                   )}
                 </button>
                 {esMaestro && (
-                  <div
+                  <button
                     onPointerDown={(e) =>
                       iniciarArrastre(e, {
                         kind: "frontera",
@@ -674,9 +776,15 @@ export default function TimelineMulticanal({
                         edge: "end",
                       })
                     }
-                    className="w-2 shrink-0 cursor-ew-resize bg-current opacity-25 hover:opacity-60"
-                    aria-hidden
-                  />
+                    aria-label={`Mover el final del segmento, ${Math.round(t.endMs)} milisegundos`}
+                    style={{ width: agarrePx, marginRight: -(agarrePx - 2) / 2 }}
+                    className="relative z-10 shrink-0 cursor-ew-resize focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    <span
+                      className="pointer-events-none absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-current opacity-40"
+                      aria-hidden
+                    />
+                  </button>
                 )}
                 {/* divisorias tenues de los segmentos fusionados */}
                 {t.divisiones.map((d) => (
@@ -848,6 +956,14 @@ export default function TimelineMulticanal({
             filaCanal(c)
           ),
         )}
+
+        {/* Indicador flotante durante el arrastre de una frontera */}
+        <div
+          ref={indicadorRef}
+          style={{ display: "none" }}
+          className="pointer-events-none absolute -top-6 z-30 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-2 py-1 text-[10px] font-semibold text-paper shadow data-[imantado=1]:bg-accent-deep"
+          aria-live="polite"
+        />
 
         {/* Playhead sobre todos los canales */}
         <div
