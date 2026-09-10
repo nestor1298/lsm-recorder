@@ -43,6 +43,8 @@ interface Hand3DViewerProps {
   onUBClick?: (code: string) => void;
   /** Build mode: always show avatar instead of isolated hand */
   isBuildMode?: boolean;
+  /** Siempre el avatar: el modelo de la mano aislada queda descartado */
+  forceAvatar?: boolean;
   /** Hand mode for avatar posing */
   handMode?: "dominant" | "both_symmetric";
   /** Movement interpolation data for smooth M-segment animation */
@@ -75,9 +77,11 @@ export default function Hand3DViewer({
   armAngles,
   armFKStateRef,
   autoSolveRequest,
+  forceAvatar,
 }: Hand3DViewerProps) {
   // Show avatar in build mode always, or in explore mode for UB/RNM/FK channels
   const showAvatar =
+    forceAvatar ||
     isBuildMode ||
     activeChannel === "ub" ||
     activeChannel === "rnm" ||

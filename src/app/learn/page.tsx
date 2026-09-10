@@ -1,1190 +1,387 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+/**
+ * /learn — Representación fonológica LSM.
+ *
+ * Dos modos, con el avatar siempre como protagonista (el modelo de la
+ * mano aislada queda descartado):
+ *  - Explorar: los cinco parámetros de Cruz Aldrete (CM, UB, OR, MV,
+ *    RNM) en una barra de pestañas, cada uno con su descripción.
+ *  - Construir: la matriz segmental ocupa la parte baja de la pantalla y
+ *    se llena casilla por casilla; el avatar ejecuta lo que dice.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CMEntry } from "@/lib/types";
+import { CM_INVENTORY } from "@/lib/data";
 import { UB_LOCATIONS, type UBLocation } from "@/lib/ub_inventory";
-import type { SignConstruction, HoldSegment } from "@/lib/sign_types";
+import {
+  createSignaMinima,
+  movimientoHabilitado,
+  senaReproducible,
+  type SignConstruction,
+  type HoldSegment,
+} from "@/lib/sign_types";
 import {
   getPlaybackFrame,
   computeTotalDuration,
-  getHoldAtIndex,
   DEFAULT_PLAYBACK_CONFIG,
-  type PlaybackConfig,
 } from "@/lib/sign_playback";
-import {
-  defaultArmAngles,
-  type ArmJointAngles,
-  type ArmFKState,
-  type CapturedPose,
-  type AutoSolveRequest,
-} from "@/lib/arm_fk";
+import { poseDeSegmento, type PoseAvatar } from "@/lib/learn_viewer";
+import { APRENDER_ES, type ParametroId } from "@/lib/learn_labels";
+import ModoToggle, { type Modo } from "@/components/aprender/ModoToggle";
+import TabsParametros from "@/components/aprender/TabsParametros";
+import MatrizSegmental, {
+  type CeldaSel,
+} from "@/components/aprender/MatrizSegmental";
+import EditorCasilla from "@/components/aprender/EditorCasilla";
 import CMControls from "@/components/learn/CMControls";
-import ORControls from "@/components/learn/ORControls";
 import UBControls from "@/components/learn/UBControls";
+import ORControls from "@/components/learn/ORControls";
 import MVControls from "@/components/learn/MVControls";
 import RNMControls, { type FaceState } from "@/components/learn/RNMControls";
-import ArmControls from "@/components/learn/ArmControls";
-import SignBuilder, { type ViewerState } from "@/components/learn/SignBuilder";
-import InteractiveTimeline from "@/components/learn/InteractiveTimeline";
-import SignSummary from "@/components/learn/SignSummary";
 
-// Single 3D viewer — no SSR, shared across all channels
 const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center">
-      <div className="text-center">
-        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        <p className="text-sm text-accent-tint">Cargando modelo 3D...</p>
-      </div>
+      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
     </div>
   ),
 });
 
-// ── Channel configuration ──────────────────────────────────────
+const CARA_NEUTRA: FaceState = {
+  eyebrows: "NEUTRAL",
+  mouth: "NEUTRAL",
+  head: "NONE",
+};
+const MANO_ABIERTA: CMEntry = CM_INVENTORY[0];
+const ubPor = (code: string) =>
+  UB_LOCATIONS.find((l) => l.code === code) ?? null;
+/** Lugar de exhibición: la mano frente al pecho, donde se lee bien. */
+const PECHO = ubPor("Pe");
 
-const CHANNELS = [
-  {
-    id: "cm",
-    label: "CM",
-    fullName: "Configuración manual",
-    color: "#4f46e5",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <path d="M12 22V8M12 8l-3-6M12 8l3-6M7 16l-4-3M17 16l4-3" />
-      </svg>
-    ),
-  },
-  {
-    id: "ub",
-    label: "UB",
-    fullName: "Ubicación",
-    color: "#059669",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <circle cx="12" cy="5" r="3" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="11" x2="16" y2="11" />
-        <line x1="9" y1="22" x2="12" y2="16" />
-        <line x1="15" y1="22" x2="12" y2="16" />
-      </svg>
-    ),
-  },
-  {
-    id: "or",
-    label: "OR",
-    fullName: "Orientación",
-    color: "#7c3aed",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <path d="M12 2v4m0 12v4M2 12h4m12 0h4M6.34 6.34l2.83 2.83m5.66 5.66l2.83 2.83M17.66 6.34l-2.83 2.83M8.17 14.83l-2.83 2.83" />
-      </svg>
-    ),
-  },
-  {
-    id: "mv",
-    label: "MV",
-    fullName: "Movimiento",
-    color: "#0284c7",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <path d="M5 12h14M12 5l7 7-7 7" />
-      </svg>
-    ),
-  },
-  {
-    id: "rnm",
-    label: "RNM",
-    fullName: "Rasgos no manuales",
-    color: "#e11d48",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <circle cx="12" cy="10" r="7" />
-        <circle cx="9" cy="9" r="1" fill="currentColor" />
-        <circle cx="15" cy="9" r="1" fill="currentColor" />
-        <path d="M9 13q3 2 6 0" />
-      </svg>
-    ),
-  },
-  {
-    id: "fk",
-    label: "FK",
-    fullName: "Cinemática directa",
-    color: "#d97706",
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      >
-        <path d="M4 12h16M12 4v16M8 8l8 8M16 8l-8 8" />
-      </svg>
-    ),
-  },
-];
+/** Media velocidad: el doble de tiempo por detención y por movimiento. */
+const RITMO_LENTO = {
+  holdDuration: DEFAULT_PLAYBACK_CONFIG.holdDuration * 2,
+  movementDuration: DEFAULT_PLAYBACK_CONFIG.movementDuration * 2,
+};
 
-// ── Main Page Component ─────────────────────────────────────────
+/** Vaivén 0→1→0 para previsualizar movimientos en bucle. */
+function useVaiven(activo: boolean, periodoMs = 1600): number {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    if (!activo) return;
+    const reducido =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    if (reducido) {
+      // pose intermedia fija, sin animación
+      raf = requestAnimationFrame(() => setT(0.5));
+      return () => cancelAnimationFrame(raf);
+    }
+    const inicio = performance.now();
+    const tick = (ahora: number) => {
+      const fase = ((ahora - inicio) % periodoMs) / periodoMs;
+      setT(fase < 0.5 ? fase * 2 : 2 - fase * 2);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [activo, periodoMs]);
+  return t;
+}
 
-export default function LearnPage() {
-  // Mode: explore individual channels or build a complete sign
-  const [mode, setMode] = useState<"explore" | "build">("explore");
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [showInfo, setShowInfo] = useState(false);
+const aTarget = (u: UBLocation | null) =>
+  u ? { code: u.code, region: u.region, name: u.name, x: u.x, y: u.y } : null;
 
-  // ── Explore mode state ──
-  const [activeChannel, setActiveChannel] = useState("cm");
-  const [activeCM, setActiveCM] = useState<CMEntry | null>(null);
-  const [activeOrientation, setActiveOrientation] = useState<{
-    palm: string;
-    fingers: string;
-  }>({ palm: "FORWARD", fingers: "UP" });
-  const [activeMovement, setActiveMovement] = useState<{
+export default function AprenderPage() {
+  const [modo, setModo] = useState<Modo>("explorar");
+
+  // ── Explorar ────────────────────────────────────────────────
+  const [param, setParam] = useState<ParametroId>("cm");
+  const [cm, setCm] = useState<CMEntry | null>(MANO_ABIERTA);
+  const [ub, setUb] = useState<UBLocation | null>(null);
+  const [or, setOr] = useState({ palm: "FORWARD", fingers: "UP" });
+  const [mv, setMv] = useState<{
     contour: string;
     local: string | null;
     plane: string;
-  }>({ contour: "STRAIGHT", local: null, plane: "VERTICAL" });
-  const [activeUBLocation, setActiveUBLocation] = useState<UBLocation | null>(
-    null,
-  );
-  const [activeRNM, setActiveRNM] = useState<FaceState>({
-    eyebrows: "NEUTRAL",
-    mouth: "NEUTRAL",
-    head: "NONE",
-  });
-  const [ubRegionFilter, setUBRegionFilter] = useState<string | null>(null);
+  }>({ contour: "ARC", local: null, plane: "VERTICAL" });
+  const [cara, setCara] = useState<FaceState>(CARA_NEUTRA);
 
-  // ── FK mode state ──
-  const [armAngles, setArmAngles] =
-    useState<ArmJointAngles>(defaultArmAngles());
-  const armFKStateRef = useRef<ArmFKState | null>(null);
-  const [autoSolveRequest, setAutoSolveRequest] =
-    useState<AutoSolveRequest | null>(null);
-  const [autoSolveRunning, setAutoSolveRunning] = useState(false);
-  const [autoSolveResults, setAutoSolveResults] = useState<CapturedPose[]>([]);
+  // ── Construir ───────────────────────────────────────────────
+  const [sign, setSign] = useState<SignConstruction>(createSignaMinima);
+  const [celda, setCelda] = useState<CeldaSel | null>({ index: 0, campo: "cm" });
+  const [reproduciendo, setReproduciendo] = useState(false);
+  const [repetir, setRepetir] = useState(true);
+  const [lento, setLento] = useState(false);
+  const ritmo = lento ? RITMO_LENTO : DEFAULT_PLAYBACK_CONFIG;
+  const [transcurrido, setTranscurrido] = useState(0);
+  const rafRef = useRef(0);
 
-  // UB codes to auto-solve: all non-arm/forearm/hand/neutral regions
-  const AUTO_SOLVE_CODES = useMemo(
-    () =>
-      UB_LOCATIONS.filter(
-        (loc) =>
-          !["ARM", "FOREARM", "HAND", "NEUTRAL_SPACE"].includes(loc.region),
-      ).map((loc) => loc.code),
-    [],
-  );
-
-  const [autoSolveCount, setAutoSolveCount] = useState(0);
-  const handleAutoSolveAll = useCallback(() => {
-    if (autoSolveRunning) return;
-    setAutoSolveRunning(true);
-    setAutoSolveResults([]);
-    setAutoSolveCount(0);
-    setAutoSolveRequest({
-      codes: AUTO_SOLVE_CODES,
-      onProgress: (count) => setAutoSolveCount(count),
-      onComplete: (results) => {
-        setAutoSolveResults(results);
-        setAutoSolveRunning(false);
-        setAutoSolveRequest(null);
-        setAutoSolveCount(results.length);
-        // Persist results: clipboard + localStorage + window
-        const json = JSON.stringify(results, null, 2);
-        navigator.clipboard.writeText(json).catch(() => {});
-        try {
-          localStorage.setItem("autoSolveResults", json);
-        } catch {
-          /* quota */
-        }
-        (window as unknown as Record<string, unknown>).__autoSolveResults =
-          results;
-      },
-    });
-  }, [autoSolveRunning, AUTO_SOLVE_CODES]);
-
-  // ── Build mode state — SignBuilder owns sign state, emits viewer props ──
-  const [buildViewer, setBuildViewer] = useState<ViewerState>({
-    activeChannel: "cm",
-    cm: null,
-    orientation: undefined,
-    movement: undefined,
-    ubLocation: null,
-    rnm: null,
-  });
-
-  // ── Explore callbacks ──
-  const handleCMChange = useCallback(
-    (cm: CMEntry | null) => setActiveCM(cm),
-    [],
-  );
-  const handleOrientationChange = useCallback(
-    (o: { palm: string; fingers: string }) => setActiveOrientation(o),
-    [],
-  );
-  const handleMovementChange = useCallback(
-    (mv: { contour: string; local: string | null; plane: string }) =>
-      setActiveMovement(mv),
-    [],
-  );
-  const handleLocationChange = useCallback(
-    (loc: UBLocation | null) => setActiveUBLocation(loc),
-    [],
-  );
-  const handleFaceChange = useCallback(
-    (face: FaceState) => setActiveRNM(face),
-    [],
-  );
-  const handleRegionFilter = useCallback(
-    (region: string | null) => setUBRegionFilter(region),
-    [],
-  );
-  const handleUBClickFrom3D = useCallback((code: string) => {
-    const loc = UB_LOCATIONS.find((l) => l.code === code) ?? null;
-    setActiveUBLocation(loc);
-  }, []);
-
-  // ── Build callback ──
-  const handleViewerUpdate = useCallback((state: ViewerState) => {
-    setBuildViewer(state);
-  }, []);
-
-  // ── Playback state ──
-  const [currentSign, setCurrentSign] = useState<SignConstruction | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackLoop, setPlaybackLoop] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [playbackElapsed, setPlaybackElapsed] = useState(0);
-  const playbackStartRef = useRef<number>(0);
-  const rafRef = useRef<number>(0);
-
-  const handleSignChange = useCallback((sign: SignConstruction) => {
-    setCurrentSign(sign);
-  }, []);
-
-  // Playback RAF loop
+  // Reproducción de la seña construida
   useEffect(() => {
-    if (!isPlaying || !currentSign) return;
-
-    playbackStartRef.current =
-      performance.now() - playbackElapsed / playbackSpeed;
-
-    const tick = () => {
-      const now = performance.now();
-      const elapsed = (now - playbackStartRef.current) * playbackSpeed;
-      const totalDur = computeTotalDuration(currentSign);
-
-      if (elapsed >= totalDur) {
-        if (playbackLoop) {
-          playbackStartRef.current = now;
-          setPlaybackElapsed(0);
-        } else {
-          setIsPlaying(false);
-          setPlaybackElapsed(totalDur);
+    if (!reproduciendo) return;
+    const total = computeTotalDuration(sign, ritmo);
+    const inicio = performance.now() - transcurrido;
+    const tick = (ahora: number) => {
+      const t = ahora - inicio;
+      if (t >= total) {
+        if (repetir) {
+          setTranscurrido(0);
+          cancelAnimationFrame(rafRef.current);
+          // reinicia el reloj en el siguiente cuadro
+          rafRef.current = requestAnimationFrame(() => {
+            setReproduciendo(false);
+            setTimeout(() => setReproduciendo(true), 250);
+          });
           return;
         }
-      } else {
-        setPlaybackElapsed(elapsed);
+        setReproduciendo(false);
+        setTranscurrido(0);
+        return;
       }
-
+      setTranscurrido(t);
       rafRef.current = requestAnimationFrame(tick);
     };
-
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, currentSign, playbackLoop, playbackSpeed]); // eslint-disable-line react-hooks/exhaustive-deps
+    // transcurrido se lee solo al (re)iniciar
+  }, [reproduciendo, sign, repetir, ritmo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Derive playback viewer state
-  const playbackFrame = useMemo(() => {
-    if (!currentSign || (!isPlaying && playbackElapsed === 0)) return null;
-    return getPlaybackFrame(currentSign, playbackElapsed);
-  }, [currentSign, isPlaying, playbackElapsed]);
+  const frame = useMemo(
+    () => (reproduciendo ? getPlaybackFrame(sign, transcurrido, ritmo) : null),
+    [reproduciendo, sign, transcurrido, ritmo],
+  );
 
-  // Override buildViewer with playback frame data
-  const effectiveViewer = useMemo<ViewerState>(() => {
-    if ((!isPlaying && playbackElapsed === 0) || !playbackFrame || !currentSign)
-      return buildViewer;
+  const celdaEsMovimiento =
+    modo === "construir" &&
+    !reproduciendo &&
+    celda !== null &&
+    sign.segments[celda.index]?.type === "M" &&
+    movimientoHabilitado(sign, celda.index);
 
-    const seg = currentSign.segments[playbackFrame.segmentIndex];
-    if (!seg) return buildViewer;
+  const tVaiven = useVaiven(
+    (modo === "explorar" && param === "mv") || celdaEsMovimiento,
+  );
 
-    if (seg.type === "D") {
-      return {
-        activeChannel: "cm",
-        cm: seg.cm,
-        orientation: seg.orientation,
-        movement: undefined,
-        ubLocation: seg.ub,
-        rnm: currentSign.rnm as FaceState,
-        handMode: seg.handMode ?? "dominant",
-        showAllUBPoints: false,
-        movementInterp: null,
-      };
-    } else {
-      // Movement segment: build interpolation data for smooth animation
-      const fromHold = getHoldAtIndex(currentSign, playbackFrame.fromHoldIdx);
-      const toHold = getHoldAtIndex(currentSign, playbackFrame.toHoldIdx);
-      const t = playbackFrame.ubInterpolation ?? 0;
-
-      return {
-        activeChannel: "mv",
-        cm: null, // AvatarModel blends CM internally via movementInterp
-        orientation: undefined,
-        movement: { contour: seg.contour, local: seg.local, plane: seg.plane },
-        ubLocation: null, // AvatarModel interpolates position internally
-        rnm: currentSign.rnm as FaceState,
-        handMode: fromHold?.handMode ?? "dominant",
-        showAllUBPoints: false,
-        movementInterp: {
-          t,
-          fromUBCode: fromHold?.ub?.code ?? null,
-          toUBCode: toHold?.ub?.code ?? null,
-          fromCM: fromHold?.cm ?? null,
-          toCM: toHold?.cm ?? null,
-          fromOrientation: fromHold?.orientation ?? {
-            palm: "FORWARD",
-            fingers: "UP",
-          },
-          toOrientation: toHold?.orientation ?? {
-            palm: "FORWARD",
-            fingers: "UP",
-          },
-          contour: seg.contour,
-          plane: seg.plane,
-          local: seg.local,
-          handMode: fromHold?.handMode ?? "dominant",
-        },
-      };
-    }
-  }, [isPlaying, playbackElapsed, playbackFrame, currentSign, buildViewer]);
-
-  const togglePlay = useCallback(() => {
-    if (isPlaying) {
-      setIsPlaying(false);
-    } else {
-      if (currentSign) {
-        const totalDur = computeTotalDuration(currentSign);
-        if (playbackElapsed >= totalDur) setPlaybackElapsed(0);
+  // ── Pose del avatar según el modo ───────────────────────────
+  const pose: PoseAvatar & { showAllUBPoints?: boolean } = useMemo(() => {
+    if (modo === "construir") {
+      if (frame) {
+        return poseDeSegmento(
+          sign,
+          frame.segmentIndex,
+          frame.ubInterpolation ?? 0,
+        );
       }
-      setIsPlaying(true);
+      const i = celda?.index ?? 0;
+      const p = poseDeSegmento(sign, i, tVaiven);
+      return { ...p, showAllUBPoints: celda?.campo === "ub" };
     }
-  }, [isPlaying, currentSign, playbackElapsed]);
-
-  const stopPlayback = useCallback(() => {
-    setIsPlaying(false);
-    setPlaybackElapsed(0);
-  }, []);
-
-  // ── Scrub handlers (for interactive timeline) ──
-  const wasPlayingRef = useRef(false);
-  const handleScrubStart = useCallback(() => {
-    wasPlayingRef.current = isPlaying;
-    setIsPlaying(false);
-  }, [isPlaying]);
-  const handleScrub = useCallback((ms: number) => {
-    setPlaybackElapsed(ms);
-  }, []);
-  const handleScrubEnd = useCallback(() => {
-    if (wasPlayingRef.current) setIsPlaying(true);
-  }, []);
-
-  // ── Derive final 3D viewer props based on mode ──
-
-  const viewerChannel =
-    mode === "build" ? effectiveViewer.activeChannel : activeChannel;
-
-  const hand3DProps = useMemo(() => {
-    if (mode === "build") {
-      return {
-        cm: effectiveViewer.cm,
-        orientation: effectiveViewer.orientation,
-        movement: effectiveViewer.movement,
-        movementInterp: effectiveViewer.movementInterp ?? null,
-      };
-    }
-    switch (activeChannel) {
+    switch (param) {
       case "cm":
         return {
-          cm: activeCM,
-          orientation: undefined,
-          movement: undefined,
+          cm,
+          orientation: { palm: "FORWARD", fingers: "UP" },
+          ubLocation: PECHO,
+          rnm: CARA_NEUTRA,
           movementInterp: null,
+          handMode: "dominant",
+        };
+      case "ub":
+        return {
+          cm: MANO_ABIERTA,
+          orientation: { palm: "BACK", fingers: "UP" },
+          ubLocation: ub,
+          rnm: CARA_NEUTRA,
+          movementInterp: null,
+          handMode: "dominant",
+          showAllUBPoints: true,
         };
       case "or":
         return {
-          cm: null,
-          orientation: activeOrientation,
-          movement: undefined,
+          cm: MANO_ABIERTA,
+          orientation: or,
+          ubLocation: PECHO,
+          rnm: CARA_NEUTRA,
           movementInterp: null,
+          handMode: "dominant",
         };
       case "mv":
         return {
           cm: null,
-          orientation: undefined,
-          movement: activeMovement,
-          movementInterp: null,
+          ubLocation: null,
+          rnm: CARA_NEUTRA,
+          handMode: "dominant",
+          movementInterp: {
+            t: tVaiven,
+            fromUBCode: "IpsiPe",
+            toUBCode: "XPe",
+            fromCM: MANO_ABIERTA,
+            toCM: MANO_ABIERTA,
+            fromOrientation: { palm: "FORWARD", fingers: "UP" },
+            toOrientation: { palm: "FORWARD", fingers: "UP" },
+            contour: mv.contour,
+            plane: mv.plane,
+            local: mv.local,
+            handMode: "dominant",
+          },
         };
-      default:
+      case "rnm":
         return {
           cm: null,
-          orientation: undefined,
-          movement: undefined,
+          ubLocation: null,
+          rnm: cara,
           movementInterp: null,
+          handMode: "dominant",
         };
     }
-  }, [
-    mode,
-    effectiveViewer,
-    activeChannel,
-    activeCM,
-    activeOrientation,
-    activeMovement,
-  ]);
+  }, [modo, frame, sign, celda, tVaiven, param, cm, ub, or, mv, cara]);
 
-  // UB target for IK arm posing — NOT used in UB explore mode (arms stay down)
-  const avatarUBTarget = useMemo(() => {
-    if (mode === "build") {
-      // In build mode, always pass UB to avatar (for arm IK), not just when on UB tab
-      if (!effectiveViewer.ubLocation) return null;
-      const loc = effectiveViewer.ubLocation;
-      return {
-        code: loc.code,
-        region: loc.region,
-        name: loc.name,
-        x: loc.x,
-        y: loc.y,
-      };
-    }
-    // In explore mode, pass UB target for FK tab and UB browse (for arm FK presets)
-    if (
-      (activeChannel === "fk" || activeChannel === "ub") &&
-      activeUBLocation
-    ) {
-      return {
-        code: activeUBLocation.code,
-        region: activeUBLocation.region,
-        name: activeUBLocation.name,
-        x: activeUBLocation.x,
-        y: activeUBLocation.y,
-      };
-    }
-    return null;
-  }, [mode, effectiveViewer, activeChannel, activeUBLocation]);
+  // Tocar un punto del cuerpo del avatar
+  const onUBClick = useCallback(
+    (code: string) => {
+      const loc = ubPor(code);
+      if (!loc) return;
+      if (modo === "explorar") {
+        setUb(loc);
+        return;
+      }
+      if (celda?.campo === "ub" && sign.segments[celda.index]?.type === "D") {
+        const segments = sign.segments.map((s, i) =>
+          i === celda.index ? ({ ...(s as HoldSegment), ub: loc } as HoldSegment) : s,
+        );
+        setSign({ ...sign, segments });
+      }
+    },
+    [modo, celda, sign],
+  );
 
-  // Selected UB code for point cloud highlighting (used in UB explore mode)
-  const selectedUBCode = useMemo(() => {
-    if (mode === "build") return effectiveViewer.ubLocation?.code ?? null;
-    if (
-      (activeChannel === "ub" || activeChannel === "fk") &&
-      activeUBLocation
-    ) {
-      return activeUBLocation.code;
-    }
-    return null;
-  }, [mode, effectiveViewer, activeChannel, activeUBLocation]);
+  const cambiarSena = (s: SignConstruction) => {
+    setSign(s);
+    setReproduciendo(false);
+    setTranscurrido(0);
+  };
 
-  const avatarRNMTarget = useMemo(() => {
-    if (mode === "build") {
-      // In build mode, always pass RNM during playback and when on RNM tab
-      if (isPlaying) return effectiveViewer.rnm;
-      if (effectiveViewer.activeChannel !== "rnm") return null;
-      return effectiveViewer.rnm;
-    }
-    if (activeChannel !== "rnm") return null;
-    return activeRNM;
-  }, [mode, effectiveViewer, activeChannel, activeRNM, isPlaying]);
-
-  // Current channel info for display
-  const currentChannelInfo = CHANNELS.find((c) => c.id === viewerChannel);
+  const avatar = (alto: string) => (
+    <Hand3DViewer
+      forceAvatar
+      cm={pose.cm}
+      orientation={pose.orientation}
+      ubLocation={aTarget(pose.ubLocation)}
+      rnm={pose.rnm as FaceState}
+      movementInterp={pose.movementInterp}
+      handMode={pose.handMode}
+      showAllUBPoints={Boolean(pose.showAllUBPoints)}
+      selectedUBCode={pose.ubLocation?.code ?? null}
+      onUBClick={onUBClick}
+      isBuildMode
+      height={alto}
+      className="w-full"
+    />
+  );
 
   return (
-    <div className="fixed inset-x-0 top-16 bottom-0 z-10">
-      {/* ─── 3D Viewport — fills the ENTIRE viewport ─── */}
-      <div className="absolute inset-0 bg-ink">
-        <Hand3DViewer
-          cm={hand3DProps.cm}
-          orientation={hand3DProps.orientation}
-          movement={hand3DProps.movement}
-          movementInterp={hand3DProps.movementInterp}
-          autoRotate={false}
-          height="100%"
-          className="rounded-none"
-          activeChannel={viewerChannel}
-          ubLocation={avatarUBTarget}
-          selectedUBCode={selectedUBCode}
-          rnm={avatarRNMTarget}
-          showAllUBPoints={
-            viewerChannel === "ub" &&
-            (mode === "explore" || effectiveViewer.showAllUBPoints)
-          }
-          ubRegionFilter={viewerChannel === "ub" ? ubRegionFilter : null}
-          onUBClick={viewerChannel === "ub" ? handleUBClickFrom3D : undefined}
-          isBuildMode={mode === "build"}
-          handMode={effectiveViewer.handMode}
-          armAngles={
-            activeChannel === "fk" && mode === "explore" ? armAngles : null
-          }
-          armFKStateRef={armFKStateRef}
-          autoSolveRequest={autoSolveRequest}
+    <div className="space-y-6">
+      {/* Título en grande y selector de modo */}
+      <header className="space-y-4">
+        <h1 className="font-display text-4xl font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+          {APRENDER_ES.titulo}
+        </h1>
+        <p className="max-w-2xl text-sm text-gray-500">
+          {APRENDER_ES.subtitulo}
+        </p>
+        <ModoToggle
+          modo={modo}
+          onChange={(m) => {
+            setModo(m);
+            setReproduciendo(false);
+          }}
         />
-      </div>
+      </header>
 
-      {/* ─── Top-right: active channel indicator ─── */}
-      {currentChannelInfo && (
-        <div className="pointer-events-none absolute right-3 top-3 z-20 lg:right-5 lg:top-5">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/40 px-3 py-1.5 shadow-lg backdrop-blur-md">
-            <div
-              className="h-2 w-2 rounded-full"
-              style={{
-                backgroundColor: currentChannelInfo.color,
-                boxShadow: `0 0 8px ${currentChannelInfo.color}80`,
-              }}
-            />
-            <span
-              className="text-[11px] font-bold"
-              style={{ color: currentChannelInfo.color }}
-            >
-              {currentChannelInfo.label}
-            </span>
-            <span className="hidden text-[11px] text-white/50 sm:inline">
-              {currentChannelInfo.fullName}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Right-side Segmental Matrix Card ─── */}
-      <div className="absolute bottom-3 right-3 z-20 flex h-[20vh] w-[25vw] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-2xl ring-1 ring-white/5 backdrop-blur-2xl lg:bottom-5 lg:right-5">
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 py-1.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white/60">
-            Matriz segmental
-          </span>
-          <span className="font-mono text-[9px] text-green/70">
-            Cruz Aldrete 2008
-          </span>
-        </div>
-
-        {/* Matrix content */}
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-2.5 px-3 py-2">
-          {/* Temporal sequence: D → M → D */}
-          <div className="flex items-center justify-center gap-1.5">
-            <div
-              className={`flex flex-col items-center rounded-lg px-2.5 py-1.5 transition-all ${
-                mode === "build" &&
-                ["cm", "ub", "or"].includes(buildViewer.activeChannel)
-                  ? "bg-accent shadow-lg shadow-accent/30"
-                  : "bg-accent/20"
-              }`}
-            >
-              <span className="text-[11px] font-bold text-white">D</span>
-              <span className="text-[7px] leading-tight text-white/60">
-                Detención
-              </span>
-            </div>
-            <svg viewBox="0 0 16 8" className="h-2 w-4 shrink-0 text-white/30">
-              <path
-                d="M0 4h12M10 1l3 3-3 3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
-            <div
-              className={`flex flex-col items-center rounded-lg px-2.5 py-1.5 transition-all ${
-                mode === "build" && buildViewer.activeChannel === "mv"
-                  ? "bg-sky-500 shadow-lg shadow-sky-500/30"
-                  : "bg-sky-500/20"
-              }`}
-            >
-              <span className="text-[11px] font-bold text-white">M</span>
-              <span className="text-[7px] leading-tight text-white/60">
-                Movimiento
-              </span>
-            </div>
-            <svg viewBox="0 0 16 8" className="h-2 w-4 shrink-0 text-white/30">
-              <path
-                d="M0 4h12M10 1l3 3-3 3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              />
-            </svg>
-            <div
-              className={`flex flex-col items-center rounded-lg px-2.5 py-1.5 transition-all ${
-                mode === "build" &&
-                ["cm", "ub", "or"].includes(buildViewer.activeChannel)
-                  ? "bg-accent shadow-lg shadow-accent/30"
-                  : "bg-accent/20"
-              }`}
-            >
-              <span className="text-[11px] font-bold text-white">D</span>
-              <span className="text-[7px] leading-tight text-white/60">
-                Detención
-              </span>
-            </div>
-          </div>
-
-          {/* Three matrices breakdown */}
-          <div className="grid grid-cols-3 gap-1.5">
-            {/* Matrix 1: Detención */}
-            <div className="rounded-lg bg-paper/5 px-2 py-1.5">
-              <p className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-accent">
-                Detención
-              </p>
-              <div className="flex flex-wrap gap-0.5">
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "cm"
-                      ? "bg-accent/40 text-accent-tint"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  CM
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "ub"
-                      ? "bg-green/40 text-emerald-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  UB
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "or"
-                      ? "bg-accent/40 text-gray-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  OR
-                </span>
-              </div>
-            </div>
-
-            {/* Matrix 2: Movimiento */}
-            <div className="rounded-lg bg-paper/5 px-2 py-1.5">
-              <p className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-sky-400">
-                Movimiento
-              </p>
-              <div className="flex flex-wrap gap-0.5">
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "mv"
-                      ? "bg-sky-500/40 text-sky-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Cont.
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "mv"
-                      ? "bg-sky-500/40 text-sky-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Plano
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "mv"
-                      ? "bg-sky-500/40 text-sky-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Local
-                </span>
-              </div>
-            </div>
-
-            {/* Matrix 3: RNM */}
-            <div className="rounded-lg bg-paper/5 px-2 py-1.5">
-              <p className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-coral">
-                RNM
-              </p>
-              <div className="flex flex-wrap gap-0.5">
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "rnm"
-                      ? "bg-coral/40 text-rose-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Cejas
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "rnm"
-                      ? "bg-coral/40 text-rose-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Boca
-                </span>
-                <span
-                  className={`rounded px-1 py-px text-[8px] font-medium ${
-                    mode === "build" && buildViewer.activeChannel === "rnm"
-                      ? "bg-coral/40 text-rose-200"
-                      : "bg-paper/5 text-white/40"
-                  }`}
-                >
-                  Cab.
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* RNM suprasegmental bar */}
-          <div className="flex items-center gap-1.5 rounded-lg bg-coral/8 px-2 py-1">
-            <div className="h-px flex-1 bg-coral/30" />
-            <span className="text-[7px] font-bold uppercase tracking-widest text-coral/60">
-              Suprasegmental
-            </span>
-            <div className="h-px flex-1 bg-coral/30" />
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Left-side Floating Translucent Control Card ─── */}
-      <div className="absolute left-3 bottom-3 z-20 flex h-[65vh] w-[35vw] flex-col overflow-hidden rounded-2xl border border-white/15 bg-paper/70 shadow-2xl ring-1 ring-black/5 backdrop-blur-2xl lg:left-5 lg:bottom-5">
-        {/* ── Title header ── */}
-        <div className="shrink-0 border-b border-black/5 px-4 py-2.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-sm font-bold text-ink lg:text-base">
-                Representación fonológica{" "}
-                <span className="text-accent">
-                  LSM
-                </span>
-              </h1>
-              <p className="font-mono text-[10px] text-gray-500">
-                {mode === "build"
-                  ? "Construcción · Detención → Movimiento → Detención"
-                  : "SEÑA = CM + UB + OR + MV + RNM"}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Info button */}
-              <button
-                onClick={() => setShowInfo(true)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-accent/40 text-xs font-bold text-accent transition-colors hover:bg-accent/10 hover:text-accent-deep"
-                aria-label="Informaci&oacute;n"
-              >
-                ?
-              </button>
-              {/* Collapse toggle */}
-              <button
-                onClick={() => setPanelOpen(!panelOpen)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-black/5 hover:text-gray-700"
-                aria-label={panelOpen ? "Minimizar panel" : "Expandir panel"}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${panelOpen ? "" : "rotate-180"}`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Mode toggle + channel tabs / matrix labels ── */}
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-black/5 px-2.5 py-1.5">
-          {/* Mode toggle */}
-          <div className="flex shrink-0 rounded-lg bg-black/5 p-0.5">
-            <button
-              onClick={() => setMode("explore")}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide transition-all ${
-                mode === "explore"
-                  ? "bg-paper text-ink shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Explorar
-            </button>
-            <button
-              onClick={() => setMode("build")}
-              className={`rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide transition-all ${
-                mode === "build"
-                  ? "bg-paper text-ink shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Construir
-            </button>
-          </div>
-
-          {/* Explore mode: channel tabs */}
-          {mode === "explore" && (
-            <>
-              <div className="h-4 w-px bg-black/10" />
-              {CHANNELS.map((ch) => {
-                const isActive = activeChannel === ch.id;
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => {
-                      setActiveChannel(ch.id);
-                      setPanelOpen(true);
-                    }}
-                    className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold tracking-wider transition-all ${
-                      isActive
-                        ? "text-white shadow-md"
-                        : "text-gray-600 hover:bg-black/5"
-                    }`}
-                    style={isActive ? { backgroundColor: ch.color } : {}}
-                  >
-                    {ch.label}
-                  </button>
-                );
-              })}
-            </>
-          )}
-
-          {/* Build mode: compact indicator */}
-          {mode === "build" && (
-            <>
-              <div className="h-4 w-px bg-black/10" />
-              <span className="text-[10px] font-medium text-gray-500">
-                D → M → D
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* ── Controls area — fills remaining space, scrollable ── */}
-        {panelOpen && (
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-            {mode === "explore" ? (
-              <>
-                {activeChannel === "cm" && (
-                  <CMControls onCMChange={handleCMChange} />
-                )}
-                {activeChannel === "ub" && (
-                  <UBControls
-                    onLocationChange={handleLocationChange}
-                    onRegionFilter={handleRegionFilter}
-                    defaultLocation={activeUBLocation}
-                  />
-                )}
-                {activeChannel === "or" && (
-                  <ORControls onOrientationChange={handleOrientationChange} />
-                )}
-                {activeChannel === "mv" && (
-                  <MVControls onMovementChange={handleMovementChange} />
-                )}
-                {activeChannel === "rnm" && (
-                  <RNMControls onFaceChange={handleFaceChange} />
-                )}
-                {activeChannel === "fk" && (
-                  <ArmControls
-                    angles={armAngles}
-                    onChange={setArmAngles}
-                    fkStateRef={armFKStateRef}
-                    ubCode={activeUBLocation?.code}
-                    onCapture={(pose) => {
-                      // eslint-disable-next-line no-console
-                      console.log("Captured FK pose:", pose);
-                    }}
-                    onReset={() => setArmAngles(defaultArmAngles())}
-                    onAutoSolveAll={handleAutoSolveAll}
-                    autoSolveRunning={autoSolveRunning}
-                    autoSolveCount={autoSolveCount}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="space-y-3">
-                <SignBuilder
-                  onViewerUpdate={handleViewerUpdate}
-                  onSignChange={handleSignChange}
+      {modo === "explorar" ? (
+        <div className="space-y-4">
+          <TabsParametros activo={param} onChange={setParam} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            {/* El avatar manda */}
+            <div className="lg:col-span-3">{avatar("64vh")}</div>
+            <div className="max-h-[64vh] overflow-y-auto rounded-2xl border border-gray-200 bg-paper p-4 lg:col-span-2">
+              {param === "cm" && (
+                <CMControls defaultCM={cm} onCMChange={setCm} />
+              )}
+              {param === "ub" && (
+                <UBControls defaultLocation={ub} onLocationChange={setUb} />
+              )}
+              {param === "or" && (
+                <ORControls
+                  defaultPalm={or.palm}
+                  defaultFingers={or.fingers}
+                  onOrientationChange={setOr}
                 />
-
-                {/* Interactive playback timeline */}
-                {currentSign && (
-                  <InteractiveTimeline
-                    sign={currentSign}
-                    isPlaying={isPlaying}
-                    elapsedMs={playbackElapsed}
-                    totalDurationMs={computeTotalDuration(currentSign)}
-                    speed={playbackSpeed}
-                    loop={playbackLoop}
-                    currentFrame={playbackFrame}
-                    onTogglePlay={togglePlay}
-                    onStop={stopPlayback}
-                    onToggleLoop={() => setPlaybackLoop((l) => !l)}
-                    onSpeedChange={setPlaybackSpeed}
-                    onScrub={handleScrub}
-                    onScrubStart={handleScrubStart}
-                    onScrubEnd={handleScrubEnd}
-                  />
-                )}
-
-                {/* Sign summary */}
-                {currentSign && <SignSummary sign={currentSign} />}
+              )}
+              {param === "mv" && (
+                <MVControls
+                  defaultContour={mv.contour}
+                  defaultLocal={mv.local}
+                  defaultPlane={mv.plane}
+                  onMovementChange={setMv}
+                />
+              )}
+              {param === "rnm" && (
+                <RNMControls defaultFace={cara} onFaceChange={setCara} />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Avatar protagonista, con el editor de la casilla flotando */}
+          <div className="relative">
+            {avatar("46vh")}
+            {celda && !reproduciendo && (
+              <div className="absolute bottom-3 right-3 top-3 w-[min(24rem,calc(100%-1.5rem))]">
+                <EditorCasilla
+                  sign={sign}
+                  celda={celda}
+                  onChange={cambiarSena}
+                  onClose={() => setCelda(null)}
+                />
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      {/* ─── Info Modal Overlay ─── */}
-      {showInfo && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative mx-4 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/15 bg-paper/90 p-6 shadow-2xl backdrop-blur-2xl lg:p-8">
-            {/* Close button */}
-            <button
-              onClick={() => setShowInfo(false)}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-gray-500 transition-colors hover:bg-black/10 hover:text-gray-800"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-
-            <h2 className="mb-1 text-lg font-bold text-ink">
-              Unidad l&eacute;xica en LSM
-            </h2>
-            <p className="mb-5 text-xs text-gray-500">
-              Modelo fonol&oacute;gico segmental de Cruz Aldrete (2008)
-            </p>
-
-            {/* ── What is a sign ── */}
-            <div className="mb-5 rounded-xl bg-accent/5 p-4">
-              <h3 className="mb-1.5 text-sm font-bold text-ink">
-                &iquest;Qu&eacute; es una se&ntilde;a?
-              </h3>
-              <p className="text-xs leading-relaxed text-gray-600">
-                Una <strong>se&ntilde;a</strong> es la unidad l&eacute;xica
-                m&iacute;nima con significado en la Lengua de Se&ntilde;as
-                Mexicana (LSM). As&iacute; como las palabras habladas se
-                componen de fonemas, cada se&ntilde;a se describe mediante
-                <strong> par&aacute;metros fonol&oacute;gicos</strong> que,
-                combinados en secuencia temporal, producen la
-                articulaci&oacute;n completa.
-              </p>
-            </div>
-
-            {/* ── 5 Parameters ── */}
-            <h3 className="mb-3 text-sm font-bold text-ink">
-              Los 5 par&aacute;metros fonol&oacute;gicos
-            </h3>
-            <div className="mb-5 grid gap-2">
-              <div className="flex items-start gap-3 rounded-lg bg-black/3 p-3">
-                <span
-                  className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#4f46e5" }}
-                />
-                <div>
-                  <p className="text-xs font-bold text-ink">
-                    CM &mdash; Configuraci&oacute;n manual
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-gray-500">
-                    La forma que adopta la mano: qu&eacute; dedos est&aacute;n
-                    extendidos, flexionados o en contacto. La LSM cuenta con un
-                    inventario de 101 configuraciones distintas organizadas en
-                    grupos articulatorios.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg bg-black/3 p-3">
-                <span
-                  className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#059669" }}
-                />
-                <div>
-                  <p className="text-xs font-bold text-ink">
-                    UB &mdash; Ubicaci&oacute;n
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-gray-500">
-                    El lugar del cuerpo o del espacio se&ntilde;ante donde se
-                    articula la se&ntilde;a. Se divide en regiones: cabeza,
-                    tronco, brazo, mano y espacio neutro, con 80 puntos
-                    espec&iacute;ficos.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg bg-black/3 p-3">
-                <span
-                  className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#7c3aed" }}
-                />
-                <div>
-                  <p className="text-xs font-bold text-ink">
-                    OR &mdash; Orientaci&oacute;n
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-gray-500">
-                    Hacia d&oacute;nde apuntan la palma y los dedos de la mano.
-                    Se define con dos ejes: la direcci&oacute;n de la palma
-                    (arriba, abajo, al frente, etc.) y la direcci&oacute;n de
-                    los dedos.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg bg-black/3 p-3">
-                <span
-                  className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#0284c7" }}
-                />
-                <div>
-                  <p className="text-xs font-bold text-ink">
-                    MV &mdash; Movimiento
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-gray-500">
-                    El desplazamiento de la mano durante la se&ntilde;a. Se
-                    describe con tres componentes:
-                    <strong> contorno</strong> (recto, arco, circular),{" "}
-                    <strong>plano</strong> (horizontal, vertical, sagital) y{" "}
-                    <strong>movimiento local</strong> opcional (rotaci&oacute;n,
-                    aleteo, vibraci&oacute;n, etc.).
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-lg bg-black/3 p-3">
-                <span
-                  className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: "#e11d48" }}
-                />
-                <div>
-                  <p className="text-xs font-bold text-ink">
-                    RNM &mdash; Rasgos no manuales
-                  </p>
-                  <p className="text-[11px] leading-relaxed text-gray-500">
-                    Expresiones faciales y movimientos de cabeza que
-                    acompa&ntilde;an la se&ntilde;a. Incluyen posici&oacute;n de
-                    cejas (levantadas, fruncidas), forma de la boca (abierta,
-                    redondeada, cerrada) y movimiento de cabeza (asentir, negar,
-                    inclinar). Se aplican <em>suprasegmentalmente</em> a toda la
-                    se&ntilde;a.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Segmental matrices ── */}
-            <h3 className="mb-3 text-sm font-bold text-ink">
-              Matrices segmentales de Cruz Aldrete
-            </h3>
-            <div className="mb-5 rounded-xl bg-gray-900/90 p-4 backdrop-blur-sm">
-              <p className="mb-3 text-[11px] leading-relaxed text-gray-300">
-                Cada se&ntilde;a se descompone en una secuencia temporal de{" "}
-                <strong className="text-accent-tint">segmentos</strong>. Existen
-                dos tipos fundamentales que se alternan:
-              </p>
-              <div className="mb-3 flex items-center justify-center gap-2">
-                <span className="rounded-lg bg-accent px-3 py-1 text-xs font-bold text-white">
-                  D &mdash; Detenci&oacute;n
-                </span>
-                <span className="text-gray-500">&rarr;</span>
-                <span className="rounded-lg bg-sky-500 px-3 py-1 text-xs font-bold text-white">
-                  M &mdash; Movimiento
-                </span>
-                <span className="text-gray-500">&rarr;</span>
-                <span className="rounded-lg bg-accent px-3 py-1 text-xs font-bold text-white">
-                  D &mdash; Detenci&oacute;n
-                </span>
-              </div>
-              <div className="space-y-2 text-[11px] text-gray-400">
-                <p>
-                  <strong className="text-accent-tint">
-                    Detenci&oacute;n (D):
-                  </strong>{" "}
-                  Un momento est&aacute;tico donde la mano se sostiene en una
-                  posici&oacute;n. Se define por su <em>CM</em> + <em>UB</em> +{" "}
-                  <em>OR</em>.
-                </p>
-                <p>
-                  <strong className="text-sky-300">Movimiento (M):</strong> La
-                  transici&oacute;n din&aacute;mica entre dos detenciones. Se
-                  define por su <em>contorno</em> + <em>plano</em> +{" "}
-                  <em>movimiento local</em>.
-                </p>
-                <p>
-                  <strong className="text-rose-300">RNM:</strong> Se aplican
-                  sobre toda la cadena segmental como una capa suprasegmental.
-                </p>
-              </div>
-            </div>
-
-            {/* ── How to use ── */}
-            <h3 className="mb-3 text-sm font-bold text-ink">
-              C&oacute;mo usar esta herramienta
-            </h3>
-            <div className="space-y-2 text-[11px] leading-relaxed text-gray-600">
-              <p>
-                <strong className="text-ink">Modo Explorar:</strong> Navega cada
-                par&aacute;metro de forma independiente. Selecciona una
-                pesta&ntilde;a (CM, UB, OR, MV, RNM) para explorar sus valores y
-                ver c&oacute;mo se reflejan en el modelo 3D.
-              </p>
-              <p>
-                <strong className="text-ink">Modo Construir:</strong> Arma una
-                se&ntilde;a completa paso a paso. Define la secuencia de
-                segmentos D&rarr;M&rarr;D, asigna valores a cada uno y
-                obt&eacute;n la notaci&oacute;n fonol&oacute;gica segmental
-                (LSM-PN) de tu se&ntilde;a.
-              </p>
-            </div>
-
-            {/* Close CTA */}
-            <button
-              onClick={() => setShowInfo(false)}
-              className="mt-6 w-full rounded-xl bg-ink py-2.5 text-sm font-bold text-white transition-colors hover:bg-gray-800"
-            >
-              Entendido
-            </button>
-          </div>
+          {/* La matriz segmental ocupa la parte baja */}
+          <MatrizSegmental
+            sign={sign}
+            onChange={cambiarSena}
+            celda={celda}
+            onSelect={(c) => {
+              setCelda(c);
+              setReproduciendo(false);
+            }}
+            segmentoActivo={frame ? frame.segmentIndex : null}
+            reproduciendo={reproduciendo}
+            repetir={repetir}
+            onRepetir={setRepetir}
+            lento={lento}
+            onLento={(v) => {
+              setLento(v);
+              setReproduciendo(false);
+              setTranscurrido(0);
+            }}
+            onReproducir={() => {
+              if (!senaReproducible(sign)) return;
+              if (!reproduciendo) {
+                setCelda(null);
+                setTranscurrido(0);
+              }
+              setReproduciendo((r) => !r);
+            }}
+          />
         </div>
       )}
     </div>

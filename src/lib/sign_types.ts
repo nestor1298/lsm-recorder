@@ -24,6 +24,8 @@ export interface HoldSegment {
   orientation: { palm: string; fingers: string };
   /** Hand mode: dominant only or both hands symmetric */
   handMode: "dominant" | "both_symmetric";
+  /** Rasgos no manuales de este segmento (fila "Cara" de la matriz) */
+  rnm?: RNMState;
 }
 
 /** Movement segment — the hand moves through space */
@@ -33,6 +35,8 @@ export interface MovementSegment {
   contour: string;
   local: string | null;
   plane: string;
+  /** Rasgos no manuales de este segmento (fila "Cara" de la matriz) */
+  rnm?: RNMState;
 }
 
 export type Segment = HoldSegment | MovementSegment;
@@ -156,4 +160,70 @@ export function segmentSummary(seg: Segment): string {
   const parts: string[] = [seg.contour.slice(0, 5).toLowerCase()];
   if (seg.local) parts.push(seg.local.slice(0, 4).toLowerCase());
   return parts.join("+");
+}
+
+// ── Reglas de la matriz segmental (modo Construir) ─────────────
+
+/**
+ * Seña mínima: una sola detención. Un movimiento solo puede existir
+ * entre una detención inicial y una final, así que no se agrega un M
+ * suelto: se agrega el par M + D.
+ */
+export function createSignaMinima(): SignConstruction {
+  return {
+    name: "",
+    segments: [createHoldSegment()],
+    rnm: { eyebrows: "NEUTRAL", mouth: "NEUTRAL", head: "NONE" },
+  };
+}
+
+/** Agrega un movimiento y su detención final: D … → D … M D */
+export function agregarMovimiento(sign: SignConstruction): SignConstruction {
+  return {
+    ...sign,
+    segments: [...sign.segments, createMovementSegment(), createHoldSegment()],
+  };
+}
+
+/**
+ * Quita el movimiento en `mIndex` junto con la detención que lo cierra,
+ * para que nunca quede un M sin sus dos detenciones.
+ */
+export function quitarMovimiento(
+  sign: SignConstruction,
+  mIndex: number,
+): SignConstruction {
+  if (sign.segments[mIndex]?.type !== "M") return sign;
+  const segments = sign.segments.filter(
+    (_, i) => i !== mIndex && i !== mIndex + 1,
+  );
+  return { ...sign, segments };
+}
+
+/** Una detención está completa cuando tiene forma, lugar y orientación. */
+export function detencionCompleta(d: HoldSegment): boolean {
+  return Boolean(d.cm && d.ub && d.orientation?.palm && d.orientation?.fingers);
+}
+
+/**
+ * Un movimiento se puede definir solo cuando sus dos detenciones están
+ * completas: es la regla que la matriz enseña.
+ */
+export function movimientoHabilitado(
+  sign: SignConstruction,
+  mIndex: number,
+): boolean {
+  const antes = sign.segments[mIndex - 1];
+  const despues = sign.segments[mIndex + 1];
+  return (
+    antes?.type === "D" &&
+    despues?.type === "D" &&
+    detencionCompleta(antes) &&
+    detencionCompleta(despues)
+  );
+}
+
+/** ¿Se puede reproducir? Todas las detenciones completas. */
+export function senaReproducible(sign: SignConstruction): boolean {
+  return sign.segments.every((s) => s.type === "M" || detencionCompleta(s));
 }
