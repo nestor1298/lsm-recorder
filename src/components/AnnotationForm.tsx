@@ -12,7 +12,12 @@ import { useEffect, useState } from "react";
 import type { PSHRSegment, HeadMovement } from "@/lib/types";
 import { UB_LOCATIONS } from "@/lib/ub_inventory";
 import { CM_INVENTORY } from "@/lib/data";
-import { PALM_ES, FINGER_ES, CONTOUR_ES } from "@/lib/anotar_labels";
+import {
+  PALM_ES,
+  FINGER_ES,
+  CONTOUR_ES,
+  HEAD_ES,
+} from "@/lib/anotar_labels";
 import { EditorCM } from "@/components/anotar/PasoCM";
 import { EditorUbicacion } from "@/components/anotar/PasoUbicacion";
 import { EditorOrientacion } from "@/components/anotar/PasoOrientacion";
@@ -20,16 +25,6 @@ import {
   EditorMovimiento,
   EditorRostro,
 } from "@/components/anotar/PasoMovimiento";
-
-const HEAD_ES: Record<HeadMovement, string> = {
-  NONE: "Quieta",
-  NOD: "Asiente",
-  SHAKE: "Niega",
-  TILT_LEFT: "Inclinada izq.",
-  TILT_RIGHT: "Inclinada der.",
-  TILT_BACK: "Atrás",
-  TILT_DOWN: "Abajo",
-};
 
 export type CanalId = "mano" | "lugar" | "palma" | "movimiento" | "rostro";
 
