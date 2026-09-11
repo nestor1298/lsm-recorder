@@ -266,9 +266,12 @@ export default function AprenderPage() {
     setTranscurrido(0);
   };
 
-  const avatar = (alto: string) => (
+  const avatar = (
     <Hand3DViewer
       forceAvatar
+      fija
+      encuadre="torso"
+      autoRotate={false}
       cm={pose.cm}
       orientation={pose.orientation}
       ubLocation={aTarget(pose.ubLocation)}
@@ -279,37 +282,45 @@ export default function AprenderPage() {
       selectedUBCode={pose.ubLocation?.code ?? null}
       onUBClick={onUBClick}
       isBuildMode
-      height={alto}
+      height="100%"
       className="w-full"
     />
   );
 
+  // En escritorio todo cabe en la pantalla: la página no se desplaza, solo
+  // las listas largas (inventario de CM, lugares) dentro de su panel.
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-8.5rem)] lg:overflow-hidden">
       {/* Título en grande y selector de modo */}
-      <header className="space-y-4">
-        <h1 className="font-display text-4xl font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+      <header className="shrink-0 space-y-3">
+        <h1 className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
           {APRENDER_ES.titulo}
         </h1>
-        <p className="max-w-2xl text-sm text-gray-500">
-          {APRENDER_ES.subtitulo}
-        </p>
-        <ModoToggle
-          modo={modo}
-          onChange={(m) => {
-            setModo(m);
-            setReproduciendo(false);
-          }}
-        />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <ModoToggle
+            modo={modo}
+            onChange={(m) => {
+              setModo(m);
+              setReproduciendo(false);
+            }}
+          />
+          <p className="text-sm text-gray-500">{APRENDER_ES.subtitulo}</p>
+        </div>
       </header>
 
-      {modo === "explorar" ? (
-        <div className="space-y-4">
-          <TabsParametros activo={param} onChange={setParam} />
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            {/* El avatar manda */}
-            <div className="lg:col-span-3">{avatar("64vh")}</div>
-            <div className="max-h-[64vh] overflow-y-auto rounded-2xl border border-gray-200 bg-paper p-4 lg:col-span-2">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        {/* El avatar, fijo a la izquierda */}
+        <div className="h-[55vh] min-h-0 rounded-2xl bg-gray-50 lg:h-full">
+          {avatar}
+        </div>
+
+        {/* Todo lo demás a la derecha */}
+        {modo === "explorar" ? (
+          <div className="flex min-h-0 flex-col gap-3">
+            <div className="shrink-0">
+              <TabsParametros activo={param} onChange={setParam} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-paper p-4">
               {param === "cm" && (
                 <CMControls defaultCM={cm} onCMChange={setCm} />
               )}
@@ -336,54 +347,55 @@ export default function AprenderPage() {
               )}
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Avatar protagonista, con el editor de la casilla flotando */}
-          <div className="relative">
-            {avatar("46vh")}
-            {celda && !reproduciendo && (
-              <div className="absolute bottom-3 right-3 top-3 w-[min(24rem,calc(100%-1.5rem))]">
+        ) : (
+          <div className="flex min-h-0 flex-col gap-3">
+            <div className="shrink-0">
+              <MatrizSegmental
+                sign={sign}
+                onChange={cambiarSena}
+                celda={celda}
+                onSelect={(c) => {
+                  setCelda(c);
+                  setReproduciendo(false);
+                }}
+                segmentoActivo={frame ? frame.segmentIndex : null}
+                reproduciendo={reproduciendo}
+                repetir={repetir}
+                onRepetir={setRepetir}
+                lento={lento}
+                onLento={(v) => {
+                  setLento(v);
+                  setReproduciendo(false);
+                  setTranscurrido(0);
+                }}
+                onReproducir={() => {
+                  if (!senaReproducible(sign)) return;
+                  if (!reproduciendo) {
+                    setCelda(null);
+                    setTranscurrido(0);
+                  }
+                  setReproduciendo((r) => !r);
+                }}
+              />
+            </div>
+            {/* El editor de la casilla elegida ocupa el resto */}
+            <div className="min-h-0 flex-1">
+              {celda && !reproduciendo ? (
                 <EditorCasilla
                   sign={sign}
                   celda={celda}
                   onChange={cambiarSena}
                   onClose={() => setCelda(null)}
                 />
-              </div>
-            )}
+              ) : (
+                <div className="flex h-full min-h-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 px-6 text-center text-sm text-gray-500">
+                  {APRENDER_ES.eligeCasilla}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* La matriz segmental ocupa la parte baja */}
-          <MatrizSegmental
-            sign={sign}
-            onChange={cambiarSena}
-            celda={celda}
-            onSelect={(c) => {
-              setCelda(c);
-              setReproduciendo(false);
-            }}
-            segmentoActivo={frame ? frame.segmentIndex : null}
-            reproduciendo={reproduciendo}
-            repetir={repetir}
-            onRepetir={setRepetir}
-            lento={lento}
-            onLento={(v) => {
-              setLento(v);
-              setReproduciendo(false);
-              setTranscurrido(0);
-            }}
-            onReproducir={() => {
-              if (!senaReproducible(sign)) return;
-              if (!reproduciendo) {
-                setCelda(null);
-                setTranscurrido(0);
-              }
-              setReproduciendo((r) => !r);
-            }}
-          />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

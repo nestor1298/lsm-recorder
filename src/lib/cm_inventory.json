@@ -837,7 +837,7 @@
   "index": "EXTENDED",
   "middle": "EXTENDED",
   "ring": "EXTENDED",
-  "pinky": "CLOSED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1,
    2,
@@ -1640,9 +1640,9 @@
   "example_sign": "NÚM.40",
   "alpha_code": null,
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1663,9 +1663,9 @@
   "example_sign": "LETRA-T",
   "alpha_code": "[T]",
   "index": "CLOSED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1686,9 +1686,9 @@
   "example_sign": "LETRA-F",
   "alpha_code": "[F]",
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1709,9 +1709,9 @@
   "example_sign": "ESCOGER-1",
   "alpha_code": null,
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1732,9 +1732,9 @@
   "example_sign": "EXPLICAR",
   "alpha_code": null,
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1755,9 +1755,9 @@
   "example_sign": "ESCOGER-2",
   "alpha_code": "[F̂]",
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1778,9 +1778,9 @@
   "example_sign": "YOGA",
   "alpha_code": null,
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -1801,9 +1801,9 @@
   "example_sign": "LETRA-T-VAR",
   "alpha_code": "[T']",
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -2035,10 +2035,10 @@
   "cruz_aldrete_notation": "2^°NSAb-/o+d-c+",
   "example_sign": "SORPRENDER",
   "alpha_code": null,
-  "index": "CLOSED",
+  "index": "EXTENDED",
   "middle": "CURVED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    2
   ],
@@ -2058,10 +2058,10 @@
   "cruz_aldrete_notation": "2^°NSAb-/o+d-c+y-",
   "example_sign": "DETESTAR",
   "alpha_code": null,
-  "index": "CLOSED",
+  "index": "EXTENDED",
   "middle": "CURVED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    2
   ],
@@ -2081,10 +2081,10 @@
   "cruz_aldrete_notation": "2^°NSAb-/a+",
   "example_sign": "GRACIAS",
   "alpha_code": null,
-  "index": "CLOSED",
+  "index": "EXTENDED",
   "middle": "CURVED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    2
   ],
@@ -2104,10 +2104,10 @@
   "cruz_aldrete_notation": "2^°NSAbsep/a+",
   "example_sign": "SENTIR",
   "alpha_code": null,
-  "index": "CLOSED",
+  "index": "EXTENDED",
   "middle": "CURVED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    2
   ],
@@ -2201,10 +2201,10 @@
   "cruz_aldrete_notation": "23^°NSAb-/o+c+",
   "example_sign": "VACA",
   "alpha_code": null,
-  "index": "CLOSED",
+  "index": "EXTENDED",
   "middle": "CURVED",
   "ring": "CURVED",
-  "pinky": "CLOSED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    2,
    3
@@ -2395,9 +2395,9 @@
   "example_sign": "TIERRA-2",
   "alpha_code": null,
   "index": "CURVED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
-  "pinky": "CLOSED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
+  "pinky": "EXTENDED",
   "selected_fingers": [
    1
   ],
@@ -2440,9 +2440,9 @@
   "cruz_aldrete_notation": "4+sepNSAb/a+",
   "example_sign": "IMPRENTA-2",
   "alpha_code": null,
-  "index": "CLOSED",
-  "middle": "CLOSED",
-  "ring": "CLOSED",
+  "index": "EXTENDED",
+  "middle": "EXTENDED",
+  "ring": "EXTENDED",
   "pinky": "EXTENDED",
   "selected_fingers": [
    4

@@ -2,12 +2,14 @@
  * MiniHand — miniatura SVG de la configuración de mano.
  *
  * Silueta de mano segmentada (falanges y palma como trazos independientes,
- * de goodHand.svg). Cada dedo se rellena con el color de su nivel de
- * flexión; los dedos no seleccionados quedan en gris atenuado:
+ * de goodHand.svg). Los cinco dedos se rellenan con el color de su nivel
+ * de flexión real, el mismo que usa el avatar (flexionDedo): los no
+ * seleccionados también, cerrados o abiertos según la CM.
  *   EXTENDED = verde, CURVED = amarillo, BENT = naranja, CLOSED = rojo.
  */
 
 import type { CMEntry, FlexionLevel } from "@/lib/types";
+import { flexionDedo } from "@/lib/hand_pose";
 
 // ── Colores de flexión ──────────────────────────────────────────────
 
@@ -18,7 +20,6 @@ export const FLEXION_COLOR: Record<FlexionLevel, string> = {
   CLOSED: "#ef4444",
 };
 
-const NEUTRAL = "#C6C6CC";
 const PALM = "#E4E4E8";
 
 /** Variante oscura para contornos */
@@ -70,13 +71,6 @@ const SEGMENTS: Record<FingerName | "thumb" | "palm", string[]> = {
   ],
 };
 
-const FINGER_TO_SELECTED: Record<FingerName, number> = {
-  index: 1,
-  middle: 2,
-  ring: 3,
-  pinky: 4,
-};
-
 const FINGERS: FingerName[] = ["index", "middle", "ring", "pinky"];
 
 interface MiniHandProps {
@@ -85,14 +79,6 @@ interface MiniHandProps {
 }
 
 export function MiniHand({ cm, size = 56 }: MiniHandProps) {
-  const flexion: Record<FingerName, FlexionLevel> = {
-    index: cm.index,
-    middle: cm.middle,
-    ring: cm.ring,
-    pinky: cm.pinky,
-  };
-  const selected = new Set(cm.selected_fingers);
-
   return (
     <svg
       width={size}
@@ -111,17 +97,13 @@ export function MiniHand({ cm, size = 56 }: MiniHandProps) {
         />
       ))}
       {FINGERS.map((finger) => {
-        const isSelected = selected.has(FINGER_TO_SELECTED[finger]);
-        const color = isSelected ? FLEXION_COLOR[flexion[finger]] : NEUTRAL;
-        const opacity = isSelected ? 1 : 0.45;
+        const color = FLEXION_COLOR[flexionDedo(cm, finger)];
         return SEGMENTS[finger].map((d, i) => (
           <path
             key={`${finger}-${i}`}
             d={d}
             fill={color}
-            fillOpacity={opacity}
             stroke={darken(color)}
-            strokeOpacity={opacity}
             strokeWidth="2"
           />
         ));

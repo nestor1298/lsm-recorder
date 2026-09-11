@@ -4,11 +4,13 @@
  * Maps the abstract HandPose (from hand_pose.ts) to Mixamo skeleton bones
  * in wscharacter.glb, and provides mirroring for two-hand symmetric signs.
  *
- * Bone name correspondence:
- *   Mixamo LeftHandIndex1  ≈ rCarpal1 (carpal spread Y-rot)
- *   Mixamo LeftHandIndex2  ≈ rIndex1  (MCP flexion X-rot)
- *   Mixamo LeftHandIndex3  ≈ rIndex2  (PIP flexion X-rot)
- *   Mixamo LeftHandIndex4  ≈ rIndex3  (DIP flexion X-rot)
+ * Mixamo has no metacarpal bones; the chain starts at the knuckle:
+ *   LeftHandIndex1 — proximal phalanx: MCP flexion (X) + spread (Z)
+ *   LeftHandIndex2 — middle phalanx:   PIP flexion (X)
+ *   LeftHandIndex3 — distal phalanx:   DIP flexion (X)
+ *   LeftHandIndex4 — tip end, never rotated
+ * `carpal` keeps its historical name (and the hand-centroid math that
+ * uses it) but is the proximal phalanx, not a carpal bone.
  */
 
 import type { FingerName } from "./hand_pose";

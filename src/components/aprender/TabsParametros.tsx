@@ -17,11 +17,11 @@ export default function TabsParametros({
 }) {
   const info = PARAMETROS.find((p) => p.id === activo)!;
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div
         role="tablist"
         aria-label="Parámetros fonológicos"
-        className="flex gap-1 overflow-x-auto border-b border-gray-200"
+        className="grid grid-cols-5 border-b border-gray-200"
       >
         {PARAMETROS.map((p) => {
           const sel = p.id === activo;
@@ -32,7 +32,7 @@ export default function TabsParametros({
               aria-selected={sel}
               aria-controls={`panel-${p.id}`}
               onClick={() => onChange(p.id)}
-              className={`-mb-px flex shrink-0 flex-col items-start border-b-2 px-4 pb-2.5 pt-1 text-left transition-colors ${
+              className={`-mb-px flex min-w-0 flex-col items-start border-b-2 px-2 pb-2 pt-1 text-left transition-colors sm:px-3 ${
                 sel
                   ? "border-accent text-ink"
                   : "border-transparent text-gray-500 hover:text-ink"
@@ -41,7 +41,7 @@ export default function TabsParametros({
               <span className="font-display text-lg font-bold leading-tight">
                 {p.sigla}
               </span>
-              <span className="text-xs">{p.nombre}</span>
+              <span className="text-[11px] leading-tight sm:text-xs">{p.nombre}</span>
             </button>
           );
         })}
@@ -49,7 +49,7 @@ export default function TabsParametros({
       <div
         id={`panel-${info.id}`}
         role="tabpanel"
-        className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+        className="space-y-0.5"
       >
         <p className="max-w-3xl text-sm text-gray-700">{info.descripcion}</p>
         <p className="text-xs font-medium text-accent-deep">{info.observa}</p>
