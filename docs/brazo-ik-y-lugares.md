@@ -25,8 +25,10 @@ mano dominante (`espejo=false`) y para la otra (`espejo=true`). El código
 `EN` es el espacio neutro: un punto en el aire frente al hombro dominante,
 sin superficie, donde Explorar muestra formas y orientaciones.
 
-Si la malla no permite medir (sin ojos, sin cuello), cada lugar cae al
-offset histórico de `UB_BONE_MAP`.
+Si no se reconoce la malla de los ojos, se estiman por proporción (a 60 %
+de la altura de la cabeza). Solo si faltan los huesos de referencia
+(cabeza, cuello, brazos) cada lugar cae al offset histórico de
+`UB_BONE_MAP`.
 
 ## Colocar el brazo (`src/lib/brazo_ik.ts` + `AvatarModel.colocarBrazo`)
 
@@ -66,10 +68,12 @@ Pasos por cuadro y por brazo:
    alto y salir del cono.
 6. **Cuatro pasadas**: la muñeca de cada pasada se calcula con la
    orientación que de verdad se logró en la anterior. Las dos primeras
-   piden la orientación deseada; las dos últimas piden la lograda (punto
-   fijo). Se conserva la mejor por suma de error de palma y de
-   orientación: con superficie manda la palma; en el espacio neutro manda
-   la orientación.
+   piden la orientación deseada; las dos últimas piden la que se logró en
+   la segunda (punto fijo). Se conserva la mejor por suma de error de
+   palma y de orientación: con superficie manda la palma; en el espacio
+   neutro manda la orientación. Si la palma lograda mira hacia fuera de
+   la superficie, lo que toca es el dorso de la mano (la mano nunca queda
+   dentro del cuerpo); voltear la palma respecto a lo pedido se castiga.
 
 Si el lugar está sobre el brazo base, ese brazo se **presenta al frente**
 (antebrazo cruzado frente al vientre, palma arriba si el lugar es del lado

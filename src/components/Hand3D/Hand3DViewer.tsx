@@ -4,7 +4,9 @@ import React, { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+
+/** Instancia de los controles de órbita (tipo derivado del propio drei). */
+type OrbitControlsImpl = React.ComponentRef<typeof OrbitControls>;
 import type { CMEntry } from "@/lib/types";
 import type {
   ArmJointAngles,

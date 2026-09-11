@@ -64,7 +64,6 @@ const CARA_NEUTRA: FaceState = {
 const MANO_ABIERTA: CMEntry = CM_INVENTORY[0];
 const ubPor = (code: string) =>
   UB_LOCATIONS.find((l) => l.code === code) ?? null;
-/** Lugar de exhibición: la mano frente al pecho, donde se lee bien. */
 /** Espacio neutro frente al pecho: ahí se muestran formas y orientaciones
  *  sin tocar el cuerpo (cualquier orientación es posible). */
 const NEUTRO: UBLocation = {

@@ -398,14 +398,11 @@ function poseArmDown(
   refs.hand.quaternion.slerp(bind.hand, factor * 3);
 }
 
-// ── Pose arm from FK preset (smooth slerp) ──────────────────────
-
-
 // ── Orientación anatómica de la mano ────────────────────────────
 // La orientación pide una rotación de MUNDO para la mano. Se reparte como
 // en el cuerpo: el giro sobre el eje del antebrazo (pronación/supinación)
 // lo hace el antebrazo; lo que queda lo hace la muñeca dentro de su rango:
-// flexión 75°, extensión 65°, desviación radial 20° y cubital 30°, y casi
+// flexión 75°, extensión 70°, desviación radial 20° y cubital 30°, y casi
 // nada de giro propio (la muñeca no rota sobre su eje). Si la orientación
 // no es alcanzable con la postura del brazo, queda la más cercana posible.
 //
@@ -416,7 +413,7 @@ function poseArmDown(
 // giro negativo en Y local; el derecho es su espejo.
 
 const DEG_OR = Math.PI / 180;
-/** Grados, en el convenio de poseArmPreset (valor × lado). */
+/** Grados, en el convenio "valor × lado" (el brazo derecho es el espejo). */
 const ANTEBRAZO_SUPINACION_MAX = 85;
 const ANTEBRAZO_PRONACION_MAX = 80;
 const MUNIECA_FLEX = 75 * DEG_OR;
@@ -1076,11 +1073,11 @@ function applyLocalMovement(
 
 // Scratch vectors for centroid offset and rest pose
 
-/** Debug info filled by colocarBrazo for rendering debug spheres */
+/** Datos que llena colocarBrazo para las esferas de depuración */
 interface DebugIKInfo {
-  ikTarget: THREE.Vector3; // green: wrist target
-  ubTarget: THREE.Vector3; // blue: UB surface point (palm center goal)
-  handWorldPos: THREE.Vector3; // red: actual hand bone world pos
+  ikTarget: THREE.Vector3; // verde: muñeca objetivo
+  ubTarget: THREE.Vector3; // azul: punto UB (meta del centro de la palma)
+  handWorldPos: THREE.Vector3; // rojo: posición real del hueso de la mano
   active: boolean;
 }
 

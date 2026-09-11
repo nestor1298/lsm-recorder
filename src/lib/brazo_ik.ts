@@ -3,7 +3,7 @@
  *
  * Lleva la MUÑECA a un punto de mundo con dos huesos (brazo y antebrazo)
  * respetando cómo se mueve un brazo real:
- *   - el codo es una bisagra de un grado de libertad (0–145° de flexión),
+ *   - el codo es una bisagra de un grado de libertad (3–145° de flexión),
  *     así que el antebrazo solo gira sobre su eje de bisagra;
  *   - el hombro apunta el brazo dentro de su cono de alcance (elevación
  *     hasta 165°, extensión hacia atrás hasta 50°, cruce del cuerpo hasta
@@ -141,7 +141,7 @@ function perpendicular(v: THREE.Vector3, eje: THREE.Vector3, out: THREE.Vector3)
 /**
  * Mide ejes, longitudes y bind de la cadena. `bisagraLocal` es el eje de
  * bisagra del codo en el espacio local del antebrazo (en Mixamo, +X: girar
- * en X negativo flexiona; ver poseArmPreset).
+ * en X negativo flexiona, medido en el rig de Lexsi).
  */
 export function medirBrazo(
   cadena: {

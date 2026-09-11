@@ -71,13 +71,6 @@ export function mirrorBoneName(name: string): string {
 }
 
 /**
- * Mirror a UB offset: negate the X component (left ↔ right).
- */
-export function mirrorUBOffset(offset: [number, number, number]): [number, number, number] {
-  return [-offset[0], offset[1], offset[2]];
-}
-
-/**
  * Mirror an orientation: swap LEFT ↔ RIGHT palm/finger directions.
  */
 export function mirrorOrientation(or: { palm: string; fingers: string }): {
