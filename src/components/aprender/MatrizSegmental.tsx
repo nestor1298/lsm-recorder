@@ -93,7 +93,8 @@ function Casilla({
       disabled={bloqueada}
       aria-pressed={activa}
       aria-label={`${titulo}: ${vacia ? "sin llenar" : valor}`}
-      className={`flex min-h-[2.75rem] w-full min-w-0 flex-col justify-center rounded-lg border-2 px-2 py-1 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      title={vacia ? undefined : valor}
+      className={`flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border-2 px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         activa
           ? "border-accent bg-accent-tint"
           : vacia
@@ -101,13 +102,13 @@ function Casilla({
             : "border-gray-200 bg-paper hover:border-gray-300"
       }`}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-gray-400">
         {titulo}
       </span>
       {vacia ? (
-        <span className="text-xs font-semibold text-accent-deep">+ Llenar</span>
+        <span className="truncate text-xs font-semibold text-accent-deep">+ Llenar</span>
       ) : (
-        <span className="flex items-center gap-1.5 truncate text-xs font-semibold text-ink">
+        <span className="flex min-w-0 items-center gap-1 text-xs font-semibold text-ink">
           {children}
           <span className="truncate">{valor}</span>
         </span>
@@ -142,7 +143,7 @@ export default function MatrizSegmental({
         activa={esActiva(i, "cm")}
         onClick={() => onSelect({ index: i, campo: "cm" })}
       >
-        {d.cm && <MiniHand cm={d.cm} size={22} />}
+        {d.cm && <MiniHand cm={d.cm} size={18} />}
       </Casilla>
       <Casilla
         titulo={CAMPO_ES.ub}
@@ -175,9 +176,10 @@ export default function MatrizSegmental({
   const columnaMovimiento = (m: MovementSegment, i: number) => {
     const habilitado = movimientoHabilitado(sign, i);
     return (
-      <div className="space-y-1.5">
+      <div className="relative space-y-1.5">
+        {/* Aviso encima de las casillas bloqueadas: no suma altura */}
         {!habilitado && (
-          <p className="rounded-lg bg-gold-tint px-2 py-1 text-[10px] font-semibold text-gold-deep">
+          <p className="absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 rounded-lg bg-gold-tint px-2 py-1 text-center text-[10px] font-semibold text-gold-deep shadow-card">
             {APRENDER_ES.movBloqueado}
           </p>
         )}
@@ -212,21 +214,16 @@ export default function MatrizSegmental({
   return (
     <section
       aria-label={APRENDER_ES.matriz}
-      className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
+      className="mx-auto w-fit max-w-full rounded-2xl border border-gray-200 bg-paper/90 p-3 shadow-card backdrop-blur"
     >
       {/* Encabezado con reproducción */}
-      <div className="mb-2 flex items-center gap-3">
-        <div className="mr-auto min-w-0">
-          <h2 className="font-display text-base font-bold text-ink">
-            {APRENDER_ES.matriz}
-          </h2>
-          <p
-            className="truncate text-[11px] text-gray-500"
-            title={APRENDER_ES.matrizAyuda}
-          >
-            {APRENDER_ES.matrizAyuda}
-          </p>
-        </div>
+      <div className="mb-1.5 flex items-center gap-3">
+        <h2
+          className="mr-auto font-display text-base font-bold text-ink"
+          title={APRENDER_ES.matrizAyuda}
+        >
+          {APRENDER_ES.matriz}
+        </h2>
         <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600">
           <input
             type="checkbox"
@@ -260,7 +257,7 @@ export default function MatrizSegmental({
         <div
           className="grid gap-1.5"
           style={{
-            gridTemplateColumns: `4rem repeat(${sign.segments.length}, minmax(8rem, 1fr)) 6rem`,
+            gridTemplateColumns: `4rem repeat(${sign.segments.length}, minmax(8rem, 11rem)) 6rem`,
           }}
         >
           {/* Encabezados de columna */}
@@ -271,7 +268,7 @@ export default function MatrizSegmental({
             return (
               <div
                 key={s.id}
-                className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 ${
+                className={`flex items-center justify-between rounded-lg px-2.5 py-1 ${
                   suena
                     ? "bg-coral text-paper"
                     : s.type === "D"
@@ -356,7 +353,7 @@ export default function MatrizSegmental({
                 className={`rounded-xl p-1 ${segmentoActivo === i ? "ring-2 ring-coral" : ""}`}
               >
                 <Casilla
-                  titulo={`${CAMPO_ES.cejas} · ${CAMPO_ES.boca} · ${CAMPO_ES.cabeza}`}
+                  titulo={APRENDER_ES.filaCara}
                   vacia={false}
                   valor={partes.join(" · ") || "Neutral"}
                   activa={esActiva(i, "cara")}

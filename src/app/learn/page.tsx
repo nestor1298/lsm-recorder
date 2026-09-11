@@ -29,7 +29,11 @@ import {
   DEFAULT_PLAYBACK_CONFIG,
 } from "@/lib/sign_playback";
 import { poseDeSegmento, type PoseAvatar } from "@/lib/learn_viewer";
-import { APRENDER_ES, type ParametroId } from "@/lib/learn_labels";
+import {
+  APRENDER_ES,
+  PARAMETROS,
+  type ParametroId,
+} from "@/lib/learn_labels";
 import ModoToggle, { type Modo } from "@/components/aprender/ModoToggle";
 import TabsParametros from "@/components/aprender/TabsParametros";
 import MatrizSegmental, {
@@ -93,6 +97,28 @@ function useVaiven(activo: boolean, periodoMs = 1600): number {
   return t;
 }
 
+/** Tamaño de un elemento (0 × 0 mientras no existe). */
+function useTamano<T extends HTMLElement>(): [
+  (el: T | null) => void,
+  { w: number; h: number },
+] {
+  const [tam, setTam] = useState({ w: 0, h: 0 });
+  const obs = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: T | null) => {
+    obs.current?.disconnect();
+    if (!el) {
+      setTam({ w: 0, h: 0 });
+      return;
+    }
+    obs.current = new ResizeObserver(([e]) => {
+      const r = e.target.getBoundingClientRect();
+      setTam({ w: r.width, h: r.height });
+    });
+    obs.current.observe(el);
+  }, []);
+  return [ref, tam];
+}
+
 const aTarget = (u: UBLocation | null) =>
   u ? { code: u.code, region: u.region, name: u.name, x: u.x, y: u.y } : null;
 
@@ -101,6 +127,7 @@ export default function AprenderPage() {
 
   // ── Explorar ────────────────────────────────────────────────
   const [param, setParam] = useState<ParametroId>("cm");
+  const [panelAbierto, setPanelAbierto] = useState(true);
   const [cm, setCm] = useState<CMEntry | null>(MANO_ABIERTA);
   const [ub, setUb] = useState<UBLocation | null>(null);
   const [or, setOr] = useState({ palm: "FORWARD", fingers: "UP" });
@@ -266,11 +293,33 @@ export default function AprenderPage() {
     setTranscurrido(0);
   };
 
+  // ── Pantalla completa: el avatar al fondo, paneles encimados ──
+  const [refRaiz, raiz] = useTamano<HTMLDivElement>();
+  const [refTitulo, titulo] = useTamano<HTMLElement>();
+  const [refPanel, panel] = useTamano<HTMLElement>();
+  const [refMatriz, matriz] = useTamano<HTMLDivElement>();
+
+  const hayPanel =
+    modo === "explorar" ? panelAbierto : celda !== null && !reproduciendo;
+  const MARGEN = 16;
+  const fr = (px: number, total: number) =>
+    total > 0 && px > 0 ? Math.min(0.6, (px + MARGEN) / total) : 0;
+  const tapado = {
+    izq: 0,
+    der: hayPanel ? fr(panel.w, raiz.w) : 0,
+    arr: 0,
+    aba: modo === "construir" ? fr(matriz.h, raiz.h) : 0,
+    esquina: { ancho: fr(titulo.w, raiz.w), alto: fr(titulo.h, raiz.h) },
+  };
+
+  const info = PARAMETROS.find((p) => p.id === param)!;
+
   const avatar = (
     <Hand3DViewer
       forceAvatar
       fija
       encuadre="torso"
+      tapado={tapado}
       autoRotate={false}
       cm={pose.cm}
       orientation={pose.orientation}
@@ -283,116 +332,155 @@ export default function AprenderPage() {
       onUBClick={onUBClick}
       isBuildMode
       height="100%"
-      className="w-full"
+      className="h-full w-full"
     />
   );
 
-  // En escritorio todo cabe en la pantalla: la página no se desplaza, solo
-  // las listas largas (inventario de CM, lugares) dentro de su panel.
+  // Ocupa toda la ventana bajo el encabezado del sitio (franja 4 px +
+  // barra 64 px + borde 1 px): la página nunca se desplaza. Los paneles
+  // van encima del avatar; solo las listas largas se desplazan dentro.
   return (
-    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-8.5rem)] lg:overflow-hidden">
-      {/* Título en grande y selector de modo */}
-      <header className="shrink-0 space-y-3">
-        <h1 className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
-          {APRENDER_ES.titulo}
-        </h1>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <ModoToggle
-            modo={modo}
-            onChange={(m) => {
-              setModo(m);
-              setReproduciendo(false);
-            }}
-          />
-          <p className="text-sm text-gray-500">{APRENDER_ES.subtitulo}</p>
-        </div>
-      </header>
+    <div
+      ref={refRaiz}
+      className="fixed inset-x-0 bottom-0 top-[69px] overflow-hidden bg-gray-50"
+    >
+      <div className="absolute inset-0">{avatar}</div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        {/* El avatar, fijo a la izquierda */}
-        <div className="h-[55vh] min-h-0 rounded-2xl bg-gray-50 lg:h-full">
-          {avatar}
-        </div>
+      <div className="pointer-events-none absolute inset-3 flex flex-col gap-3 sm:inset-4">
+        <div className="relative min-h-0 flex-1">
+          {/* Arriba a la izquierda: título, modo y pestañas */}
+          <header
+            ref={refTitulo}
+            className="pointer-events-auto w-max max-w-full space-y-3"
+          >
+            <h1 className="font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink lg:whitespace-nowrap sm:text-4xl">
+              {APRENDER_ES.titulo}
+            </h1>
+            <ModoToggle
+              modo={modo}
+              onChange={(m) => {
+                setModo(m);
+                setReproduciendo(false);
+              }}
+            />
+            {modo === "explorar" && (
+              <div className="rounded-2xl bg-paper/85 px-1 pt-1 backdrop-blur">
+                <TabsParametros
+                  activo={param}
+                  onChange={(id) => {
+                    setParam(id);
+                    setPanelAbierto(true);
+                  }}
+                  conDescripcion={false}
+                />
+              </div>
+            )}
+          </header>
 
-        {/* Todo lo demás a la derecha */}
-        {modo === "explorar" ? (
-          <div className="flex min-h-0 flex-col gap-3">
-            <div className="shrink-0">
-              <TabsParametros activo={param} onChange={setParam} />
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-gray-200 bg-paper p-4">
-              {param === "cm" && (
-                <CMControls defaultCM={cm} onCMChange={setCm} />
-              )}
-              {param === "ub" && (
-                <UBControls defaultLocation={ub} onLocationChange={setUb} />
-              )}
-              {param === "or" && (
-                <ORControls
-                  defaultPalm={or.palm}
-                  defaultFingers={or.fingers}
-                  onOrientationChange={setOr}
-                />
-              )}
-              {param === "mv" && (
-                <MVControls
-                  defaultContour={mv.contour}
-                  defaultLocal={mv.local}
-                  defaultPlane={mv.plane}
-                  onMovementChange={setMv}
-                />
-              )}
-              {param === "rnm" && (
-                <RNMControls defaultFace={cara} onFaceChange={setCara} />
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex min-h-0 flex-col gap-3">
-            <div className="shrink-0">
-              <MatrizSegmental
-                sign={sign}
-                onChange={cambiarSena}
-                celda={celda}
-                onSelect={(c) => {
-                  setCelda(c);
-                  setReproduciendo(false);
-                }}
-                segmentoActivo={frame ? frame.segmentIndex : null}
-                reproduciendo={reproduciendo}
-                repetir={repetir}
-                onRepetir={setRepetir}
-                lento={lento}
-                onLento={(v) => {
-                  setLento(v);
-                  setReproduciendo(false);
-                  setTranscurrido(0);
-                }}
-                onReproducir={() => {
-                  if (!senaReproducible(sign)) return;
-                  if (!reproduciendo) {
-                    setCelda(null);
-                    setTranscurrido(0);
-                  }
-                  setReproduciendo((r) => !r);
-                }}
-              />
-            </div>
-            {/* El editor de la casilla elegida ocupa el resto */}
-            <div className="min-h-0 flex-1">
-              {celda && !reproduciendo ? (
-                <EditorCasilla
-                  sign={sign}
-                  celda={celda}
-                  onChange={cambiarSena}
-                  onClose={() => setCelda(null)}
-                />
-              ) : (
-                <div className="flex h-full min-h-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 px-6 text-center text-sm text-gray-500">
-                  {APRENDER_ES.eligeCasilla}
+          {/* Derecha: el panel del componente elegido aparece aquí */}
+          {modo === "explorar" && panelAbierto && (
+            <aside
+              ref={refPanel}
+              key={`explorar-${param}`}
+              id={`panel-${param}`}
+              role="tabpanel"
+              aria-label={info.nombre}
+              className="pop-derecha pointer-events-auto absolute right-0 top-0 flex max-h-full w-[min(24rem,100%)] min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-paper/95 shadow-card backdrop-blur"
+            >
+              <div className="flex items-start gap-3 border-b border-gray-100 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-bold leading-tight text-ink">
+                    {info.sigla}{" "}
+                    <span className="text-sm font-semibold text-gray-500">
+                      {info.nombre}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-sm text-gray-700">{info.descripcion}</p>
+                  <p className="mt-1 text-xs font-medium text-accent-deep">
+                    {info.observa}
+                  </p>
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setPanelAbierto(false)}
+                  className="rounded-full px-2.5 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100"
+                >
+                  {APRENDER_ES.cerrar}
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                {param === "cm" && (
+                  <CMControls defaultCM={cm} onCMChange={setCm} />
+                )}
+                {param === "ub" && (
+                  <UBControls defaultLocation={ub} onLocationChange={setUb} />
+                )}
+                {param === "or" && (
+                  <ORControls
+                    defaultPalm={or.palm}
+                    defaultFingers={or.fingers}
+                    onOrientationChange={setOr}
+                  />
+                )}
+                {param === "mv" && (
+                  <MVControls
+                    defaultContour={mv.contour}
+                    defaultLocal={mv.local}
+                    defaultPlane={mv.plane}
+                    onMovementChange={setMv}
+                  />
+                )}
+                {param === "rnm" && (
+                  <RNMControls defaultFace={cara} onFaceChange={setCara} />
+                )}
+              </div>
+            </aside>
+          )}
+          {modo === "construir" && celda && !reproduciendo && (
+            <aside
+              ref={refPanel}
+              key={`construir-${celda.index}-${celda.campo}`}
+              className="pop-derecha pointer-events-auto absolute right-0 top-0 flex max-h-full w-[min(24rem,100%)] min-h-0 flex-col"
+            >
+              <EditorCasilla
+                sign={sign}
+                celda={celda}
+                onChange={cambiarSena}
+                onClose={() => setCelda(null)}
+              />
+            </aside>
+          )}
+        </div>
+
+        {/* Abajo, encimada: la matriz segmental */}
+        {modo === "construir" && (
+          <div ref={refMatriz} className="pointer-events-auto shrink-0">
+            <MatrizSegmental
+              sign={sign}
+              onChange={cambiarSena}
+              celda={celda}
+              onSelect={(c) => {
+                setCelda(c);
+                setReproduciendo(false);
+              }}
+              segmentoActivo={frame ? frame.segmentIndex : null}
+              reproduciendo={reproduciendo}
+              repetir={repetir}
+              onRepetir={setRepetir}
+              lento={lento}
+              onLento={(v) => {
+                setLento(v);
+                setReproduciendo(false);
+                setTranscurrido(0);
+              }}
+              onReproducir={() => {
+                if (!senaReproducible(sign)) return;
+                if (!reproduciendo) {
+                  setCelda(null);
+                  setTranscurrido(0);
+                }
+                setReproduciendo((r) => !r);
+              }}
+            />
           </div>
         )}
       </div>

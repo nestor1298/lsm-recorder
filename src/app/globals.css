@@ -118,6 +118,21 @@ body {
   text-transform: uppercase;
 }
 
+/* Paneles que aparecen desde la derecha (Aprender) */
+@keyframes pop-derecha {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-derecha {
+  animation: pop-derecha 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
