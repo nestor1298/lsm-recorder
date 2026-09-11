@@ -1113,6 +1113,8 @@ const _cand = Array.from({ length: 6 }, () => new THREE.Vector3());
 const _manoPrueba2 = new THREE.Quaternion();
 const _munecaPrueba = new THREE.Vector3();
 const _contacto = new THREE.Vector3();
+const _centroContacto = new THREE.Vector3();
+const _palmaMundo = new THREE.Vector3();
 const _palmaPredicha = new THREE.Vector3();
 const _mejorClav = new THREE.Quaternion();
 const _mejorBrazoQ = new THREE.Quaternion();
@@ -1236,10 +1238,22 @@ function colocarBrazo(
   let mejorError = Infinity;
   for (let pasada = 0; pasada < 4; pasada++) {
     if (pasada === 2) _manoObjetivo.copy(_manoLograda);
+    // Si la palma (con la orientación que se va a lograr) mira hacia fuera
+    // de la superficie, lo que toca es el DORSO: el punto de contacto pasa
+    // al otro lado del grosor de la mano; si no, la mano se hundiría en el
+    // cuerpo. Se decide con la orientación lograda, no con la pedida, para
+    // que la mano nunca quede dentro aunque la orientación no se alcance.
+    _centroContacto.copy(centroPalma);
+    if (normal) {
+      _palmaMundo.copy(calib.palma).applyQuaternion(_manoLograda);
+      if (_palmaMundo.dot(normal) > 0.3) {
+        _centroContacto.addScaledVector(calib.palma, -2 * 0.12 * largoPalma);
+      }
+    }
     let mejorK = 0;
     let mejorFuera = Infinity;
     for (let k = 0; k <= 1.0001; k += 0.25) {
-      _contacto.copy(centroPalma).addScaledVector(calib.dedos, k * largoPalma);
+      _contacto.copy(_centroContacto).addScaledVector(calib.dedos, k * largoPalma);
       munecaParaPalma(punto, _manoLograda, _contacto, medidas.escala, _munecaPrueba);
       const d = _munecaPrueba.distanceTo(_hombroPos);
       const fuera = Math.max(0, d - 0.95 * alcance) + Math.max(0, 0.38 * alcance - d);
@@ -1249,7 +1263,7 @@ function colocarBrazo(
       }
       if (fuera === 0) break;
     }
-    _contacto.copy(centroPalma).addScaledVector(calib.dedos, mejorK * largoPalma);
+    _contacto.copy(_centroContacto).addScaledVector(calib.dedos, mejorK * largoPalma);
     munecaParaPalma(punto, _manoLograda, _contacto, medidas.escala, _entradaBrazo.muneca);
     resolverBrazo(medidas, _entradaBrazo, _objetivosBrazo, _resultadoBrazo);
     _tClav.copy(_objetivosBrazo.clavicula);
@@ -1285,7 +1299,16 @@ function colocarBrazo(
     // orientación pedida (1 cm ≈ 1.5°).
     const errOr = 2 * Math.acos(Math.min(1, Math.abs(_manoLograda.dot(_manoDeseada))));
     const pesoOr = !orient ? 0.15 : normal ? 0.6 : 3.0;
-    const err = _palmaPredicha.distanceTo(punto) * 8 + errOr * pesoOr;
+    let err = _palmaPredicha.distanceTo(punto) * 8 + errOr * pesoOr;
+    // Con superficie, la palma lograda debe mirar hacia el mismo lado que
+    // la pedida (hacia el cuerpo o hacia fuera): si se voltea, la mano
+    // queda metida en el cuerpo aunque el punto de contacto coincida.
+    if (normal) {
+      _palmaMundo.copy(calib.palma).applyQuaternion(_manoDeseada);
+      const ladoPedido = Math.sign(_palmaMundo.dot(normal));
+      _palmaMundo.copy(calib.palma).applyQuaternion(_manoLograda);
+      if (Math.sign(_palmaMundo.dot(normal)) !== ladoPedido) err += 2.0;
+    }
     if (err < mejorError) {
       mejorError = err;
       _mejorClav.copy(_tClav);
