@@ -116,6 +116,25 @@ function baseMano(eje: THREE.Vector3, normal: THREE.Vector3): THREE.Matrix4 {
   return new THREE.Matrix4().makeBasis(x, y, z);
 }
 
+const _baseMundo = new THREE.Quaternion();
+const _baseLocal = new THREE.Quaternion();
+
+/**
+ * Rotación de mundo del hueso de la mano para que sus dedos apunten a
+ * `dedos` y su palma a `palma` (direcciones de mundo, no necesariamente
+ * ortogonales: la palma se ajusta perpendicular a los dedos).
+ */
+export function cuaternionManoDesde(
+  calib: CalibracionMano,
+  dedos: THREE.Vector3,
+  palma: THREE.Vector3,
+  out: THREE.Quaternion = new THREE.Quaternion(),
+): THREE.Quaternion {
+  _baseMundo.setFromRotationMatrix(baseMano(dedos, palma));
+  _baseLocal.setFromRotationMatrix(baseMano(calib.dedos, calib.palma));
+  return out.copy(_baseMundo).multiply(_baseLocal.invert());
+}
+
 /**
  * Rotación de mundo que debe tener el hueso de la mano para que sus
  * dedos y su palma apunten a donde pide la orientación.
@@ -126,11 +145,5 @@ export function cuaternionManoMundo(
   fingers: string,
 ): THREE.Quaternion {
   const { palma, dedos } = direccionesMano(palm, fingers);
-  const mundo = new THREE.Quaternion().setFromRotationMatrix(
-    baseMano(dedos, palma),
-  );
-  const local = new THREE.Quaternion().setFromRotationMatrix(
-    baseMano(calib.dedos, calib.palma),
-  );
-  return mundo.multiply(local.invert());
+  return cuaternionManoDesde(calib, dedos, palma);
 }

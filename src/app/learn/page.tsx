@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import type { CMEntry } from "@/lib/types";
 import { CM_INVENTORY } from "@/lib/data";
 import { UB_LOCATIONS, type UBLocation } from "@/lib/ub_inventory";
+import { CODIGO_ESPACIO_NEUTRO } from "@/lib/ub_anatomia";
 import {
   createSignaMinima,
   movimientoHabilitado,
@@ -64,7 +65,15 @@ const MANO_ABIERTA: CMEntry = CM_INVENTORY[0];
 const ubPor = (code: string) =>
   UB_LOCATIONS.find((l) => l.code === code) ?? null;
 /** Lugar de exhibición: la mano frente al pecho, donde se lee bien. */
-const PECHO = ubPor("Pe");
+/** Espacio neutro frente al pecho: ahí se muestran formas y orientaciones
+ *  sin tocar el cuerpo (cualquier orientación es posible). */
+const NEUTRO: UBLocation = {
+  code: CODIGO_ESPACIO_NEUTRO,
+  region: "NEUTRAL_SPACE",
+  name: "Espacio neutro",
+  x: 100,
+  y: 190,
+};
 
 /** Media velocidad: el doble de tiempo por detención y por movimiento. */
 const RITMO_LENTO = {
@@ -213,7 +222,7 @@ export default function AprenderPage() {
         return {
           cm,
           orientation: { palm: "FORWARD", fingers: "UP" },
-          ubLocation: PECHO,
+          ubLocation: NEUTRO,
           rnm: CARA_NEUTRA,
           movementInterp: null,
           handMode: "dominant",
@@ -232,7 +241,7 @@ export default function AprenderPage() {
         return {
           cm: MANO_ABIERTA,
           orientation: or,
-          ubLocation: PECHO,
+          ubLocation: NEUTRO,
           rnm: CARA_NEUTRA,
           movementInterp: null,
           handMode: "dominant",
@@ -317,7 +326,7 @@ export default function AprenderPage() {
   const avatar = (
     <Hand3DViewer
       forceAvatar
-      fija
+      sinMarco
       encuadre="torso"
       tapado={tapado}
       autoRotate={false}

@@ -4,7 +4,7 @@
  * Instead of computing joint angles from a target position (IK),
  * this module applies user-specified angles directly to each bone
  * in the arm chain. Each joint uses the same Euler convention as
- * the existing IK solver (arm_ik.ts) for consistency.
+ * the arm IK (brazo_ik.ts / AvatarModel) for consistency.
  *
  * Clinical ROM limits from WikEM Range of Motion by Joint.
  */

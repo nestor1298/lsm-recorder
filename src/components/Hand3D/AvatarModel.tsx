@@ -7,7 +7,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { clone as cloneWithSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { UB_LOCATIONS, REGION_COLORS } from "@/lib/ub_inventory";
-import { UB_BONE_MAP } from "@/lib/ub_bone_map";
 import type { CMEntry } from "@/lib/types";
 import {
   cmEntryToHandPose,
@@ -19,23 +18,28 @@ import {
 } from "@/lib/hand_pose";
 import {
   cuaternionManoMundo,
+  cuaternionManoDesde,
   type CalibracionMano,
 } from "@/lib/orientation";
 import {
   AVATAR_FINGER_BONES,
   AVATAR_THUMB_BONES,
   ARM_CHAINS,
-  mirrorBoneName,
-  mirrorUBOffset,
   mirrorOrientation,
   getRightFingerBones,
   AVATAR_RIGHT_THUMB_BONES,
 } from "@/lib/avatar_hand_bones";
 import {
-  measureArmLengths,
-  solveArmIKNatural,
-  type ArmLengths,
-} from "@/lib/arm_ik";
+  medirBrazo,
+  resolverBrazo,
+  crearObjetivos,
+  crearResultado,
+  centroPalmaLocal,
+  munecaParaPalma,
+  violacionCono,
+  type MedidasBrazo,
+} from "@/lib/brazo_ik";
+import { calcularAnclasUB, LectorUB } from "@/lib/ub_anatomia";
 import {
   applyArmFK,
   solveFKCoordinateDescent,
@@ -44,7 +48,6 @@ import {
   type AutoSolveRequest,
   type CapturedPose,
 } from "@/lib/arm_fk";
-import { UB_FK_PRESETS } from "@/lib/ub_fk_presets";
 import { interpolateMovementPosition } from "@/lib/sign_playback";
 
 const AVATAR_PATH = "/models/lexsi.glb";
@@ -146,123 +149,40 @@ function buildBoneMap(root: THREE.Object3D): Map<string, THREE.Bone> {
   return map;
 }
 
-// ── Compute UB world position from bone ──────────────────────────
-
-const _boneWorldPos = new THREE.Vector3();
-const _offsetVec = new THREE.Vector3();
-const _boneWorldScale = new THREE.Vector3();
+// ── Posición de mundo de un lugar (UB) ───────────────────────────
+// Las anclas las calcula ub_anatomia sobre la malla al cargar y siguen a
+// su hueso (cara → cabeza, brazo base → brazo base). `espejo` da el punto
+// para la otra mano.
 
 function computeUBWorldPosition(
   code: string,
-  boneMap: Map<string, THREE.Bone>,
+  lector: LectorUB,
+  espejo = false,
 ): THREE.Vector3 | null {
-  const anchor = UB_BONE_MAP[code];
-  if (!anchor) return null;
-  const bone = boneMap.get(anchor.boneName);
-  if (!bone) return null;
-
-  bone.updateWorldMatrix(true, false);
-  bone.getWorldPosition(_boneWorldPos);
-
-  // Offsets are in model space but bone positions are in scene-scaled
-  // world space (the scene is auto-scaled by 2.5/maxDim). Multiply
-  // the offset by the bone's world scale so it matches.
-  bone.getWorldScale(_boneWorldScale);
-  _offsetVec.set(
-    anchor.offset[0] * _boneWorldScale.x,
-    anchor.offset[1] * _boneWorldScale.y,
-    anchor.offset[2] * _boneWorldScale.z,
-  );
-  return _boneWorldPos.clone().add(_offsetVec);
+  return lector.posicion(code, espejo, new THREE.Vector3());
 }
 
-const _surfaceOffsetDir = new THREE.Vector3();
-
 /**
- * Compute UB world position with an outward surface offset.
- *
- * The hand centroid (average of all finger bones) sits at the palm center.
- * When the centroid reaches the UB surface point, the fingers extend
- * through the mesh. This function pushes the target point outward along
- * the approximate surface normal so the hand touches without penetrating.
- *
- * For Head-anchored points the bone→UB vector has a large vertical (Y)
- * component (because face points sit above the Head bone origin), but the
- * actual face surface normal is mostly in the XZ plane. We dampen Y by
- * 0.3× so the offset pushes the target primarily *forward* from the face
- * rather than *upward*.
- *
- * @param surfaceOffset Distance in world units to push outward (e.g. 0.08 = 8cm)
+ * Punto UB empujado hacia fuera por la normal de superficie (solo para el
+ * auto-solve de calibración FK). `surfaceOffset` va en unidades del
+ * modelo, como antes.
  */
 function computeUBWorldPositionWithSurfaceOffset(
   code: string,
-  boneMap: Map<string, THREE.Bone>,
+  lector: LectorUB,
   surfaceOffset: number,
 ): THREE.Vector3 | null {
-  const anchor = UB_BONE_MAP[code];
-  if (!anchor) return null;
-  const bone = boneMap.get(anchor.boneName);
-  if (!bone) return null;
-
-  bone.updateWorldMatrix(true, false);
-  bone.getWorldPosition(_boneWorldPos);
-
-  // Scale offset by scene scale (auto-scaled by 2.5/maxDim)
-  bone.getWorldScale(_boneWorldScale);
-  _offsetVec.set(
-    anchor.offset[0] * _boneWorldScale.x,
-    anchor.offset[1] * _boneWorldScale.y,
-    anchor.offset[2] * _boneWorldScale.z,
-  );
-  const ubPos = _boneWorldPos.clone().add(_offsetVec);
-
-  // Compute approximate outward direction
-  const offsetLen = _offsetVec.length();
-  if (offsetLen > 0.001) {
-    _surfaceOffsetDir.copy(_offsetVec);
-
-    if (anchor.boneName === "Head") {
-      _surfaceOffsetDir.y *= 0.3;
-      if (_surfaceOffsetDir.lengthSq() < 0.001) {
-        _surfaceOffsetDir.set(0, 1, 0);
-      }
-    }
-
-    _surfaceOffsetDir.normalize();
-    // Surface offset also needs to be in world-scaled space
-    ubPos.addScaledVector(_surfaceOffsetDir, surfaceOffset * _boneWorldScale.x);
-  }
-
-  return ubPos;
+  const p = lector.posicion(code, false, new THREE.Vector3());
+  const n = lector.normal(code, false, new THREE.Vector3());
+  if (!p || !n) return null;
+  return p.addScaledVector(n, surfaceOffset * lector.escala());
 }
 
-/**
- * Compute a UB world position with a mirrored offset (for right-hand targets).
- */
 function computeUBWorldPositionMirrored(
   code: string,
-  boneMap: Map<string, THREE.Bone>,
+  lector: LectorUB,
 ): THREE.Vector3 | null {
-  const anchor = UB_BONE_MAP[code];
-  if (!anchor) return null;
-
-  // Mirror the bone name (Left↔Right) and the X offset
-  const mirroredBone = mirrorBoneName(anchor.boneName);
-  const bone = boneMap.get(mirroredBone) ?? boneMap.get(anchor.boneName);
-  if (!bone) return null;
-
-  bone.updateWorldMatrix(true, false);
-  bone.getWorldPosition(_boneWorldPos);
-
-  // Scale offset by scene scale
-  bone.getWorldScale(_boneWorldScale);
-  const mirrored = mirrorUBOffset(anchor.offset);
-  _offsetVec.set(
-    mirrored[0] * _boneWorldScale.x,
-    mirrored[1] * _boneWorldScale.y,
-    mirrored[2] * _boneWorldScale.z,
-  );
-  return _boneWorldPos.clone().add(_offsetVec);
+  return lector.posicion(code, true, new THREE.Vector3());
 }
 
 // ── UB Point — individual interactive sphere ─────────────────────
@@ -271,7 +191,7 @@ interface UBPointProps {
   code: string;
   region: string;
   isSelected: boolean;
-  boneMap: Map<string, THREE.Bone>;
+  lector: LectorUB;
   onClick: (code: string) => void;
   /** If true, render this point mirrored on the opposite side (Left↔Right) */
   mirrored?: boolean;
@@ -281,7 +201,7 @@ function UBPoint({
   code,
   region,
   isSelected,
-  boneMap,
+  lector,
   onClick,
   mirrored = false,
 }: UBPointProps) {
@@ -294,8 +214,8 @@ function UBPoint({
   useFrame(() => {
     if (!meshRef.current) return;
     const pos = mirrored
-      ? computeUBWorldPositionMirrored(code, boneMap)
-      : computeUBWorldPosition(code, boneMap);
+      ? computeUBWorldPositionMirrored(code, lector)
+      : computeUBWorldPosition(code, lector);
     if (!pos) return;
 
     meshRef.current.position.copy(pos);
@@ -373,17 +293,18 @@ function UBPoint({
 // ── UB Point Cloud — renders filtered UB locations ───────────────
 
 interface UBPointCloudProps {
-  boneMap: Map<string, THREE.Bone>;
+  lector: LectorUB;
   selectedCode: string | null;
   regionFilter: string | null;
   onMarkerClick: (code: string) => void;
 }
 
-// Regions that are on the left arm and should be mirrored to the right
+// Lugares del brazo base: se muestran también en el otro brazo (los que
+// tocaría la otra mano)
 const MIRRORED_REGIONS = new Set(["ARM", "FOREARM", "HAND"]);
 
 function UBPointCloud({
-  boneMap,
+  lector,
   selectedCode,
   regionFilter,
   onMarkerClick,
@@ -401,7 +322,7 @@ function UBPointCloud({
           code={loc.code}
           region={loc.region}
           isSelected={selectedCode === loc.code}
-          boneMap={boneMap}
+          lector={lector}
           onClick={onMarkerClick}
         />
       ))}
@@ -414,7 +335,7 @@ function UBPointCloud({
             code={loc.code}
             region={loc.region}
             isSelected={selectedCode === loc.code}
-            boneMap={boneMap}
+            lector={lector}
             onClick={onMarkerClick}
             mirrored
           />
@@ -479,8 +400,6 @@ function poseArmDown(
 
 // ── Pose arm from FK preset (smooth slerp) ──────────────────────
 
-const _fkEuler = new THREE.Euler();
-const _fkDelta = new THREE.Quaternion();
 
 // ── Orientación anatómica de la mano ────────────────────────────
 // La orientación pide una rotación de MUNDO para la mano. Se reparte como
@@ -490,18 +409,18 @@ const _fkDelta = new THREE.Quaternion();
 // nada de giro propio (la muñeca no rota sobre su eje). Si la orientación
 // no es alcanzable con la postura del brazo, queda la más cercana posible.
 //
-// Rango del antebrazo: Lexsi está en pose T con las palmas hacia abajo,
-// o sea, ya en pronación. Desde ahí solo cabe ~10° más de pronación y
-// hasta ~170° de supinación (pronación 80° + supinación 90° desde la
-// posición neutra, pulgar arriba). En el brazo izquierdo la supinación es
+// Rango del antebrazo: en la pose T de Lexsi (brazos en cruz, palmas
+// abajo) el antebrazo está en posición NEUTRA: al bajar el brazo la palma
+// queda hacia el muslo. Desde ahí caben ~80° de pronación y ~85° de
+// supinación (valores clínicos). En el brazo izquierdo la supinación es
 // giro negativo en Y local; el derecho es su espejo.
 
 const DEG_OR = Math.PI / 180;
 /** Grados, en el convenio de poseArmPreset (valor × lado). */
-const ANTEBRAZO_SUPINACION_MAX = 170;
-const ANTEBRAZO_PRONACION_MAX = 10;
+const ANTEBRAZO_SUPINACION_MAX = 85;
+const ANTEBRAZO_PRONACION_MAX = 80;
 const MUNIECA_FLEX = 75 * DEG_OR;
-const MUNIECA_EXT = 65 * DEG_OR;
+const MUNIECA_EXT = 70 * DEG_OR;
 const MUNIECA_RADIAL = 20 * DEG_OR;
 const MUNIECA_CUBITAL = 30 * DEG_OR;
 const MUNIECA_AXIAL = 10 * DEG_OR;
@@ -526,12 +445,17 @@ function giroY(q: THREE.Quaternion): number {
   return a;
 }
 
-/** Giro del codo alrededor de la recta hombro–muñeca (grados). */
-const CODO_GIRO_MAX = 60;
+/** Giro del codo alrededor de la recta hombro–muñeca (grados): se prueba
+ *  la vuelta completa; el costo decide cuánto alejarse de la postura base. */
+const CODO_GIRO_MAX = 180;
 const CODO_GIRO_PASO = 10;
 
 const _claviculaW = new THREE.Quaternion();
 const _brazoW = new THREE.Quaternion();
+const _abajoOr = new THREE.Vector3();
+const _ladoOr = new THREE.Vector3();
+const _frenteOr = new THREE.Vector3();
+const _dirBrazoOr = new THREE.Vector3();
 const _giroCodo = new THREE.Quaternion();
 const _ejeCodo = new THREE.Vector3();
 const _vecBrazo = new THREE.Vector3();
@@ -615,10 +539,15 @@ function resolverOrientacion(
   tMano: THREE.Quaternion,
   objetivo: THREE.Quaternion,
   isLeftArm: boolean,
+  cuerpoQ: THREE.Quaternion,
 ) {
   if (chain.clavicle.parent) chain.clavicle.parent.getWorldQuaternion(_padreW);
   else _padreW.identity();
   _claviculaW.copy(_padreW).multiply(tClavicula);
+  const lado = isLeftArm ? 1 : -1;
+  _abajoOr.set(0, -1, 0).applyQuaternion(cuerpoQ);
+  _ladoOr.set(lado, 0, 0).applyQuaternion(cuerpoQ);
+  _frenteOr.set(0, 0, 1).applyQuaternion(cuerpoQ);
 
   // Eje hombro→muñeca de la postura OBJETIVO (no de la actual, que ya
   // viene girada): brazo y antebrazo como vectores en su propio espacio.
@@ -632,7 +561,7 @@ function resolverOrientacion(
 
   _antebrazoBase.copy(tAntebrazo);
   let mejor = Infinity;
-  for (let g = -CODO_GIRO_MAX; g <= CODO_GIRO_MAX; g += CODO_GIRO_PASO) {
+  for (let g = -CODO_GIRO_MAX; g < CODO_GIRO_MAX; g += CODO_GIRO_PASO) {
     if (!conEje && g !== 0) continue;
     // brazo girado en mundo alrededor del eje hombro–muñeca
     _giroCodo.setFromAxisAngle(_ejeCodo, g * DEG_OR);
@@ -650,10 +579,15 @@ function resolverOrientacion(
     );
 
     _logrado.copy(_brazoW).multiply(_antebrazoPrueba).multiply(_manoPrueba);
-    // error angular + un poco de costo por mover el codo
+    // error angular + un poco de costo por mover el codo + castigo por
+    // sacar el brazo de su cono fisiológico
+    _dirBrazoOr.copy(chain.foreArm.position).applyQuaternion(_brazoW).normalize();
+    // (el codo por encima del hombro cuesta: se prefiere abrirlo al lado)
     const error =
       2 * Math.acos(Math.min(1, Math.abs(_logrado.dot(objetivo)))) +
-      0.15 * Math.abs(g * DEG_OR);
+      0.1 * Math.abs(g * DEG_OR) +
+      1.5 * violacionCono(_dirBrazoOr, _abajoOr, _ladoOr, _frenteOr) +
+      2.0 * Math.max(0, -_dirBrazoOr.dot(_abajoOr));
     if (error < mejor) {
       mejor = error;
       tBrazo.copy(_brazoPrueba);
@@ -684,95 +618,6 @@ const _tClav = new THREE.Quaternion();
 const _tBrazo = new THREE.Quaternion();
 const _tAntebrazo = new THREE.Quaternion();
 const _tMano = new THREE.Quaternion();
-
-/**
- * Smoothly blend the arm toward a pre-computed FK preset.
- * Works like poseArmDown but uses arbitrary ArmJointAngles. With
- * `objetivo`, the hand takes that world orientation (see
- * resolverOrientacion) instead of the preset's wrist angles.
- */
-function poseArmPreset(
-  angles: ArmJointAngles,
-  refs: {
-    clavicle: THREE.Bone;
-    upperArm: THREE.Bone;
-    foreArm: THREE.Bone;
-    hand: THREE.Bone;
-  },
-  bind: {
-    clavicle: THREE.Quaternion;
-    upperArm: THREE.Quaternion;
-    foreArm: THREE.Quaternion;
-    hand: THREE.Quaternion;
-  },
-  isLeftArm: boolean,
-  factor: number,
-  objetivo: THREE.Quaternion | null = null,
-) {
-  const DEG = Math.PI / 180;
-  const sign = isLeftArm ? 1 : -1;
-  const rate = factor * 3; // smooth convergence rate (matches poseArmDown)
-
-  // Clavicle: 2 DOF — (shrug around Z, protraction around Y)
-  _fkEuler.set(
-    0,
-    angles.clavProtract * DEG * sign,
-    angles.clavShrug * DEG * sign,
-    "XYZ",
-  );
-  _tClav.copy(bind.clavicle).multiply(_fkDelta.setFromEuler(_fkEuler));
-
-  // Upper Arm: 3 DOF — YXZ matching FK/IK shoulder convention
-  _fkEuler.set(
-    angles.shoulderElev * DEG, // X: adduction/abduction
-    angles.shoulderSwing * DEG * sign, // Y: flexion/extension
-    angles.shoulderTwist * DEG * sign, // Z: int/ext rotation
-    "YXZ",
-  );
-  _tBrazo.copy(bind.upperArm).multiply(_fkDelta.setFromEuler(_fkEuler));
-
-  // Forearm: 2 DOF — (elbow flex on X, supination on Y), limitado al
-  // rango anatómico desde la pose T (ver ANTEBRAZO_*)
-  const giroAntebrazo = limitar(
-    angles.forearmTwist,
-    -ANTEBRAZO_SUPINACION_MAX,
-    ANTEBRAZO_PRONACION_MAX,
-  );
-  _fkEuler.set(
-    -angles.elbowFlex * DEG, // X: flexion (negative = bend)
-    giroAntebrazo * DEG * sign, // Y: pro/supination
-    0,
-    "XYZ",
-  );
-  _tAntebrazo.copy(bind.foreArm).multiply(_fkDelta.setFromEuler(_fkEuler));
-
-  // Hand: 2 DOF — (wrist flex on X, ulnar deviation on Z)
-  _fkEuler.set(
-    -angles.wristFlex * DEG, // X: wrist flexion
-    0,
-    angles.wristDeviation * DEG * sign, // Z: radial/ulnar
-    "XYZ",
-  );
-  _tMano.copy(bind.hand).multiply(_fkDelta.setFromEuler(_fkEuler));
-
-  if (objetivo) {
-    resolverOrientacion(
-      refs,
-      bind,
-      _tClav,
-      _tBrazo,
-      _tAntebrazo,
-      _tMano,
-      objetivo,
-      isLeftArm,
-    );
-  }
-
-  refs.clavicle.quaternion.slerp(_tClav, rate);
-  refs.upperArm.quaternion.slerp(_tBrazo, rate);
-  refs.foreArm.quaternion.slerp(_tAntebrazo, rate);
-  refs.hand.quaternion.slerp(_tMano, rate);
-}
 
 // ── Temp animation variables ─────────────────────────────────────
 
@@ -1005,57 +850,7 @@ function snapshotHandBindPoses(refs: HandBoneRefs): HandBindPoses {
 
 // ── Hand centroid: average position of all hand bones ────────────
 
-const _centroidPos = new THREE.Vector3();
-const _wristPos = new THREE.Vector3();
-const _handDirVec = new THREE.Vector3();
 const _handWorldQ = new THREE.Quaternion();
-
-/**
- * Compute the distance from the wrist bone to the centroid of all
- * hand bones, measured along the hand's extension direction (-Y).
- *
- * Called once at bind-pose time. The returned value is used to offset
- * the IK target so that the palm center (not the wrist joint) reaches
- * the UB point.
- */
-function computeHandCentroidDistance(refs: HandBoneRefs): number {
-  const hand = refs.armChain.hand;
-  hand.updateWorldMatrix(true, true);
-
-  hand.getWorldPosition(_wristPos);
-
-  // Hand's extension direction in world space (bone -Y)
-  hand.getWorldQuaternion(_handWorldQ);
-  _handDirVec.set(0, -1, 0).applyQuaternion(_handWorldQ);
-
-  let totalProjection = 0;
-  let count = 0;
-
-  const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
-  for (const name of fingerNames) {
-    const finger = refs.fingers[name];
-    // Carpal
-    finger.carpal.getWorldPosition(_centroidPos);
-    totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
-    count++;
-    // MCP, PIP, DIP
-    for (const bone of finger.bones) {
-      bone.getWorldPosition(_centroidPos);
-      totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
-      count++;
-    }
-  }
-
-  // Thumb
-  for (const bone of refs.thumb) {
-    bone.getWorldPosition(_centroidPos);
-    totalProjection += _centroidPos.clone().sub(_wristPos).dot(_handDirVec);
-    count++;
-  }
-
-  // Average projection along hand extension = centroid distance from wrist
-  return count > 0 ? totalProjection / count : 0.06;
-}
 
 /**
  * Compute the average world position of all hand bones (centroid).
@@ -1197,10 +992,8 @@ function mezclarOrientacion(
   );
 }
 
-// ── Pre-allocated scratch vectors for movement interpolation ────
+// ── Pre-allocated scratch vector for movement interpolation ─────
 
-const _fromPosVec = new THREE.Vector3();
-const _toPosVec = new THREE.Vector3();
 const _interpPosVec = new THREE.Vector3();
 
 // ── Apply local movement overlays ───────────────────────────────
@@ -1282,116 +1075,237 @@ function applyLocalMovement(
 // ── Animate arm IK for one hand (anatomically constrained) ──────
 
 // Scratch vectors for centroid offset and rest pose
-const _shoulderPosIK = new THREE.Vector3();
-const _reachDirIK = new THREE.Vector3();
-const _adjustedTarget = new THREE.Vector3();
-const _restTarget = new THREE.Vector3();
-const _handWorldPosDbg = new THREE.Vector3();
 
-/** Debug info filled by animateArmIK for rendering debug spheres */
+/** Debug info filled by colocarBrazo for rendering debug spheres */
 interface DebugIKInfo {
-  ikTarget: THREE.Vector3; // green: centroid-adjusted IK target
-  ubTarget: THREE.Vector3; // blue: raw UB target
+  ikTarget: THREE.Vector3; // green: wrist target
+  ubTarget: THREE.Vector3; // blue: UB surface point (palm center goal)
   handWorldPos: THREE.Vector3; // red: actual hand bone world pos
   active: boolean;
 }
 
-function animateArmIK(
-  targetWorldPos: THREE.Vector3 | null,
+// ── Colocar el brazo: la palma sobre un punto, con la orientación pedida ──
+
+const _cuerpoQ = new THREE.Quaternion();
+const _ubPunto = new THREE.Vector3();
+const _ubNormal = new THREE.Vector3();
+const _ubPuntoB = new THREE.Vector3();
+const _ubNormalB = new THREE.Vector3();
+const _ubNormalMezcla = new THREE.Vector3();
+const _entradaBrazo = {
+  claviculaPos: new THREE.Vector3(),
+  padreClaviculaQ: new THREE.Quaternion(),
+  cuerpoQ: new THREE.Quaternion(),
+  muneca: new THREE.Vector3(),
+};
+const _objetivosBrazo = crearObjetivos();
+const _resultadoBrazo = crearResultado();
+const _manoDeseada = new THREE.Quaternion();
+const _manoLograda = new THREE.Quaternion();
+const _manoObjetivo = new THREE.Quaternion();
+const _palmaDir = new THREE.Vector3();
+const _dedosDir = new THREE.Vector3();
+const _dedosPrueba = new THREE.Vector3();
+const _normalDefecto = new THREE.Vector3();
+const _hombroPos = new THREE.Vector3();
+const _lejos = new THREE.Vector3();
+const _cand = Array.from({ length: 6 }, () => new THREE.Vector3());
+const _manoPrueba2 = new THREE.Quaternion();
+const _munecaPrueba = new THREE.Vector3();
+const _contacto = new THREE.Vector3();
+const _palmaPredicha = new THREE.Vector3();
+const _mejorClav = new THREE.Quaternion();
+const _mejorBrazoQ = new THREE.Quaternion();
+const _mejorAntebrazoQ = new THREE.Quaternion();
+const _mejorManoQ = new THREE.Quaternion();
+const _baseObjetivo = new THREE.Vector3();
+const _baseDedos = new THREE.Vector3();
+const _basePalma = new THREE.Vector3();
+const _baseOrient = new THREE.Quaternion();
+
+/**
+ * Lleva el CENTRO DE LA PALMA al punto `punto` (mundo) con la orientación
+ * `orient` (rotación de mundo de la mano) o, si no hay, con la palma hacia
+ * el cuerpo (contra la normal de superficie) y los dedos hacia arriba.
+ *
+ * Varias pasadas: la muñeca objetivo depende de la orientación de la mano,
+ * y la orientación que se logra (dentro de los rangos de codo, antebrazo y
+ * muñeca) puede no ser la pedida; las pasadas siguientes recolocan la
+ * muñeca con la orientación realmente lograda para que la palma quede en
+ * el punto.
+ * Los huesos se acercan a sus objetivos con slerp (factor).
+ */
+function colocarBrazo(
+  punto: THREE.Vector3,
+  normal: THREE.Vector3 | null,
+  orient: THREE.Quaternion | null,
   refs: HandBoneRefs,
   bindPoses: HandBindPoses,
-  armLengths: ArmLengths,
+  medidas: MedidasBrazo,
+  calib: CalibracionMano,
+  centroPalma: THREE.Vector3,
+  cuerpoQ: THREE.Quaternion,
   factor: number,
   isLeftArm: boolean,
-  objetivoMano: THREE.Quaternion | null,
-  centroidDist: number,
   debugInfo?: DebugIKInfo,
 ) {
-  // ── Determine effective IK target ───────────────────────────────
-  let ikTarget: THREE.Vector3;
-  let ikFactor: number;
-  let orient: THREE.Quaternion | null;
+  const rate = Math.min(1, factor * 2);
 
-  if (targetWorldPos) {
-    // Offset the target so the hand CENTROID (not wrist) reaches the UB point.
-    // The centroid is centroidDist past the wrist along the reach direction.
-    // Pull the target back toward the shoulder by that amount.
-    refs.armChain.upperArm.getWorldPosition(_shoulderPosIK);
-    _reachDirIK.copy(targetWorldPos).sub(_shoulderPosIK).normalize();
-    _adjustedTarget
-      .copy(targetWorldPos)
-      .addScaledVector(_reachDirIK, -centroidDist);
-    ikTarget = _adjustedTarget;
-    ikFactor = factor;
-    orient = objetivoMano;
-
-    // Fill debug info
-    if (debugInfo) {
-      debugInfo.ubTarget.copy(targetWorldPos);
-      debugInfo.ikTarget.copy(ikTarget);
-      debugInfo.active = true;
-    }
+  // 1. Entrada del solver
+  const chain = refs.armChain;
+  chain.clavicle.updateWorldMatrix(true, false);
+  chain.clavicle.getWorldPosition(_entradaBrazo.claviculaPos);
+  if (chain.clavicle.parent) {
+    chain.clavicle.parent.getWorldQuaternion(_entradaBrazo.padreClaviculaQ);
   } else {
-    // No UB target → arms-down rest pose via IK
-    // Position beside the hip: below clavicle, slightly to the side + forward
-    refs.armChain.clavicle.updateWorldMatrix(true, false);
-    refs.armChain.clavicle.getWorldPosition(_restTarget);
-    const sign = isLeftArm ? 1 : -1;
-    _restTarget.x += sign * 0.12;
-    _restTarget.y -= 0.55;
-    _restTarget.z += 0.06;
-    ikTarget = _restTarget;
-    ikFactor = factor * 0.5; // slower convergence for natural transition
-    orient = null;
+    _entradaBrazo.padreClaviculaQ.identity();
+  }
+  _entradaBrazo.cuerpoQ.copy(cuerpoQ);
+  chain.upperArm.updateWorldMatrix(true, false);
+  chain.upperArm.getWorldPosition(_hombroPos);
 
-    if (debugInfo) debugInfo.active = false;
+  // 2. Orientación deseada de la mano (mundo)
+  if (orient) {
+    _manoDeseada.copy(orient);
+  } else {
+    // palma hacia el cuerpo (contra la normal); dedos hacia arriba salvo
+    // que así la muñeca quede fuera de alcance o demasiado pegada al
+    // hombro: entonces se elige, entre arriba, abajo, hacia el hombro,
+    // lejos del hombro, al frente y atrás, la dirección más cómoda
+    const n = normal ?? _normalDefecto.set(0, 0, 1).applyQuaternion(cuerpoQ);
+    _palmaDir.copy(n).negate();
+    const L = medidas.L1 + medidas.L2;
+    // (el mínimo queda por encima del alcance con el codo al máximo, ~0.34 L)
+    const comodoMin = 0.38 * L;
+    const comodoMax = 0.92 * L;
+    _lejos.copy(punto).sub(_hombroPos).normalize();
+    // en orden de preferencia: arriba, atrás, lejos del hombro, hacia el
+    // hombro, al frente y abajo (dedos hacia abajo es lo menos natural)
+    const candidatos: THREE.Vector3[] = [
+      _cand[0].set(0, 1, 0).applyQuaternion(cuerpoQ),
+      _cand[1].set(0, 0, -1).applyQuaternion(cuerpoQ),
+      _cand[2].copy(_lejos),
+      _cand[3].copy(_lejos).negate(),
+      _cand[4].set(0, 0, 1).applyQuaternion(cuerpoQ),
+      _cand[5].set(0, -1, 0).applyQuaternion(cuerpoQ),
+    ];
+    const sesgo = [0, 0.02, 0.03, 0.04, 0.06, 0.1];
+    // se evalúa cada dirección con el contacto en la palma y corrido hacia
+    // las yemas (k), porque para un punto pegado al hombro conviene apuntar
+    // los dedos hacia él y tocar con las yemas
+    const largoPalma0 = centroPalma.length() / Math.hypot(0.55, 0.12);
+    let mejor = Infinity;
+    for (let i = 0; i < candidatos.length; i++) {
+      const c = candidatos[i];
+      // perpendicular a la palma
+      _dedosPrueba.copy(c).addScaledVector(_palmaDir, -c.dot(_palmaDir));
+      if (_dedosPrueba.lengthSq() < 0.05) continue;
+      _dedosPrueba.normalize();
+      cuaternionManoDesde(calib, _dedosPrueba, _palmaDir, _manoPrueba2);
+      for (let k = 0; k <= 1.0001; k += 0.25) {
+        _contacto.copy(centroPalma).addScaledVector(calib.dedos, k * largoPalma0);
+        munecaParaPalma(punto, _manoPrueba2, _contacto, medidas.escala, _munecaPrueba);
+        const d = _munecaPrueba.distanceTo(_hombroPos);
+        // costo: salirse de la zona cómoda, tocar con la palma antes que con
+        // los dedos, y un pequeño sesgo por orden de preferencia
+        const fuera = Math.max(0, d - comodoMax) + Math.max(0, comodoMin - d);
+        const costo = fuera * 10 + k * 0.15 + sesgo[i];
+        if (costo < mejor) {
+          mejor = costo;
+          _dedosDir.copy(_dedosPrueba);
+        }
+      }
+    }
+    if (!isFinite(mejor)) _dedosDir.set(0, 1, 0).applyQuaternion(cuerpoQ);
+    cuaternionManoDesde(calib, _dedosDir, _palmaDir, _manoDeseada);
   }
 
-  // ── Solve IK ────────────────────────────────────────────────────
-  const { clavicleQuat, upperArmQuat, foreArmQuat } = solveArmIKNatural(
-    ikTarget,
-    armLengths,
-    refs.armChain.clavicle,
-    refs.armChain.upperArm,
-    refs.armChain.foreArm,
-    bindPoses.armChain.clavicle,
-    bindPoses.armChain.upperArm,
-    bindPoses.armChain.foreArm,
-    isLeftArm,
-  );
-
-  // Slerp clavicle toward IK target
-  refs.armChain.clavicle.quaternion.slerp(clavicleQuat, ikFactor * 2);
-
-  if (orient) {
-    // Orientación de mundo repartida entre antebrazo y muñeca (con ROM)
-    _tBrazo.copy(upperArmQuat);
-    _tAntebrazo.copy(foreArmQuat);
+  // 3. Cuatro pasadas. La muñeca de cada pasada se calcula con la
+  //    orientación que de verdad se logró en la anterior (ya dentro de los
+  //    rangos), así la palma cae en el punto aunque la orientación exacta
+  //    no sea alcanzable. Las dos primeras piden la orientación deseada;
+  //    las dos últimas piden la lograda (punto fijo: máxima precisión de
+  //    palma). En cada pasada el punto de contacto se corre de la palma
+  //    hacia las yemas solo si con la palma la muñeca quedaría fuera de
+  //    alcance o pegada al hombro (como al tocar la coronilla con los
+  //    dedos). Se conserva la pasada con mejor suma de error de palma y de
+  //    orientación.
+  const largoPalma = centroPalma.length() / Math.hypot(0.55, 0.12);
+  const alcance = medidas.L1 + medidas.L2;
+  _manoLograda.copy(_manoDeseada);
+  let mejorError = Infinity;
+  for (let pasada = 0; pasada < 4; pasada++) {
+    if (pasada === 2) _manoObjetivo.copy(_manoLograda);
+    let mejorK = 0;
+    let mejorFuera = Infinity;
+    for (let k = 0; k <= 1.0001; k += 0.25) {
+      _contacto.copy(centroPalma).addScaledVector(calib.dedos, k * largoPalma);
+      munecaParaPalma(punto, _manoLograda, _contacto, medidas.escala, _munecaPrueba);
+      const d = _munecaPrueba.distanceTo(_hombroPos);
+      const fuera = Math.max(0, d - 0.95 * alcance) + Math.max(0, 0.38 * alcance - d);
+      if (fuera < mejorFuera - 1e-6) {
+        mejorFuera = fuera;
+        mejorK = k;
+      }
+      if (fuera === 0) break;
+    }
+    _contacto.copy(centroPalma).addScaledVector(calib.dedos, mejorK * largoPalma);
+    munecaParaPalma(punto, _manoLograda, _contacto, medidas.escala, _entradaBrazo.muneca);
+    resolverBrazo(medidas, _entradaBrazo, _objetivosBrazo, _resultadoBrazo);
+    _tClav.copy(_objetivosBrazo.clavicula);
+    _tBrazo.copy(_objetivosBrazo.brazo);
+    _tAntebrazo.copy(_objetivosBrazo.antebrazo);
     _tMano.copy(bindPoses.armChain.hand);
     resolverOrientacion(
-      refs.armChain,
+      chain,
       bindPoses.armChain,
-      clavicleQuat,
+      _tClav,
       _tBrazo,
       _tAntebrazo,
       _tMano,
-      orient,
+      pasada < 2 ? _manoDeseada : _manoObjetivo,
       isLeftArm,
+      cuerpoQ,
     );
-    refs.armChain.upperArm.quaternion.slerp(_tBrazo, ikFactor * 2);
-    refs.armChain.foreArm.quaternion.slerp(_tAntebrazo, ikFactor * 2);
-    refs.armChain.hand.quaternion.slerp(_tMano, ikFactor * 2);
-  } else {
-    // No orientation — just use IK results, hand returns to bind
-    refs.armChain.upperArm.quaternion.slerp(upperArmQuat, ikFactor * 2);
-    refs.armChain.foreArm.quaternion.slerp(foreArmQuat, ikFactor * 2);
-    refs.armChain.hand.quaternion.slerp(bindPoses.armChain.hand, ikFactor);
+    _manoLograda
+      .copy(_entradaBrazo.padreClaviculaQ)
+      .multiply(_tClav)
+      .multiply(_tBrazo)
+      .multiply(_tAntebrazo)
+      .multiply(_tMano);
+    // palma predicha con lo logrado (la muñeca no cambia con la orientación)
+    _palmaPredicha
+      .copy(_contacto)
+      .multiplyScalar(medidas.escala)
+      .applyQuaternion(_manoLograda)
+      .add(_resultadoBrazo.muneca);
+    // Qué pesa más: si hay superficie (contacto) manda la palma en el
+    // punto (1 cm ≈ 7° con orientación pedida; casi todo si es la de
+    // defecto); en el espacio neutro, sin nada que tocar, manda la
+    // orientación pedida (1 cm ≈ 1.5°).
+    const errOr = 2 * Math.acos(Math.min(1, Math.abs(_manoLograda.dot(_manoDeseada))));
+    const pesoOr = !orient ? 0.15 : normal ? 0.6 : 3.0;
+    const err = _palmaPredicha.distanceTo(punto) * 8 + errOr * pesoOr;
+    if (err < mejorError) {
+      mejorError = err;
+      _mejorClav.copy(_tClav);
+      _mejorBrazoQ.copy(_tBrazo);
+      _mejorAntebrazoQ.copy(_tAntebrazo);
+      _mejorManoQ.copy(_tMano);
+    }
   }
 
-  // Capture hand world position for debug rendering
-  if (debugInfo && debugInfo.active) {
-    refs.armChain.hand.updateWorldMatrix(true, false);
-    refs.armChain.hand.getWorldPosition(debugInfo.handWorldPos);
+  chain.clavicle.quaternion.slerp(_mejorClav, rate);
+  chain.upperArm.quaternion.slerp(_mejorBrazoQ, rate);
+  chain.foreArm.quaternion.slerp(_mejorAntebrazoQ, rate);
+  chain.hand.quaternion.slerp(_mejorManoQ, rate);
+
+  if (debugInfo) {
+    debugInfo.ubTarget.copy(punto);
+    debugInfo.ikTarget.copy(_entradaBrazo.muneca);
+    debugInfo.active = true;
+    chain.hand.updateWorldMatrix(true, false);
+    chain.hand.getWorldPosition(debugInfo.handWorldPos);
   }
 }
 
@@ -1559,37 +1473,28 @@ export default function AvatarModel({
     [rightHandRefs],
   );
 
-  // ── Arm lengths (measured once) ──
+  // ── Lugares (UB) sobre la malla, en bind, y su lector ──
+  const anclasUB = useMemo(
+    () => calcularAnclasUB(clonedScene, boneMap),
+    [clonedScene, boneMap],
+  );
+  const lector = useMemo(() => new LectorUB(anclasUB, boneMap), [anclasUB, boneMap]);
 
-  const leftArmLengths = useMemo<ArmLengths | null>(() => {
-    if (!leftHandRefs) return null;
-    return measureArmLengths(
-      leftHandRefs.armChain.upperArm,
-      leftHandRefs.armChain.foreArm,
-      leftHandRefs.armChain.hand,
-    );
-  }, [leftHandRefs]);
-
-  const rightArmLengths = useMemo<ArmLengths | null>(() => {
-    if (!rightHandRefs) return null;
-    return measureArmLengths(
-      rightHandRefs.armChain.upperArm,
-      rightHandRefs.armChain.foreArm,
-      rightHandRefs.armChain.hand,
-    );
-  }, [rightHandRefs]);
-
-  // ── Hand centroid distance (measured once at bind pose) ──
-
-  const leftCentroidDist = useMemo<number>(() => {
-    if (!leftHandRefs) return 0.06; // fallback ~6cm
-    return computeHandCentroidDistance(leftHandRefs);
-  }, [leftHandRefs]);
-
-  const rightCentroidDist = useMemo<number>(() => {
-    if (!rightHandRefs) return 0.06;
-    return computeHandCentroidDistance(rightHandRefs);
-  }, [rightHandRefs]);
+  // ── Medidas del brazo para la IK (ejes, longitudes y bind) ──
+  const medidasIzq = useMemo<MedidasBrazo | null>(
+    () =>
+      leftHandRefs && leftHandBindPoses
+        ? medirBrazo(leftHandRefs.armChain, leftHandBindPoses.armChain, true)
+        : null,
+    [leftHandRefs, leftHandBindPoses],
+  );
+  const medidasDer = useMemo<MedidasBrazo | null>(
+    () =>
+      rightHandRefs && rightHandBindPoses
+        ? medirBrazo(rightHandRefs.armChain, rightHandBindPoses.armChain, false)
+        : null,
+    [rightHandRefs, rightHandBindPoses],
+  );
 
   // ── Debug IK state (for rendering debug spheres) ──
   const debugIK = useRef<DebugIKInfo>({
@@ -1624,6 +1529,30 @@ export default function AvatarModel({
         ? calibrarMano(rightHandRefs, rightHandBindPoses)
         : null,
     [rightHandRefs, rightHandBindPoses],
+  );
+
+  // Centro de la palma en el espacio local de cada mano (para la IK)
+  const centroPalmaIzq = useMemo(
+    () =>
+      leftHandRefs && leftCalib
+        ? centroPalmaLocal(
+            leftHandRefs.fingers.middle.carpal.position,
+            leftCalib.palma,
+            new THREE.Vector3(),
+          )
+        : null,
+    [leftHandRefs, leftCalib],
+  );
+  const centroPalmaDer = useMemo(
+    () =>
+      rightHandRefs && rightCalib
+        ? centroPalmaLocal(
+            rightHandRefs.fingers.middle.carpal.position,
+            rightCalib.palma,
+            new THREE.Vector3(),
+          )
+        : null,
+    [rightHandRefs, rightCalib],
   );
 
   // Rotación de mundo que pide la orientación, por mano
@@ -1666,6 +1595,95 @@ export default function AvatarModel({
   // Animation loop
   useFrame((rs, delta) => {
     if (!groupRef.current) return;
+    groupRef.current.getWorldQuaternion(_cuerpoQ);
+
+    /** Palma de la mano izquierda (dominante) sobre un lugar, o null si no se puede */
+    const brazoIzqA = (
+      punto: THREE.Vector3,
+      normal: THREE.Vector3 | null,
+      orient: THREE.Quaternion | null,
+      f: number,
+    ) => {
+      if (!leftHandRefs || !leftHandBindPoses || !medidasIzq || !leftCalib || !centroPalmaIzq)
+        return false;
+      colocarBrazo(
+        punto,
+        normal,
+        orient,
+        leftHandRefs,
+        leftHandBindPoses,
+        medidasIzq,
+        leftCalib,
+        centroPalmaIzq,
+        _cuerpoQ,
+        f,
+        true,
+        debugIK.current,
+      );
+      return true;
+    };
+    /**
+     * Brazo base (el que no seña) presentado al frente cuando el lugar está
+     * sobre él: antebrazo cruzado frente al vientre, dedos hacia el lado
+     * dominante y la palma hacia arriba si el lugar es del lado de la palma.
+     */
+    const presentarBrazoBase = (code: string, espejo: boolean, f: number) => {
+      const refs = espejo ? leftHandRefs : rightHandRefs;
+      const bind = espejo ? leftHandBindPoses : rightHandBindPoses;
+      const medidas = espejo ? medidasIzq : medidasDer;
+      const calib = espejo ? leftCalib : rightCalib;
+      const centro = espejo ? centroPalmaIzq : centroPalmaDer;
+      const spine = boneMap.get("Spine2");
+      if (!refs || !bind || !medidas || !calib || !centro || !spine) return false;
+      const lado = espejo ? -1 : 1; // lado dominante en X
+      spine.updateWorldMatrix(true, false);
+      spine.getWorldPosition(_baseObjetivo);
+      _baseObjetivo.add(
+        _lejos.set(lado * 0.05, -0.14, 0.34).applyQuaternion(_cuerpoQ),
+      );
+      const nLocal = lector.normalLocal(code, espejo);
+      const palmaArriba = nLocal ? nLocal.dot(calib.palma) > 0.3 : false;
+      _baseDedos.set(lado, 0, 0).applyQuaternion(_cuerpoQ);
+      _basePalma.set(0, palmaArriba ? 1 : -1, 0).applyQuaternion(_cuerpoQ);
+      cuaternionManoDesde(calib, _baseDedos, _basePalma, _baseOrient);
+      colocarBrazo(
+        _baseObjetivo,
+        null,
+        _baseOrient,
+        refs,
+        bind,
+        medidas,
+        calib,
+        centro,
+        _cuerpoQ,
+        f,
+        espejo,
+      );
+      return true;
+    };
+    const brazoDerA = (
+      punto: THREE.Vector3,
+      normal: THREE.Vector3 | null,
+      orient: THREE.Quaternion | null,
+      f: number,
+    ) => {
+      if (!rightHandRefs || !rightHandBindPoses || !medidasDer || !rightCalib || !centroPalmaDer)
+        return false;
+      colocarBrazo(
+        punto,
+        normal,
+        orient,
+        rightHandRefs,
+        rightHandBindPoses,
+        medidasDer,
+        rightCalib,
+        centroPalmaDer,
+        _cuerpoQ,
+        f,
+        false,
+      );
+      return true;
+    };
 
     // ─ AUTO-SOLVE: Process one UB code per frame to avoid freezing ─
     if (
@@ -1706,7 +1724,7 @@ export default function AvatarModel({
           // 0.08 = 8cm outward along approximate surface normal.
           const ubWorldPos = computeUBWorldPositionWithSurfaceOffset(
             code,
-            boneMap,
+            lector,
             0.08,
           );
           if (ubWorldPos) {
@@ -1829,16 +1847,14 @@ export default function AvatarModel({
 
     // ─ UB BROWSE MODE ─
     if (showAllUBPoints && leftHandRefs && leftHandBindPoses) {
-      // If a UB point is selected, articulate the arm toward it using FK preset
-      const browseFKPreset = ubLocation ? UB_FK_PRESETS[ubLocation.code] : null;
-      if (browseFKPreset) {
-        poseArmPreset(
-          browseFKPreset,
-          leftHandRefs.armChain,
-          leftHandBindPoses.armChain,
-          true,
-          factor,
-        );
+      // Con un lugar elegido, la palma va a ese punto (palma hacia el cuerpo)
+      const puntoUB =
+        ubLocation && lector.posicion(ubLocation.code, false, _ubPunto);
+      if (puntoUB) {
+        const n = lector.normal(ubLocation!.code, false, _ubNormal);
+        if (!brazoIzqA(puntoUB, n, null, factor)) {
+          poseArmDown(leftHandRefs.armChain, leftHandBindPoses.armChain, true, factor);
+        }
         animateFingers(
           leftAnimState.current,
           targetPose,
@@ -1861,15 +1877,17 @@ export default function AvatarModel({
           factor,
         );
       }
-      debugIK.current.active = false;
+      if (!puntoUB) debugIK.current.active = false;
 
       if (rightHandRefs && rightHandBindPoses) {
-        poseArmDown(
-          rightHandRefs.armChain,
-          rightHandBindPoses.armChain,
-          false,
-          factor,
-        );
+        if (!(ubLocation && lector.esBrazoBase(ubLocation.code, false) && presentarBrazoBase(ubLocation.code, false, factor))) {
+          poseArmDown(
+            rightHandRefs.armChain,
+            rightHandBindPoses.armChain,
+            false,
+            factor,
+          );
+        }
         animateFingers(
           rightAnimState.current,
           RESTING_POSE,
@@ -1934,7 +1952,7 @@ export default function AvatarModel({
         // 4. Compute FK state, debug spheres, and write to shared ref
         const centroidPos = computeHandCentroidWorldPos(leftHandRefs);
         const ubWorldPos = ubLocation
-          ? computeUBWorldPosition(ubLocation.code, boneMap)
+          ? computeUBWorldPosition(ubLocation.code, lector)
           : null;
         const dist = ubWorldPos ? centroidPos.distanceTo(ubWorldPos) : Infinity;
 
@@ -1994,58 +2012,41 @@ export default function AvatarModel({
         );
 
         // 2. Interpolate UB world position along contour path
-        if (leftArmLengths) {
-          const fromPos = computeUBWorldPosition(
-            movementInterp.fromUBCode,
-            boneMap,
+        const fromPos = lector.posicion(movementInterp.fromUBCode, false, _ubPunto);
+        const toPos = lector.posicion(movementInterp.toUBCode, false, _ubPuntoB);
+        if (fromPos && toPos) {
+          const fromArr: [number, number, number] = [fromPos.x, fromPos.y, fromPos.z];
+          const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
+          const interpArr = interpolateMovementPosition(
+            fromArr,
+            toArr,
+            movementInterp.contour,
+            movementInterp.plane,
+            mt,
           );
-          const toPos = computeUBWorldPosition(
-            movementInterp.toUBCode,
-            boneMap,
-          );
+          _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-          if (fromPos && toPos) {
-            const fromArr: [number, number, number] = [
-              fromPos.x,
-              fromPos.y,
-              fromPos.z,
-            ];
-            const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
-            const interpArr = interpolateMovementPosition(
-              fromArr,
-              toArr,
-              movementInterp.contour,
-              movementInterp.plane,
-              mt,
-            );
-            _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
+          // normal de superficie mezclada (para la palma por defecto)
+          const nFrom = lector.normal(movementInterp.fromUBCode, false, _ubNormal);
+          const nTo = lector.normal(movementInterp.toUBCode, false, _ubNormalB);
+          const nMix =
+            nFrom && nTo ? _ubNormalMezcla.copy(nFrom).lerp(nTo, mt).normalize() : null;
 
-            // 3. Blend hand orientation between from/to
-            const blendedOrient = leftCalib
-              ? mezclarOrientacion(
-                  leftCalib,
-                  movementInterp.fromOrientation,
-                  movementInterp.toOrientation,
-                  mt,
-                )
-              : null;
+          // 3. Blend hand orientation between from/to
+          const blendedOrient = leftCalib
+            ? mezclarOrientacion(
+                leftCalib,
+                movementInterp.fromOrientation,
+                movementInterp.toOrientation,
+                mt,
+              )
+            : null;
 
-            animateArmIK(
-              _interpPosVec,
-              leftHandRefs,
-              leftHandBindPoses,
-              leftArmLengths,
-              factor,
-              true,
-              blendedOrient,
-              leftCentroidDist,
-              debugIK.current,
-            );
+          brazoIzqA(_interpPosVec, nMix, blendedOrient, factor);
 
-            // 4. Apply local movement overlays (after IK)
-            if (movementInterp.local) {
-              applyLocalMovement(leftHandRefs, movementInterp.local, mt, t);
-            }
+          // 4. Apply local movement overlays (after IK)
+          if (movementInterp.local) {
+            applyLocalMovement(leftHandRefs, movementInterp.local, mt, t);
           }
         }
       } else {
@@ -2058,38 +2059,12 @@ export default function AvatarModel({
           factor,
         );
 
-        if (ubLocation) {
-          const fkPreset = UB_FK_PRESETS[ubLocation.code];
-          if (fkPreset) {
-            // Use pre-computed FK angles for this UB point
-            // Use pre-computed FK angles for this UB point; the OR
-            // orientation (palm/finger direction) replaces the preset wrist
-            poseArmPreset(
-              fkPreset,
-              leftHandRefs.armChain,
-              leftHandBindPoses.armChain,
-              true,
-              factor,
-              targetOrient,
-            );
-            debugIK.current.active = false;
-          } else if (leftArmLengths) {
-            // No preset — fall back to IK
-            const ubTarget = computeUBWorldPosition(ubLocation.code, boneMap);
-            if (ubTarget) {
-              animateArmIK(
-                ubTarget,
-                leftHandRefs,
-                leftHandBindPoses,
-                leftArmLengths,
-                factor,
-                true,
-                targetOrient,
-                leftCentroidDist,
-                debugIK.current,
-              );
-            }
-          }
+        const puntoHold =
+          ubLocation && lector.posicion(ubLocation.code, false, _ubPunto);
+        if (puntoHold) {
+          // La palma al lugar, con la orientación OR pedida (o hacia el cuerpo)
+          const n = lector.normal(ubLocation!.code, false, _ubNormal);
+          brazoIzqA(puntoHold, n, targetOrient, factor);
         } else {
           // No UB target — neutral arms-down pose
           poseArmDown(
@@ -2135,55 +2110,38 @@ export default function AvatarModel({
           factor,
         );
 
-        if (rightArmLengths) {
-          const fromPos = computeUBWorldPositionMirrored(
-            movementInterp.fromUBCode,
-            boneMap,
+        const fromPos = lector.posicion(movementInterp.fromUBCode, true, _ubPunto);
+        const toPos = lector.posicion(movementInterp.toUBCode, true, _ubPuntoB);
+        if (fromPos && toPos) {
+          const fromArr: [number, number, number] = [fromPos.x, fromPos.y, fromPos.z];
+          const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
+          const interpArr = interpolateMovementPosition(
+            fromArr,
+            toArr,
+            movementInterp.contour,
+            movementInterp.plane,
+            mt,
           );
-          const toPos = computeUBWorldPositionMirrored(
-            movementInterp.toUBCode,
-            boneMap,
-          );
+          _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-          if (fromPos && toPos) {
-            const fromArr: [number, number, number] = [
-              fromPos.x,
-              fromPos.y,
-              fromPos.z,
-            ];
-            const toArr: [number, number, number] = [toPos.x, toPos.y, toPos.z];
-            const interpArr = interpolateMovementPosition(
-              fromArr,
-              toArr,
-              movementInterp.contour,
-              movementInterp.plane,
-              mt,
-            );
-            _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
+          const nFrom = lector.normal(movementInterp.fromUBCode, true, _ubNormal);
+          const nTo = lector.normal(movementInterp.toUBCode, true, _ubNormalB);
+          const nMix =
+            nFrom && nTo ? _ubNormalMezcla.copy(nFrom).lerp(nTo, mt).normalize() : null;
 
-            const blendedOrientR = rightCalib
-              ? mezclarOrientacion(
-                  rightCalib,
-                  mirrorOrientation(movementInterp.fromOrientation),
-                  mirrorOrientation(movementInterp.toOrientation),
-                  mt,
-                )
-              : null;
+          const blendedOrientR = rightCalib
+            ? mezclarOrientacion(
+                rightCalib,
+                mirrorOrientation(movementInterp.fromOrientation),
+                mirrorOrientation(movementInterp.toOrientation),
+                mt,
+              )
+            : null;
 
-            animateArmIK(
-              _interpPosVec,
-              rightHandRefs,
-              rightHandBindPoses,
-              rightArmLengths,
-              factor,
-              false,
-              blendedOrientR,
-              rightCentroidDist,
-            );
+          brazoDerA(_interpPosVec, nMix, blendedOrientR, factor);
 
-            if (movementInterp.local) {
-              applyLocalMovement(rightHandRefs, movementInterp.local, mt, t);
-            }
+          if (movementInterp.local) {
+            applyLocalMovement(rightHandRefs, movementInterp.local, mt, t);
           }
         }
       } else {
@@ -2196,37 +2154,11 @@ export default function AvatarModel({
           factor,
         );
 
-        if (ubLocation) {
-          const fkPreset = UB_FK_PRESETS[ubLocation.code];
-          if (fkPreset) {
-            // Use mirrored FK preset (pass isLeftArm=false to mirror)
-            poseArmPreset(
-              fkPreset,
-              rightHandRefs.armChain,
-              rightHandBindPoses.armChain,
-              false,
-              factor,
-              mirroredOrient,
-            );
-          } else if (rightArmLengths) {
-            // No preset — fall back to IK
-            const ubTarget = computeUBWorldPositionMirrored(
-              ubLocation.code,
-              boneMap,
-            );
-            if (ubTarget) {
-              animateArmIK(
-                ubTarget,
-                rightHandRefs,
-                rightHandBindPoses,
-                rightArmLengths,
-                factor,
-                false,
-                mirroredOrient,
-                rightCentroidDist,
-              );
-            }
-          }
+        const puntoHoldR =
+          ubLocation && lector.posicion(ubLocation.code, true, _ubPunto);
+        if (puntoHoldR) {
+          const n = lector.normal(ubLocation!.code, true, _ubNormal);
+          brazoDerA(puntoHoldR, n, mirroredOrient, factor);
         } else {
           // No UB target — neutral arms-down pose
           poseArmDown(
@@ -2238,13 +2170,24 @@ export default function AvatarModel({
         }
       }
     } else if (rightHandRefs && rightHandBindPoses) {
-      // Single-hand mode: right arm rests at side via direct pose
-      poseArmDown(
-        rightHandRefs.armChain,
-        rightHandBindPoses.armChain,
-        false,
-        factor,
-      );
+      // Una mano: el brazo derecho descansa, salvo que el lugar esté sobre
+      // él (entonces se presenta al frente para que la otra mano lo toque)
+      const codigoBase =
+        movementInterp?.toUBCode && lector.esBrazoBase(movementInterp.toUBCode, false)
+          ? movementInterp.toUBCode
+          : movementInterp?.fromUBCode && lector.esBrazoBase(movementInterp.fromUBCode, false)
+            ? movementInterp.fromUBCode
+            : ubLocation && !movementInterp && lector.esBrazoBase(ubLocation.code, false)
+              ? ubLocation.code
+              : null;
+      if (!(codigoBase && presentarBrazoBase(codigoBase, false, factor))) {
+        poseArmDown(
+          rightHandRefs.armChain,
+          rightHandBindPoses.armChain,
+          false,
+          factor,
+        );
+      }
       animateFingers(
         rightAnimState.current,
         RESTING_POSE,
@@ -2269,7 +2212,7 @@ export default function AvatarModel({
       {/* All 80 interactive UB spheres */}
       {showAllUBPoints && (
         <UBPointCloud
-          boneMap={boneMap}
+          lector={lector}
           selectedCode={selectedUBCode}
           regionFilter={ubRegionFilter}
           onMarkerClick={handleUBMarkerClick}

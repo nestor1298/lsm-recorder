@@ -4,6 +4,7 @@ import React, { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { CMEntry } from "@/lib/types";
 import type {
   ArmJointAngles,
@@ -28,8 +29,10 @@ interface Hand3DViewerProps {
   className?: string;
   height?: string;
   autoRotate?: boolean;
-  /** Cámara fija: el modelo no gira solo ni con el cursor (Aprender) */
+  /** Cámara fija: el modelo no gira solo ni con el cursor */
   fija?: boolean;
+  /** Sin esquinas redondeadas ni degradado (visor a pantalla completa) */
+  sinMarco?: boolean;
   /** "torso" encuadra de la cadera a la coronilla, donde ocurre la seña */
   encuadre?: "cuerpo" | "torso";
   /**
@@ -86,17 +89,28 @@ export interface Tapado {
   esquina?: { ancho: number; alto: number };
 }
 
-const _camTorso = new THREE.Vector3();
+const _objetivoTorso = new THREE.Vector3();
+const _desplazamiento = new THREE.Vector3();
 
 /**
  * Cámara del encuadre torso: coloca el torso completo y centrado en el
- * rectángulo que no tapan los paneles. Se desliza suave al abrir o cerrar
- * un panel; el avatar en sí nunca gira.
+ * rectángulo que no tapan los paneles, con transición suave al abrir o
+ * cerrar un panel. Convive con la órbita: el usuario gira (arrastrar) y
+ * acerca (rueda o pellizco) alrededor de ese centro; aquí solo se mueve
+ * el punto de mira y se escala la distancia base, así que su ángulo y su
+ * acercamiento relativo se conservan.
  */
-function EncuadreTorso({ tapado }: { tapado?: Tapado }) {
+function EncuadreTorso({
+  tapado,
+  controles,
+}: {
+  tapado?: Tapado;
+  controles: React.RefObject<OrbitControlsImpl | null>;
+}) {
   const camera = useThree((st) => st.camera) as THREE.PerspectiveCamera;
   const size = useThree((st) => st.size);
   const primera = useRef(true);
+  const distanciaBase = useRef(0);
 
   useFrame((_, delta) => {
     const base = tapado ?? { izq: 0, der: 0, arr: 0, aba: 0 };
@@ -116,15 +130,35 @@ function EncuadreTorso({ tapado }: { tapado?: Tapado }) {
     const altoVisible = altoPara(t);
     const distancia = altoVisible / (2 * Math.tan((camera.fov * Math.PI) / 360));
     const anchoVisible = altoVisible * aspecto;
-    // mover la cámara hacia lo tapado deja al avatar en el centro de lo libre
+    // mover la mira hacia lo tapado deja al avatar en el centro de lo libre
     const x = ((t.der - t.izq) / 2) * anchoVisible;
     const y = MIRA_TORSO_Y - ((t.aba - t.arr) / 2) * altoVisible;
+    _objetivoTorso.set(x, y, 0);
 
-    _camTorso.set(x, y, distancia);
     const k = primera.current ? 1 : 1 - Math.exp(-delta * 8);
+    const ctl = controles.current;
+    const mira = ctl ? ctl.target : _objetivoTorso;
+
+    if (primera.current) {
+      mira.copy(_objetivoTorso);
+      camera.position.set(x, y, distancia);
+      distanciaBase.current = distancia;
+    } else {
+      // dirección y acercamiento relativo actuales (los puso el usuario)
+      _desplazamiento.copy(camera.position).sub(mira);
+      const actual = _desplazamiento.length() || distancia;
+      const nuevaBase =
+        distanciaBase.current + (distancia - distanciaBase.current) * k;
+      const escala = distanciaBase.current > 0 ? nuevaBase / distanciaBase.current : 1;
+      distanciaBase.current = nuevaBase;
+      mira.lerp(_objetivoTorso, k);
+      camera.position
+        .copy(mira)
+        .addScaledVector(_desplazamiento.normalize(), actual * escala);
+    }
     primera.current = false;
-    camera.position.lerp(_camTorso, k);
-    camera.lookAt(camera.position.x, camera.position.y, 0);
+    camera.lookAt(mira);
+    ctl?.update();
   });
   return null;
 }
@@ -151,6 +185,7 @@ export default function Hand3DViewer({
   autoSolveRequest,
   forceAvatar,
   fija = false,
+  sinMarco = false,
   encuadre = "cuerpo",
   tapado,
 }: Hand3DViewerProps) {
@@ -170,10 +205,11 @@ export default function Hand3DViewer({
       : [0, 0.5, 3.5];
   const cameraFov = torso ? 30 : showAvatar ? 40 : 35;
   const girar = autoRotate && !fija;
+  const controles = useRef<OrbitControlsImpl | null>(null);
 
   return (
     <div
-      className={`relative overflow-hidden ${fija ? "" : "rounded-2xl"} ${className}`}
+      className={`relative overflow-hidden ${sinMarco ? "" : "rounded-2xl"} ${className}`}
       style={{ height }}
     >
       <Canvas
@@ -236,12 +272,15 @@ export default function Hand3DViewer({
           <Environment preset="studio" />
         </Suspense>
 
-        {torso && <EncuadreTorso tapado={tapado} />}
+        {torso && <EncuadreTorso tapado={tapado} controles={controles} />}
         {!fija && (
           <OrbitControls
+            ref={controles}
             enablePan={false}
             enableZoom={true}
-            minDistance={1.5}
+            zoomSpeed={0.8}
+            rotateSpeed={0.7}
+            minDistance={torso ? 0.9 : 1.5}
             maxDistance={8}
             minPolarAngle={Math.PI / 6}
             maxPolarAngle={(Math.PI * 5) / 6}
@@ -250,7 +289,7 @@ export default function Hand3DViewer({
       </Canvas>
 
       {/* Bottom gradient */}
-      {!fija && (
+      {!sinMarco && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-black/10" />
       )}
     </div>
