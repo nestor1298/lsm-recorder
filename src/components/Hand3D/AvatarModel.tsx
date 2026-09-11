@@ -462,6 +462,7 @@ const _antebrazoPrueba = new THREE.Quaternion();
 const _manoPrueba = new THREE.Quaternion();
 const _logrado = new THREE.Quaternion();
 const _antebrazoBase = new THREE.Quaternion();
+const _brazoBaseQ = new THREE.Quaternion();
 
 /**
  * Con el brazo en `brazoW` (rotación de mundo), reparte la orientación
@@ -557,12 +558,13 @@ function resolverOrientacion(
   if (conEje) _ejeCodo.normalize();
 
   _antebrazoBase.copy(tAntebrazo);
+  _brazoBaseQ.copy(tBrazo); // los candidatos parten de la postura base, no de la ya elegida
   let mejor = Infinity;
   for (let g = -CODO_GIRO_MAX; g < CODO_GIRO_MAX; g += CODO_GIRO_PASO) {
     if (!conEje && g !== 0) continue;
     // brazo girado en mundo alrededor del eje hombro–muñeca
     _giroCodo.setFromAxisAngle(_ejeCodo, g * DEG_OR);
-    _brazoW.copy(_claviculaW).multiply(tBrazo).premultiply(_giroCodo);
+    _brazoW.copy(_claviculaW).multiply(_brazoBaseQ).premultiply(_giroCodo);
     _brazoPrueba.copy(_claviculaW).invert().multiply(_brazoW);
 
     _antebrazoPrueba.copy(_antebrazoBase);
@@ -1118,6 +1120,7 @@ const _mejorBrazoQ = new THREE.Quaternion();
 const _mejorAntebrazoQ = new THREE.Quaternion();
 const _mejorManoQ = new THREE.Quaternion();
 const _baseObjetivo = new THREE.Vector3();
+const _manoBaseQ = new THREE.Quaternion();
 const _baseDedos = new THREE.Vector3();
 const _basePalma = new THREE.Vector3();
 const _baseOrient = new THREE.Quaternion();
@@ -1297,10 +1300,11 @@ function colocarBrazo(
     const errOr = 2 * Math.acos(Math.min(1, Math.abs(_manoLograda.dot(_manoDeseada))));
     const pesoOr = !orient ? 0.15 : normal ? 0.6 : 3.0;
     let err = _palmaPredicha.distanceTo(punto) * 8 + errOr * pesoOr;
-    // Con superficie, la palma lograda debe mirar hacia el mismo lado que
-    // la pedida (hacia el cuerpo o hacia fuera): si se voltea, la mano
-    // queda metida en el cuerpo aunque el punto de contacto coincida.
-    if (normal) {
+    // Con orientación pedida y superficie, la palma lograda debe mirar hacia
+    // el mismo lado que la pedida (hacia el cuerpo o hacia fuera): voltearla
+    // cambia el sentido de la seña. Con la orientación por defecto no
+    // importa: manda tocar el lugar (con la palma o con el dorso).
+    if (normal && orient) {
       _palmaMundo.copy(calib.palma).applyQuaternion(_manoDeseada);
       const ladoPedido = Math.sign(_palmaMundo.dot(normal));
       _palmaMundo.copy(calib.palma).applyQuaternion(_manoLograda);
@@ -1616,6 +1620,8 @@ export default function AvatarModel({
   useFrame((rs, delta) => {
     if (!groupRef.current) return;
     groupRef.current.getWorldQuaternion(_cuerpoQ);
+    // las esferas de depuración solo las enciende el modo FK de calibración
+    debugIK.current.active = false;
 
     /** Palma de la mano izquierda (dominante) sobre un lugar, o null si no se puede */
     const brazoIzqA = (
@@ -1638,7 +1644,6 @@ export default function AvatarModel({
         _cuerpoQ,
         f,
         true,
-        debugIK.current,
       );
       return true;
     };
@@ -1661,8 +1666,14 @@ export default function AvatarModel({
       _baseObjetivo.add(
         _lejos.set(lado * 0.05, -0.14, 0.34).applyQuaternion(_cuerpoQ),
       );
-      const nLocal = lector.normalLocal(code, espejo);
-      const palmaArriba = nLocal ? nLocal.dot(calib.palma) > 0.3 : false;
+      // ¿el lugar está del lado de la palma? Se compara en mundo: la normal
+      // del lugar (en su hueso, que puede ser una falange) contra la palma
+      // de la mano base con su postura actual.
+      const nMundo = lector.normal(code, espejo, _ubNormalB);
+      refs.armChain.hand.updateWorldMatrix(true, false);
+      refs.armChain.hand.getWorldQuaternion(_manoBaseQ);
+      _palmaMundo.copy(calib.palma).applyQuaternion(_manoBaseQ);
+      const palmaArriba = nMundo ? nMundo.dot(_palmaMundo) > 0.3 : false;
       _baseDedos.set(lado, 0, 0).applyQuaternion(_cuerpoQ);
       _basePalma.set(0, palmaArriba ? 1 : -1, 0).applyQuaternion(_cuerpoQ);
       cuaternionManoDesde(calib, _baseDedos, _basePalma, _baseOrient);

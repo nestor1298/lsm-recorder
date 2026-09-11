@@ -621,11 +621,6 @@ export class LectorUB {
     return /^(Left|Right)(Arm|ForeArm|Hand)/.test(a.hueso) && !/Shoulder/.test(a.hueso);
   }
 
-  /** Normal del lugar en el espacio local de su hueso (sin transformar). */
-  normalLocal(code: string, espejo: boolean): THREE.Vector3 | null {
-    return (espejo ? this.anclas.espejo : this.anclas.dominante).get(code)?.normal ?? null;
-  }
-
   /** Escala de mundo del esqueleto (uniforme), medida en la cabeza. */
   escala(): number {
     const b = this.boneMap.get("Head") ?? this.boneMap.values().next().value;

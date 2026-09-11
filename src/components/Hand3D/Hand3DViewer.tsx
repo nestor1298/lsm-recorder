@@ -92,6 +92,7 @@ export interface Tapado {
 }
 
 const _objetivoTorso = new THREE.Vector3();
+const _miraFija = new THREE.Vector3();
 const _desplazamiento = new THREE.Vector3();
 
 /**
@@ -139,7 +140,8 @@ function EncuadreTorso({
 
     const k = primera.current ? 1 : 1 - Math.exp(-delta * 8);
     const ctl = controles.current;
-    const mira = ctl ? ctl.target : _objetivoTorso;
+    // sin controles (cámara fija) la mira vive en un vector propio
+    const mira = ctl ? ctl.target : _miraFija;
 
     if (primera.current) {
       mira.copy(_objetivoTorso);
@@ -160,7 +162,7 @@ function EncuadreTorso({
     }
     primera.current = false;
     camera.lookAt(mira);
-    ctl?.update();
+    // drei ya llama controls.update() en su propio useFrame (prioridad −1)
   });
   return null;
 }
