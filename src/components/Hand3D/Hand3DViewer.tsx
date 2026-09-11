@@ -1,7 +1,8 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import React, { Suspense, useRef } from "react";
+import * as THREE from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
 import type { CMEntry } from "@/lib/types";
 import type {
@@ -29,8 +30,14 @@ interface Hand3DViewerProps {
   autoRotate?: boolean;
   /** Cámara fija: el modelo no gira solo ni con el cursor (Aprender) */
   fija?: boolean;
-  /** "torso" encuadra de la cabeza a la cintura, donde ocurre la seña */
+  /** "torso" encuadra de la cadera a la coronilla, donde ocurre la seña */
   encuadre?: "cuerpo" | "torso";
+  /**
+   * Fracción del visor tapada por paneles encimados (0–1 por lado). Con
+   * encuadre "torso", la cámara centra y ajusta al avatar en lo que queda
+   * libre para que los paneles no le tapen las manos.
+   */
+  tapado?: Tapado;
   orientation?: { palm: string; fingers: string };
   movement?: { contour: string; local: string | null; plane: string };
   /** When set, shows full-body avatar instead of hand */
@@ -61,9 +68,66 @@ interface Hand3DViewerProps {
   autoSolveRequest?: AutoSolveRequest | null;
 }
 
-/** Altura (mundo) del centro del espacio de la seña: de la cadera a la
- *  coronilla de Lexsi (cadera ≈ 0.07, coronilla ≈ 1.23). */
-const MIRA_TORSO_Y = 0.65;
+/** Centro (mundo) del espacio de la seña en Lexsi: del vientre (≈ 0.15)
+ *  a la coronilla (≈ 1.23), donde caen los lugares del cuerpo. */
+const MIRA_TORSO_Y = 0.75;
+/** Lo que debe verse completo del torso (mundo): alto y ancho con brazos. */
+const TORSO_ALTO = 1.35;
+const TORSO_ANCHO = 1.3;
+
+export interface Tapado {
+  izq: number;
+  der: number;
+  arr: number;
+  aba: number;
+  /** Bloque en la esquina superior izquierda (fracciones de ancho y alto):
+   *  se trata como franja de arriba o de la izquierda, lo que deje más
+   *  grande al avatar. */
+  esquina?: { ancho: number; alto: number };
+}
+
+const _camTorso = new THREE.Vector3();
+
+/**
+ * Cámara del encuadre torso: coloca el torso completo y centrado en el
+ * rectángulo que no tapan los paneles. Se desliza suave al abrir o cerrar
+ * un panel; el avatar en sí nunca gira.
+ */
+function EncuadreTorso({ tapado }: { tapado?: Tapado }) {
+  const camera = useThree((st) => st.camera) as THREE.PerspectiveCamera;
+  const size = useThree((st) => st.size);
+  const primera = useRef(true);
+
+  useFrame((_, delta) => {
+    const base = tapado ?? { izq: 0, der: 0, arr: 0, aba: 0 };
+    const aspecto = size.width / Math.max(1, size.height);
+    // alto visible total para que el torso quepa en la parte libre
+    const altoPara = (t: Tapado) =>
+      Math.max(
+        TORSO_ALTO / Math.max(0.25, 1 - t.arr - t.aba),
+        TORSO_ANCHO / (Math.max(0.25, 1 - t.izq - t.der) * aspecto),
+      );
+    let t = base;
+    if (base.esquina) {
+      const comoIzq = { ...base, izq: Math.max(base.izq, base.esquina.ancho) };
+      const comoArr = { ...base, arr: Math.max(base.arr, base.esquina.alto) };
+      t = altoPara(comoArr) <= altoPara(comoIzq) ? comoArr : comoIzq;
+    }
+    const altoVisible = altoPara(t);
+    const distancia = altoVisible / (2 * Math.tan((camera.fov * Math.PI) / 360));
+    const anchoVisible = altoVisible * aspecto;
+    // mover la cámara hacia lo tapado deja al avatar en el centro de lo libre
+    const x = ((t.der - t.izq) / 2) * anchoVisible;
+    const y = MIRA_TORSO_Y - ((t.aba - t.arr) / 2) * altoVisible;
+
+    _camTorso.set(x, y, distancia);
+    const k = primera.current ? 1 : 1 - Math.exp(-delta * 8);
+    primera.current = false;
+    camera.position.lerp(_camTorso, k);
+    camera.lookAt(camera.position.x, camera.position.y, 0);
+  });
+  return null;
+}
 
 export default function Hand3DViewer({
   cm,
@@ -88,6 +152,7 @@ export default function Hand3DViewer({
   forceAvatar,
   fija = false,
   encuadre = "cuerpo",
+  tapado,
 }: Hand3DViewerProps) {
   // Show avatar in build mode always, or in explore mode for UB/RNM/FK channels
   const showAvatar =
@@ -108,7 +173,7 @@ export default function Hand3DViewer({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl ${className}`}
+      className={`relative overflow-hidden ${fija ? "" : "rounded-2xl"} ${className}`}
       style={{ height }}
     >
       <Canvas
@@ -116,10 +181,6 @@ export default function Hand3DViewer({
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
         shadows
-        onCreated={({ camera }) => {
-          // Encuadre torso: mirar de frente al espacio de la seña, no al origen
-          if (torso) camera.lookAt(0, MIRA_TORSO_Y, 0);
-        }}
       >
         {/* 3-point lighting rig */}
         <directionalLight
@@ -175,6 +236,7 @@ export default function Hand3DViewer({
           <Environment preset="studio" />
         </Suspense>
 
+        {torso && <EncuadreTorso tapado={tapado} />}
         {!fija && (
           <OrbitControls
             enablePan={false}
@@ -188,7 +250,9 @@ export default function Hand3DViewer({
       </Canvas>
 
       {/* Bottom gradient */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-black/10" />
+      {!fija && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-black/10" />
+      )}
     </div>
   );
 }

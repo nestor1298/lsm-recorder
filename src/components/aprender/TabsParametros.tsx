@@ -11,9 +11,12 @@ import { PARAMETROS, type ParametroId } from "@/lib/learn_labels";
 export default function TabsParametros({
   activo,
   onChange,
+  conDescripcion = true,
 }: {
   activo: ParametroId;
   onChange: (id: ParametroId) => void;
+  /** false cuando la descripción vive en el panel de la derecha */
+  conDescripcion?: boolean;
 }) {
   const info = PARAMETROS.find((p) => p.id === activo)!;
   return (
@@ -46,14 +49,12 @@ export default function TabsParametros({
           );
         })}
       </div>
-      <div
-        id={`panel-${info.id}`}
-        role="tabpanel"
-        className="space-y-0.5"
-      >
-        <p className="max-w-3xl text-sm text-gray-700">{info.descripcion}</p>
-        <p className="text-xs font-medium text-accent-deep">{info.observa}</p>
-      </div>
+      {conDescripcion && (
+        <div id={`panel-${info.id}`} role="tabpanel" className="space-y-0.5">
+          <p className="max-w-3xl text-sm text-gray-700">{info.descripcion}</p>
+          <p className="text-xs font-medium text-accent-deep">{info.observa}</p>
+        </div>
+      )}
     </div>
   );
 }
