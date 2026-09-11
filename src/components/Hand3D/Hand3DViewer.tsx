@@ -27,6 +27,10 @@ interface Hand3DViewerProps {
   className?: string;
   height?: string;
   autoRotate?: boolean;
+  /** Cámara fija: el modelo no gira solo ni con el cursor (Aprender) */
+  fija?: boolean;
+  /** "torso" encuadra de la cabeza a la cintura, donde ocurre la seña */
+  encuadre?: "cuerpo" | "torso";
   orientation?: { palm: string; fingers: string };
   movement?: { contour: string; local: string | null; plane: string };
   /** When set, shows full-body avatar instead of hand */
@@ -57,6 +61,10 @@ interface Hand3DViewerProps {
   autoSolveRequest?: AutoSolveRequest | null;
 }
 
+/** Altura (mundo) del centro del espacio de la seña: de la cadera a la
+ *  coronilla de Lexsi (cadera ≈ 0.07, coronilla ≈ 1.23). */
+const MIRA_TORSO_Y = 0.65;
+
 export default function Hand3DViewer({
   cm,
   className = "",
@@ -78,6 +86,8 @@ export default function Hand3DViewer({
   armFKStateRef,
   autoSolveRequest,
   forceAvatar,
+  fija = false,
+  encuadre = "cuerpo",
 }: Hand3DViewerProps) {
   // Show avatar in build mode always, or in explore mode for UB/RNM/FK channels
   const showAvatar =
@@ -87,10 +97,14 @@ export default function Hand3DViewer({
     activeChannel === "rnm" ||
     activeChannel === "fk";
   // For avatar channels, pull camera back and look at full body
-  const cameraPosition: [number, number, number] = showAvatar
-    ? [0, 0.3, 4.5]
-    : [0, 0.5, 3.5];
-  const cameraFov = showAvatar ? 40 : 35;
+  const torso = showAvatar && encuadre === "torso";
+  const cameraPosition: [number, number, number] = torso
+    ? [0, MIRA_TORSO_Y, 2.9]
+    : showAvatar
+      ? [0, 0.3, 4.5]
+      : [0, 0.5, 3.5];
+  const cameraFov = torso ? 30 : showAvatar ? 40 : 35;
+  const girar = autoRotate && !fija;
 
   return (
     <div
@@ -102,6 +116,10 @@ export default function Hand3DViewer({
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
         shadows
+        onCreated={({ camera }) => {
+          // Encuadre torso: mirar de frente al espacio de la seña, no al origen
+          if (torso) camera.lookAt(0, MIRA_TORSO_Y, 0);
+        }}
       >
         {/* 3-point lighting rig */}
         <directionalLight
@@ -127,7 +145,7 @@ export default function Hand3DViewer({
             <AvatarModel
               ubLocation={ubLocation}
               rnm={rnm}
-              autoRotate={autoRotate}
+              autoRotate={girar}
               showAllUBPoints={showAllUBPoints}
               selectedUBCode={selectedUBCode}
               ubRegionFilter={ubRegionFilter}
@@ -143,7 +161,7 @@ export default function Hand3DViewer({
           ) : (
             <RiggedHand
               cm={cm}
-              autoRotate={autoRotate}
+              autoRotate={girar}
               orientation={orientation}
               movement={movement}
             />
@@ -157,14 +175,16 @@ export default function Hand3DViewer({
           <Environment preset="studio" />
         </Suspense>
 
-        <OrbitControls
-          enablePan={false}
-          enableZoom={true}
-          minDistance={1.5}
-          maxDistance={8}
-          minPolarAngle={Math.PI / 6}
-          maxPolarAngle={(Math.PI * 5) / 6}
-        />
+        {!fija && (
+          <OrbitControls
+            enablePan={false}
+            enableZoom={true}
+            minDistance={1.5}
+            maxDistance={8}
+            minPolarAngle={Math.PI / 6}
+            maxPolarAngle={(Math.PI * 5) / 6}
+          />
+        )}
       </Canvas>
 
       {/* Bottom gradient */}

@@ -77,6 +77,7 @@ export const APRENDER_ES = {
   pausar: "Pausar",
   repetir: "Repetir",
   lento: "Lento",
+  eligeCasilla: "Elige una casilla de la matriz para llenarla.",
   movBloqueado: "Completa primero la detención inicial y la final",
   incompleta: "Faltan campos por llenar en las detenciones",
   editando: "Editando",

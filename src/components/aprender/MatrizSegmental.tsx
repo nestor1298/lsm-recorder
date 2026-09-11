@@ -93,7 +93,7 @@ function Casilla({
       disabled={bloqueada}
       aria-pressed={activa}
       aria-label={`${titulo}: ${vacia ? "sin llenar" : valor}`}
-      className={`flex min-h-[3.25rem] w-full flex-col justify-center rounded-xl border-2 px-2.5 py-1.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`flex min-h-[2.75rem] w-full min-w-0 flex-col justify-center rounded-lg border-2 px-2 py-1 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         activa
           ? "border-accent bg-accent-tint"
           : vacia
@@ -212,17 +212,22 @@ export default function MatrizSegmental({
   return (
     <section
       aria-label={APRENDER_ES.matriz}
-      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+      className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
     >
       {/* Encabezado con reproducción */}
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h2 className="font-display text-lg font-bold text-ink">
+      <div className="mb-2 flex items-center gap-3">
+        <div className="mr-auto min-w-0">
+          <h2 className="font-display text-base font-bold text-ink">
             {APRENDER_ES.matriz}
           </h2>
-          <p className="text-xs text-gray-500">{APRENDER_ES.matrizAyuda}</p>
+          <p
+            className="truncate text-[11px] text-gray-500"
+            title={APRENDER_ES.matrizAyuda}
+          >
+            {APRENDER_ES.matrizAyuda}
+          </p>
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+        <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600">
           <input
             type="checkbox"
             checked={repetir}
@@ -231,7 +236,7 @@ export default function MatrizSegmental({
           />
           {APRENDER_ES.repetir}
         </label>
-        <label className="flex items-center gap-1.5 text-xs text-gray-600">
+        <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600">
           <input
             type="checkbox"
             checked={lento}
@@ -244,7 +249,7 @@ export default function MatrizSegmental({
           onClick={onReproducir}
           disabled={!reproducible}
           title={reproducible ? undefined : APRENDER_ES.incompleta}
-          className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className="shrink-0 rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-paper transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {reproduciendo ? APRENDER_ES.pausar : APRENDER_ES.reproducir}
         </button>
@@ -253,9 +258,9 @@ export default function MatrizSegmental({
       {/* Rejilla: filas Cuerpo / Cara × columnas de segmentos */}
       <div className="overflow-x-auto pb-1">
         <div
-          className="grid min-w-max gap-2"
+          className="grid gap-1.5"
           style={{
-            gridTemplateColumns: `5.5rem repeat(${sign.segments.length}, minmax(10.5rem, 1fr)) 9rem`,
+            gridTemplateColumns: `4rem repeat(${sign.segments.length}, minmax(8rem, 1fr)) 6rem`,
           }}
         >
           {/* Encabezados de columna */}
@@ -266,7 +271,7 @@ export default function MatrizSegmental({
             return (
               <div
                 key={s.id}
-                className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                className={`flex items-center justify-between rounded-lg px-2.5 py-1.5 ${
                   suena
                     ? "bg-coral text-paper"
                     : s.type === "D"

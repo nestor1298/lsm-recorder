@@ -18,10 +18,8 @@ import {
   type FingerName,
 } from "@/lib/hand_pose";
 import {
-  orientationToSplitQuats,
-  blendSplitOrientations,
-  clampWristRotation,
-  type SplitOrientation,
+  cuaternionManoMundo,
+  type CalibracionMano,
 } from "@/lib/orientation";
 import {
   AVATAR_FINGER_BONES,
@@ -36,8 +34,6 @@ import {
 import {
   measureArmLengths,
   solveArmIKNatural,
-  composeForearmTwist,
-  composeShoulderTwist,
   type ArmLengths,
 } from "@/lib/arm_ik";
 import {
@@ -485,11 +481,215 @@ function poseArmDown(
 
 const _fkEuler = new THREE.Euler();
 const _fkDelta = new THREE.Quaternion();
-const _fkTarget = new THREE.Quaternion();
+
+// ── Orientación anatómica de la mano ────────────────────────────
+// La orientación pide una rotación de MUNDO para la mano. Se reparte como
+// en el cuerpo: el giro sobre el eje del antebrazo (pronación/supinación)
+// lo hace el antebrazo; lo que queda lo hace la muñeca dentro de su rango:
+// flexión 75°, extensión 65°, desviación radial 20° y cubital 30°, y casi
+// nada de giro propio (la muñeca no rota sobre su eje). Si la orientación
+// no es alcanzable con la postura del brazo, queda la más cercana posible.
+//
+// Rango del antebrazo: Lexsi está en pose T con las palmas hacia abajo,
+// o sea, ya en pronación. Desde ahí solo cabe ~10° más de pronación y
+// hasta ~170° de supinación (pronación 80° + supinación 90° desde la
+// posición neutra, pulgar arriba). En el brazo izquierdo la supinación es
+// giro negativo en Y local; el derecho es su espejo.
+
+const DEG_OR = Math.PI / 180;
+/** Grados, en el convenio de poseArmPreset (valor × lado). */
+const ANTEBRAZO_SUPINACION_MAX = 170;
+const ANTEBRAZO_PRONACION_MAX = 10;
+const MUNIECA_FLEX = 75 * DEG_OR;
+const MUNIECA_EXT = 65 * DEG_OR;
+const MUNIECA_RADIAL = 20 * DEG_OR;
+const MUNIECA_CUBITAL = 30 * DEG_OR;
+const MUNIECA_AXIAL = 10 * DEG_OR;
+
+const _ejeY = new THREE.Vector3(0, 1, 0);
+const _padreW = new THREE.Quaternion();
+const _antebrazoW = new THREE.Quaternion();
+const _deltaMano = new THREE.Quaternion();
+const _bindInv = new THREE.Quaternion();
+const _giroQ = new THREE.Quaternion();
+const _eulerMun = new THREE.Euler();
+
+const limitar = (v: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, v));
+
+/** Ángulo con signo del giro de q alrededor de su eje Y local. */
+function giroY(q: THREE.Quaternion): number {
+  if (Math.hypot(q.y, q.w) < 1e-6) return 0;
+  let a = 2 * Math.atan2(q.y, q.w);
+  if (a > Math.PI) a -= 2 * Math.PI;
+  if (a < -Math.PI) a += 2 * Math.PI;
+  return a;
+}
+
+/** Giro del codo alrededor de la recta hombro–muñeca (grados). */
+const CODO_GIRO_MAX = 60;
+const CODO_GIRO_PASO = 10;
+
+const _claviculaW = new THREE.Quaternion();
+const _brazoW = new THREE.Quaternion();
+const _giroCodo = new THREE.Quaternion();
+const _ejeCodo = new THREE.Vector3();
+const _vecBrazo = new THREE.Vector3();
+const _vecAntebrazo = new THREE.Vector3();
+const _brazoPrueba = new THREE.Quaternion();
+const _antebrazoPrueba = new THREE.Quaternion();
+const _manoPrueba = new THREE.Quaternion();
+const _logrado = new THREE.Quaternion();
+const _antebrazoBase = new THREE.Quaternion();
+
+/**
+ * Con el brazo en `brazoW` (rotación de mundo), reparte la orientación
+ * entre pronación/supinación del antebrazo y la muñeca, ambos limitados.
+ * `antebrazo` entra con su objetivo y sale con el giro; `mano` sale.
+ */
+function repartirAntebrazoMunieca(
+  brazoW: THREE.Quaternion,
+  bind: { foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  antebrazo: THREE.Quaternion,
+  mano: THREE.Quaternion,
+  objetivo: THREE.Quaternion,
+  isLeftArm: boolean,
+) {
+  const calcularDelta = () => {
+    _antebrazoW.copy(brazoW).multiply(antebrazo);
+    _deltaMano.copy(_antebrazoW).invert().multiply(objetivo);
+    _deltaMano.premultiply(_bindInv.copy(bind.hand).invert());
+  };
+
+  // 1. Pronación/supinación. En «valor × lado» ambos brazos comparten rango.
+  calcularDelta();
+  const lado = isLeftArm ? 1 : -1;
+  const giroActual =
+    giroY(_bindInv.copy(bind.foreArm).invert().multiply(antebrazo)) * lado;
+  const min = -ANTEBRAZO_SUPINACION_MAX * DEG_OR;
+  const max = ANTEBRAZO_PRONACION_MAX * DEG_OR;
+  // El mismo giro se logra con ±360°: se toma el equivalente más cercano
+  // al centro del rango y luego se limita.
+  const centro = (min + max) / 2;
+  let giroDeseado = giroActual + giroY(_deltaMano) * lado - centro;
+  giroDeseado =
+    Math.atan2(Math.sin(giroDeseado), Math.cos(giroDeseado)) + centro;
+  const giroTotal = limitar(giroDeseado, min, max);
+  antebrazo.multiply(
+    _giroQ.setFromAxisAngle(_ejeY, (giroTotal - giroActual) * lado),
+  );
+
+  // 2. Muñeca: lo que falta, dentro de su rango
+  calcularDelta();
+  _eulerMun.setFromQuaternion(_deltaMano, "XZY");
+  // +Z lleva los dedos hacia el pulgar en la mano izquierda (radial);
+  // en la derecha, espejo, hacia el meñique (cubital).
+  const [zMin, zMax] = isLeftArm
+    ? [-MUNIECA_CUBITAL, MUNIECA_RADIAL]
+    : [-MUNIECA_RADIAL, MUNIECA_CUBITAL];
+  _eulerMun.set(
+    limitar(_eulerMun.x, -MUNIECA_EXT, MUNIECA_FLEX),
+    limitar(_eulerMun.y, -MUNIECA_AXIAL, MUNIECA_AXIAL),
+    limitar(_eulerMun.z, zMin, zMax),
+    "XZY",
+  );
+  mano.copy(bind.hand).multiply(_deltaMano.setFromEuler(_eulerMun));
+}
+
+/**
+ * Ajusta los objetivos locales de brazo, antebrazo y mano para que la mano
+ * quede con la rotación de mundo `objetivo` sin moverla de su lugar.
+ *
+ * Como una persona que seña, primero acomoda el codo: gira el brazo
+ * alrededor de la recta hombro–muñeca (la muñeca no se mueve), hasta
+ * ±60°, y elige el giro con el que pronación/supinación y muñeca, dentro
+ * de su rango, dejan la mano más cerca de lo pedido. Los objetivos se
+ * modifican en su lugar.
+ */
+function resolverOrientacion(
+  chain: { clavicle: THREE.Bone; foreArm: THREE.Bone; hand: THREE.Bone },
+  bind: { foreArm: THREE.Quaternion; hand: THREE.Quaternion },
+  tClavicula: THREE.Quaternion,
+  tBrazo: THREE.Quaternion,
+  tAntebrazo: THREE.Quaternion,
+  tMano: THREE.Quaternion,
+  objetivo: THREE.Quaternion,
+  isLeftArm: boolean,
+) {
+  if (chain.clavicle.parent) chain.clavicle.parent.getWorldQuaternion(_padreW);
+  else _padreW.identity();
+  _claviculaW.copy(_padreW).multiply(tClavicula);
+
+  // Eje hombro→muñeca de la postura OBJETIVO (no de la actual, que ya
+  // viene girada): brazo y antebrazo como vectores en su propio espacio.
+  _brazoW.copy(_claviculaW).multiply(tBrazo);
+  _vecBrazo.copy(chain.foreArm.position).applyQuaternion(_brazoW);
+  _antebrazoW.copy(_brazoW).multiply(tAntebrazo);
+  _vecAntebrazo.copy(chain.hand.position).applyQuaternion(_antebrazoW);
+  _ejeCodo.addVectors(_vecBrazo, _vecAntebrazo);
+  const conEje = _ejeCodo.lengthSq() > 1e-12;
+  if (conEje) _ejeCodo.normalize();
+
+  _antebrazoBase.copy(tAntebrazo);
+  let mejor = Infinity;
+  for (let g = -CODO_GIRO_MAX; g <= CODO_GIRO_MAX; g += CODO_GIRO_PASO) {
+    if (!conEje && g !== 0) continue;
+    // brazo girado en mundo alrededor del eje hombro–muñeca
+    _giroCodo.setFromAxisAngle(_ejeCodo, g * DEG_OR);
+    _brazoW.copy(_claviculaW).multiply(tBrazo).premultiply(_giroCodo);
+    _brazoPrueba.copy(_claviculaW).invert().multiply(_brazoW);
+
+    _antebrazoPrueba.copy(_antebrazoBase);
+    repartirAntebrazoMunieca(
+      _brazoW,
+      bind,
+      _antebrazoPrueba,
+      _manoPrueba,
+      objetivo,
+      isLeftArm,
+    );
+
+    _logrado.copy(_brazoW).multiply(_antebrazoPrueba).multiply(_manoPrueba);
+    // error angular + un poco de costo por mover el codo
+    const error =
+      2 * Math.acos(Math.min(1, Math.abs(_logrado.dot(objetivo)))) +
+      0.15 * Math.abs(g * DEG_OR);
+    if (error < mejor) {
+      mejor = error;
+      tBrazo.copy(_brazoPrueba);
+      tAntebrazo.copy(_antebrazoPrueba);
+      tMano.copy(_manoPrueba);
+    }
+  }
+}
+
+/**
+ * Ejes de la mano en su espacio local, medidos en el propio modelo: los
+ * dedos van de la muñeca al nudillo del medio; la palma es hacia donde
+ * se flexionan (+Z del dedo, porque +X flexiona hacia la palma).
+ */
+function calibrarMano(
+  refs: HandBoneRefs,
+  bind: HandBindPoses,
+): CalibracionMano {
+  return {
+    dedos: refs.fingers.middle.carpal.position.clone().normalize(),
+    palma: new THREE.Vector3(0, 0, 1).applyQuaternion(
+      bind.fingers.middle.carpal,
+    ),
+  };
+}
+
+const _tClav = new THREE.Quaternion();
+const _tBrazo = new THREE.Quaternion();
+const _tAntebrazo = new THREE.Quaternion();
+const _tMano = new THREE.Quaternion();
 
 /**
  * Smoothly blend the arm toward a pre-computed FK preset.
- * Works like poseArmDown but uses arbitrary ArmJointAngles.
+ * Works like poseArmDown but uses arbitrary ArmJointAngles. With
+ * `objetivo`, the hand takes that world orientation (see
+ * resolverOrientacion) instead of the preset's wrist angles.
  */
 function poseArmPreset(
   angles: ArmJointAngles,
@@ -507,6 +707,7 @@ function poseArmPreset(
   },
   isLeftArm: boolean,
   factor: number,
+  objetivo: THREE.Quaternion | null = null,
 ) {
   const DEG = Math.PI / 180;
   const sign = isLeftArm ? 1 : -1;
@@ -519,9 +720,7 @@ function poseArmPreset(
     angles.clavShrug * DEG * sign,
     "XYZ",
   );
-  _fkDelta.setFromEuler(_fkEuler);
-  _fkTarget.copy(bind.clavicle).multiply(_fkDelta);
-  refs.clavicle.quaternion.slerp(_fkTarget, rate);
+  _tClav.copy(bind.clavicle).multiply(_fkDelta.setFromEuler(_fkEuler));
 
   // Upper Arm: 3 DOF — YXZ matching FK/IK shoulder convention
   _fkEuler.set(
@@ -530,20 +729,22 @@ function poseArmPreset(
     angles.shoulderTwist * DEG * sign, // Z: int/ext rotation
     "YXZ",
   );
-  _fkDelta.setFromEuler(_fkEuler);
-  _fkTarget.copy(bind.upperArm).multiply(_fkDelta);
-  refs.upperArm.quaternion.slerp(_fkTarget, rate);
+  _tBrazo.copy(bind.upperArm).multiply(_fkDelta.setFromEuler(_fkEuler));
 
-  // Forearm: 2 DOF — (elbow flex on X, supination on Y)
+  // Forearm: 2 DOF — (elbow flex on X, supination on Y), limitado al
+  // rango anatómico desde la pose T (ver ANTEBRAZO_*)
+  const giroAntebrazo = limitar(
+    angles.forearmTwist,
+    -ANTEBRAZO_SUPINACION_MAX,
+    ANTEBRAZO_PRONACION_MAX,
+  );
   _fkEuler.set(
     -angles.elbowFlex * DEG, // X: flexion (negative = bend)
-    angles.forearmTwist * DEG * sign, // Y: pro/supination
+    giroAntebrazo * DEG * sign, // Y: pro/supination
     0,
     "XYZ",
   );
-  _fkDelta.setFromEuler(_fkEuler);
-  _fkTarget.copy(bind.foreArm).multiply(_fkDelta);
-  refs.foreArm.quaternion.slerp(_fkTarget, rate);
+  _tAntebrazo.copy(bind.foreArm).multiply(_fkDelta.setFromEuler(_fkEuler));
 
   // Hand: 2 DOF — (wrist flex on X, ulnar deviation on Z)
   _fkEuler.set(
@@ -552,54 +753,25 @@ function poseArmPreset(
     angles.wristDeviation * DEG * sign, // Z: radial/ulnar
     "XYZ",
   );
-  _fkDelta.setFromEuler(_fkEuler);
-  _fkTarget.copy(bind.hand).multiply(_fkDelta);
-  refs.hand.quaternion.slerp(_fkTarget, rate);
-}
+  _tMano.copy(bind.hand).multiply(_fkDelta.setFromEuler(_fkEuler));
 
-/**
- * Apply orientation (palm/finger direction) on top of FK-preset arm pose.
- *
- * poseArmPreset positions the arm to reach a UB point but does not
- * handle hand orientation. This function composes the orientation's
- * forearm twist and hand rotation onto the bones AFTER the preset
- * has been applied, using the same split-orientation system as IK.
- */
-const _orientForearm = new THREE.Quaternion();
-const _orientHand = new THREE.Quaternion();
+  if (objetivo) {
+    resolverOrientacion(
+      refs,
+      bind,
+      _tClav,
+      _tBrazo,
+      _tAntebrazo,
+      _tMano,
+      objetivo,
+      isLeftArm,
+    );
+  }
 
-function applyOrientationOverFK(
-  orient: SplitOrientation,
-  refs: {
-    clavicle: THREE.Bone;
-    upperArm: THREE.Bone;
-    foreArm: THREE.Bone;
-    hand: THREE.Bone;
-  },
-  bind: {
-    clavicle: THREE.Quaternion;
-    upperArm: THREE.Quaternion;
-    foreArm: THREE.Quaternion;
-    hand: THREE.Quaternion;
-  },
-  isLeftArm: boolean,
-  factor: number,
-) {
-  const rate = factor * 3;
-
-  // Compose forearm twist onto current forearm quaternion
-  _orientForearm.copy(refs.foreArm.quaternion).multiply(orient.forearmTwist);
-  refs.foreArm.quaternion.slerp(_orientForearm, rate);
-
-  // Compose hand orientation: undo forearm twist propagation, apply full orient
-  // targetHand = inv(forearmTwist) * bindHand * fullOrient
-  _orientHand
-    .copy(orient.forearmTwist)
-    .invert()
-    .multiply(bind.hand)
-    .multiply(orient.fullOrient);
-  clampWristRotation(_orientHand, bind.hand);
-  refs.hand.quaternion.slerp(_orientHand, rate);
+  refs.clavicle.quaternion.slerp(_tClav, rate);
+  refs.upperArm.quaternion.slerp(_tBrazo, rate);
+  refs.foreArm.quaternion.slerp(_tAntebrazo, rate);
+  refs.hand.quaternion.slerp(_tMano, rate);
 }
 
 // ── Temp animation variables ─────────────────────────────────────
@@ -926,6 +1098,9 @@ function animateFingers(
   factor: number,
 ) {
   const fingerNames: FingerName[] = ["index", "middle", "ring", "pinky"];
+  // La mano derecha es el espejo de la izquierda: la flexión (X) conserva
+  // su signo, la separación (Z) y la rotación del pulgar (Y) lo invierten.
+  const espejo = refs.armChain.hand.name.includes("Right") ? -1 : 1;
 
   for (const name of fingerNames) {
     const s = anim[name];
@@ -939,11 +1114,20 @@ function animateFingers(
     const boneRefs = refs.fingers[name];
     const bind = bindPoses.fingers[name];
 
-    // Mixamo FBX: finger bones flex with positive X toward palm
-    applyPose(boneRefs.carpal, bind.carpal, s.carpalFlex, -s.carpalSpread, 0);
-    applyPose(boneRefs.bones[0], bind.bones[0], s.mcpFlex, 0, 0); // MCP
-    applyPose(boneRefs.bones[1], bind.bones[1], s.pipFlex, 0, 0); // PIP
-    applyPose(boneRefs.bones[2], bind.bones[2], s.dipFlex, 0, 0); // DIP
+    // Mixamo: *Index1 es la falange proximal (gira en la base, MCP),
+    // *Index2 la media (PIP), *Index3 la distal (DIP) y *Index4 solo la
+    // punta. X positiva flexiona hacia la palma; Z separa los dedos.
+    // No hay hueso metacarpiano, así que el ahuecado (carpalFlex) no aplica.
+    applyPose(
+      boneRefs.carpal,
+      bind.carpal,
+      s.mcpFlex,
+      0,
+      -s.carpalSpread * espejo,
+    ); // MCP + separación
+    applyPose(boneRefs.bones[0], bind.bones[0], s.pipFlex, 0, 0); // PIP
+    applyPose(boneRefs.bones[1], bind.bones[1], s.dipFlex, 0, 0); // DIP
+    boneRefs.bones[2].quaternion.copy(bind.bones[2]); // punta
   }
 
   // Thumb — Mixamo uses flipped X/Y for opposition
@@ -958,7 +1142,7 @@ function animateFingers(
     refs.thumb[0],
     bindPoses.thumb[0],
     -ts.cmcOpposition,
-    -ts.cmcRotation,
+    -ts.cmcRotation * espejo,
     0,
   );
   applyPose(refs.thumb[1], bindPoses.thumb[1], ts.mcpFlex, 0, 0);
@@ -999,16 +1183,18 @@ function blendHandPoses(from: HandPose, to: HandPose, t: number): HandPose {
   };
 }
 
-// ── Blend split orientations for movement segments ───────────────
+// ── Blend hand orientations for movement segments ───────────────
 
-function blendSplitOrients(
+function mezclarOrientacion(
+  calib: CalibracionMano,
   from: { palm: string; fingers: string },
   to: { palm: string; fingers: string },
   t: number,
-): SplitOrientation {
-  const fromSplit = orientationToSplitQuats(from.palm, from.fingers);
-  const toSplit = orientationToSplitQuats(to.palm, to.fingers);
-  return blendSplitOrientations(fromSplit, toSplit, t);
+): THREE.Quaternion {
+  return cuaternionManoMundo(calib, from.palm, from.fingers).slerp(
+    cuaternionManoMundo(calib, to.palm, to.fingers),
+    t,
+  );
 }
 
 // ── Pre-allocated scratch vectors for movement interpolation ────
@@ -1101,9 +1287,6 @@ const _reachDirIK = new THREE.Vector3();
 const _adjustedTarget = new THREE.Vector3();
 const _restTarget = new THREE.Vector3();
 const _handWorldPosDbg = new THREE.Vector3();
-const _shoulderYTwist = new THREE.Quaternion();
-const _totalAxialTwist = new THREE.Quaternion();
-const _yAxisUp = new THREE.Vector3(0, 1, 0);
 
 /** Debug info filled by animateArmIK for rendering debug spheres */
 interface DebugIKInfo {
@@ -1120,14 +1303,14 @@ function animateArmIK(
   armLengths: ArmLengths,
   factor: number,
   isLeftArm: boolean,
-  splitOrient: SplitOrientation | null,
+  objetivoMano: THREE.Quaternion | null,
   centroidDist: number,
   debugInfo?: DebugIKInfo,
 ) {
   // ── Determine effective IK target ───────────────────────────────
   let ikTarget: THREE.Vector3;
   let ikFactor: number;
-  let orient: SplitOrientation | null;
+  let orient: THREE.Quaternion | null;
 
   if (targetWorldPos) {
     // Offset the target so the hand CENTROID (not wrist) reaches the UB point.
@@ -1140,7 +1323,7 @@ function animateArmIK(
       .addScaledVector(_reachDirIK, -centroidDist);
     ikTarget = _adjustedTarget;
     ikFactor = factor;
-    orient = splitOrient;
+    orient = objetivoMano;
 
     // Fill debug info
     if (debugInfo) {
@@ -1181,35 +1364,23 @@ function animateArmIK(
   refs.armChain.clavicle.quaternion.slerp(clavicleQuat, ikFactor * 2);
 
   if (orient) {
-    // Apply shoulder twist for orientation support (overflow from forearm ROM)
-    const adjustedUpperArm = composeShoulderTwist(
-      upperArmQuat,
-      bindPoses.armChain.upperArm,
-      orient.shoulderTwist,
+    // Orientación de mundo repartida entre antebrazo y muñeca (con ROM)
+    _tBrazo.copy(upperArmQuat);
+    _tAntebrazo.copy(foreArmQuat);
+    _tMano.copy(bindPoses.armChain.hand);
+    resolverOrientacion(
+      refs.armChain,
+      bindPoses.armChain,
+      clavicleQuat,
+      _tBrazo,
+      _tAntebrazo,
+      _tMano,
+      orient,
       isLeftArm,
     );
-    refs.armChain.upperArm.quaternion.slerp(adjustedUpperArm, ikFactor * 2);
-
-    // Compose forearm pronation/supination twist onto IK-solved forearm
-    const finalForeArm = composeForearmTwist(foreArmQuat, orient.forearmTwist);
-    refs.armChain.foreArm.quaternion.slerp(finalForeArm, ikFactor * 2);
-
-    // Hand: compensate for BOTH shoulder twist AND forearm twist propagating
-    // through the bone hierarchy. Both are Y-axis rotations, so compose:
-    // totalAxialTwist = shoulderTwistQuat * forearmTwist
-    // targetHand = inv(totalAxialTwist) * bindHand * fullOrient
-    _shoulderYTwist.setFromAxisAngle(_yAxisUp, orient.shoulderTwist);
-    _totalAxialTwist.copy(_shoulderYTwist).multiply(orient.forearmTwist);
-    const targetHandQuat = _totalAxialTwist
-      .clone()
-      .invert()
-      .multiply(bindPoses.armChain.hand)
-      .multiply(orient.fullOrient);
-
-    // Clamp wrist to clinical ROM (flex ±60°, radial/ulnar 20°/30°)
-    clampWristRotation(targetHandQuat, bindPoses.armChain.hand);
-
-    refs.armChain.hand.quaternion.slerp(targetHandQuat, ikFactor * 2);
+    refs.armChain.upperArm.quaternion.slerp(_tBrazo, ikFactor * 2);
+    refs.armChain.foreArm.quaternion.slerp(_tAntebrazo, ikFactor * 2);
+    refs.armChain.hand.quaternion.slerp(_tMano, ikFactor * 2);
   } else {
     // No orientation — just use IK results, hand returns to bind
     refs.armChain.upperArm.quaternion.slerp(upperArmQuat, ikFactor * 2);
@@ -1439,17 +1610,34 @@ export default function AvatarModel({
     return cm ? cmEntryToHandPose(cm) : RESTING_POSE;
   }, [cm]);
 
-  const targetSplitOrient = useMemo<SplitOrientation | null>(() => {
-    if (!orientation) return null;
-    return orientationToSplitQuats(orientation.palm, orientation.fingers);
-  }, [orientation]);
+  // Calibración de cada mano (ejes locales medidos en el modelo)
+  const leftCalib = useMemo(
+    () =>
+      leftHandRefs && leftHandBindPoses
+        ? calibrarMano(leftHandRefs, leftHandBindPoses)
+        : null,
+    [leftHandRefs, leftHandBindPoses],
+  );
+  const rightCalib = useMemo(
+    () =>
+      rightHandRefs && rightHandBindPoses
+        ? calibrarMano(rightHandRefs, rightHandBindPoses)
+        : null,
+    [rightHandRefs, rightHandBindPoses],
+  );
+
+  // Rotación de mundo que pide la orientación, por mano
+  const targetOrient = useMemo<THREE.Quaternion | null>(() => {
+    if (!orientation || !leftCalib) return null;
+    return cuaternionManoMundo(leftCalib, orientation.palm, orientation.fingers);
+  }, [orientation, leftCalib]);
 
   // Mirror orientation for symmetric mode
-  const mirroredSplitOrient = useMemo<SplitOrientation | null>(() => {
-    if (!orientation) return null;
+  const mirroredOrient = useMemo<THREE.Quaternion | null>(() => {
+    if (!orientation || !rightCalib) return null;
     const mirrored = mirrorOrientation(orientation);
-    return orientationToSplitQuats(mirrored.palm, mirrored.fingers);
-  }, [orientation]);
+    return cuaternionManoMundo(rightCalib, mirrored.palm, mirrored.fingers);
+  }, [orientation, rightCalib]);
 
   // Compute target morph weights from RNM state — one index→weight map per mesh
   const targetMorphWeights = useMemo(() => {
@@ -1832,12 +2020,15 @@ export default function AvatarModel({
             );
             _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-            // 3. Blend split orientation between from/to
-            const blendedSplitOrient = blendSplitOrients(
-              movementInterp.fromOrientation,
-              movementInterp.toOrientation,
-              mt,
-            );
+            // 3. Blend hand orientation between from/to
+            const blendedOrient = leftCalib
+              ? mezclarOrientacion(
+                  leftCalib,
+                  movementInterp.fromOrientation,
+                  movementInterp.toOrientation,
+                  mt,
+                )
+              : null;
 
             animateArmIK(
               _interpPosVec,
@@ -1846,7 +2037,7 @@ export default function AvatarModel({
               leftArmLengths,
               factor,
               true,
-              blendedSplitOrient,
+              blendedOrient,
               leftCentroidDist,
               debugIK.current,
             );
@@ -1871,23 +2062,16 @@ export default function AvatarModel({
           const fkPreset = UB_FK_PRESETS[ubLocation.code];
           if (fkPreset) {
             // Use pre-computed FK angles for this UB point
+            // Use pre-computed FK angles for this UB point; the OR
+            // orientation (palm/finger direction) replaces the preset wrist
             poseArmPreset(
               fkPreset,
               leftHandRefs.armChain,
               leftHandBindPoses.armChain,
               true,
               factor,
+              targetOrient,
             );
-            // Apply OR orientation on top of FK preset (palm/finger direction)
-            if (targetSplitOrient) {
-              applyOrientationOverFK(
-                targetSplitOrient,
-                leftHandRefs.armChain,
-                leftHandBindPoses.armChain,
-                true,
-                factor,
-              );
-            }
             debugIK.current.active = false;
           } else if (leftArmLengths) {
             // No preset — fall back to IK
@@ -1900,7 +2084,7 @@ export default function AvatarModel({
                 leftArmLengths,
                 factor,
                 true,
-                targetSplitOrient,
+                targetOrient,
                 leftCentroidDist,
                 debugIK.current,
               );
@@ -1977,11 +2161,14 @@ export default function AvatarModel({
             );
             _interpPosVec.set(interpArr[0], interpArr[1], interpArr[2]);
 
-            const blendedSplitOrientR = blendSplitOrients(
-              mirrorOrientation(movementInterp.fromOrientation),
-              mirrorOrientation(movementInterp.toOrientation),
-              mt,
-            );
+            const blendedOrientR = rightCalib
+              ? mezclarOrientacion(
+                  rightCalib,
+                  mirrorOrientation(movementInterp.fromOrientation),
+                  mirrorOrientation(movementInterp.toOrientation),
+                  mt,
+                )
+              : null;
 
             animateArmIK(
               _interpPosVec,
@@ -1990,7 +2177,7 @@ export default function AvatarModel({
               rightArmLengths,
               factor,
               false,
-              blendedSplitOrientR,
+              blendedOrientR,
               rightCentroidDist,
             );
 
@@ -2019,17 +2206,8 @@ export default function AvatarModel({
               rightHandBindPoses.armChain,
               false,
               factor,
+              mirroredOrient,
             );
-            // Apply mirrored OR orientation on top of FK preset
-            if (mirroredSplitOrient) {
-              applyOrientationOverFK(
-                mirroredSplitOrient,
-                rightHandRefs.armChain,
-                rightHandBindPoses.armChain,
-                false,
-                factor,
-              );
-            }
           } else if (rightArmLengths) {
             // No preset — fall back to IK
             const ubTarget = computeUBWorldPositionMirrored(
@@ -2044,7 +2222,7 @@ export default function AvatarModel({
                 rightArmLengths,
                 factor,
                 false,
-                mirroredSplitOrient,
+                mirroredOrient,
                 rightCentroidDist,
               );
             }
