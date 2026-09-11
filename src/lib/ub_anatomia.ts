@@ -86,9 +86,11 @@ interface Espec {
 export function verticesDeMundo(raiz: THREE.Object3D): {
   todos: Float32Array;
   porMalla: Float32Array[];
+  mallas: THREE.Mesh[];
 } {
   raiz.updateMatrixWorld(true);
   const porMalla: Float32Array[] = [];
+  const mallas: THREE.Mesh[] = [];
   const v = new THREE.Vector3();
   raiz.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
@@ -96,6 +98,7 @@ export function verticesDeMundo(raiz: THREE.Object3D): {
     const pos = m.geometry.getAttribute("position");
     if (!pos) return;
     if (m.isSkinnedMesh) m.skeleton.update();
+    mallas.push(m);
     const out = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       m.getVertexPosition(i, v).applyMatrix4(m.matrixWorld);
@@ -112,10 +115,47 @@ export function verticesDeMundo(raiz: THREE.Object3D): {
     todos.set(a, k);
     k += a.length;
   }
-  return { todos, porMalla };
+  return { todos, porMalla, mallas };
 }
 
 const _d = new THREE.Vector3();
+const _rayo = new THREE.Raycaster();
+const _origen = new THREE.Vector3();
+const _dirInv = new THREE.Vector3();
+
+/**
+ * Punto de la piel más saliente en la dirección `dir` sobre la recta que
+ * pasa por `centro`: se lanza un rayo desde fuera (a `alcance` del centro)
+ * hacia dentro y se toma el primer triángulo de frente. Devuelve el punto
+ * y la normal real de la superficie (hacia fuera), o null si no hay
+ * impacto en [centro − alcance, centro + alcance].
+ */
+export function impactoEnPiel(
+  mallas: THREE.Mesh[],
+  centro: THREE.Vector3,
+  dir: THREE.Vector3,
+  alcance: number,
+  outPunto: THREE.Vector3,
+  outNormal: THREE.Vector3,
+): boolean {
+  _origen.copy(centro).addScaledVector(dir, alcance);
+  _dirInv.copy(dir).negate();
+  _rayo.set(_origen, _dirInv);
+  _rayo.near = 0;
+  _rayo.far = 2 * alcance;
+  const hits = _rayo.intersectObjects(mallas, false);
+  if (!hits.length) return false;
+  const h = hits[0];
+  outPunto.copy(h.point);
+  if (h.face) {
+    outNormal.copy(h.face.normal).transformDirection(h.object.matrixWorld);
+    // hacia fuera: del lado desde el que llegó el rayo
+    if (outNormal.dot(dir) < 0) outNormal.negate();
+  } else {
+    outNormal.copy(dir);
+  }
+  return true;
+}
 
 /**
  * Vértice más saliente en la dirección `dir` (unitaria) dentro de un
@@ -248,7 +288,9 @@ export function medirCuerpo(
         maxZ = Math.max(maxZ, todos[i + 2]);
       }
     }
-    return isFinite(minX) ? { ancho: maxX - minX, cz: (minZ + maxZ) / 2 } : null;
+    return isFinite(minX)
+      ? { ancho: maxX - minX, cz: (minZ + maxZ) / 2, cx: (minX + maxX) / 2 }
+      : null;
   };
   const prov = seccion(barbillaY + 0.6 * H);
   if (!prov) return null;
@@ -286,6 +328,8 @@ export function medirCuerpo(
   const anchoCabeza = sec.ancho;
   // centro de la sección (la media la sesgarían los ojos, que están al frente)
   const cabezaZ = sec.cz;
+  // línea media real de la cara (la malla puede no estar centrada en el hueso)
+  const cabezaX = sec.cx;
 
   // Nariz: lo más saliente del frente entre la boca y los ojos
   let narizY = barbillaY + 0.4 * H;
@@ -304,11 +348,13 @@ export function medirCuerpo(
   }
   if (!isFinite(narizZ)) narizZ = cabezaZ + anchoCabeza * 0.5;
 
-  const baseNariz = narizY - 0.05 * H;
-  const bocaY = barbillaY + 0.45 * (baseNariz - barbillaY);
+  // Boca: bajo la punta de la nariz (en Lexsi, cabezón, la boca queda a
+  // ~0.155 alturas de cabeza; en una cara adulta ~0.12). Nunca por debajo
+  // del tercio inferior.
+  const bocaY = Math.max(narizY - 0.155 * H, barbillaY + 0.25 * H);
 
   return {
-    cabeza: cabeza.clone(),
+    cabeza: new THREE.Vector3(cabezaX, cabeza.y, cabeza.z),
     coronillaY,
     cuello: cuello.clone(),
     barbillaY,
@@ -384,17 +430,20 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
   Fr: cara(() => 0, frenteY),
   IpsiFr: cara(() => 0.28, frenteY),
   XFr: cara(() => -0.28, frenteY),
-  Ci: cara((m) => m.ojoX / m.anchoCabeza, (m) => m.ojoY + 0.11 * m.H),
-  Su: cara((m) => m.ojoX / m.anchoCabeza + 0.1, (m) => m.ojoY + 0.12 * m.H),
-  Cin: cara(() => 0, (m) => m.ojoY + 0.1 * m.H),
+  // Ci = ceja del lado dominante, Su = ceja del otro lado (inventario: x 90 / 110)
+  Ci: cara((m) => m.ojoX / m.anchoCabeza, (m) => m.ojoY + 0.19 * m.H),
+  Su: cara((m) => -m.ojoX / m.anchoCabeza, (m) => m.ojoY + 0.19 * m.H),
+  Cin: cara(() => 0, (m) => m.ojoY + 0.18 * m.H),
   Oc: cara((m) => m.ojoX / m.anchoCabeza, (m) => m.ojoY),
   RapOc: cara((m) => m.ojoX / m.anchoCabeza + 0.12, (m) => m.ojoY),
-  OrbOc: cara((m) => m.ojoX / m.anchoCabeza, (m) => m.ojoY + 0.055 * m.H),
+  OrbOc: cara((m) => m.ojoX / m.anchoCabeza, (m) => m.ojoY + 0.09 * m.H),
   Na: cara(() => 0, (m) => m.narizY),
   Sep: cara(() => 0, (m) => m.ojoY - 0.03 * m.H),
   AlNa: cara(() => 0.09, (m) => m.narizY - 0.01 * m.H),
-  Po: cara(() => 0.34, (m) => m.ojoY - 0.13 * m.H),
-  Ge: cara(() => 0.3, (m) => m.bocaY + 0.06 * m.H),
+  // pómulo y mejilla: al frente de la cara, no en el costado (el rayo desde
+  // el frente a más de ~0.3 anchos ya cae detrás del ojo)
+  Po: cara(() => 0.27, (m) => m.ojoY - 0.12 * m.H),
+  Ge: cara(() => 0.25, (m) => m.bocaY + 0.06 * m.H),
   Os: cara(() => 0, (m) => m.bocaY),
   IpsiOs: cara(() => 0.13, (m) => m.bocaY),
   XOs: cara(() => -0.13, (m) => m.bocaY),
@@ -411,7 +460,7 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
   Gu: { hueso: "Neck", punto: (m) => v3(m.cabeza.x, m.cuello.y + 0.35 * (m.barbillaY - m.cuello.y), m.cuello.z), desde: "frente" },
   Co: { hueso: "Neck", punto: (m, L) => v3(m.cabeza.x + L * 0.25 * m.anchoCabeza, m.cuello.y + 0.35 * (m.barbillaY - m.cuello.y), m.cuello.z), desde: "frente" },
   // alcance corto: el cilindro hacia el lado no debe saltar al hombro
-  IpsiCo: { hueso: "Neck", punto: (m) => v3(m.cabeza.x, m.cuello.y + 0.4 * (m.barbillaY - m.cuello.y), m.cuello.z), desde: "ipsi", alcance: 0.35 },
+  IpsiCo: { hueso: "Neck", punto: (m) => v3(m.cabeza.x, m.cuello.y + 0.5 * (m.barbillaY - m.cuello.y), m.cuello.z), desde: "ipsi", alcance: 0.3 },
 
   // ── Tronco (hombro y clavícula: los del lado base, que la mano sí alcanza) ──
   // clavícula y hombro: cerca del cuello, donde sí llega la otra mano
@@ -436,16 +485,17 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
   Pe: { hueso: "Spine2", punto: (m, _L, pos) => v3(m.cabeza.x, pos("Spine2").y, pos("Spine2").z), desde: "frente" },
   XPe: { hueso: "Spine2", punto: (m, L, pos) => v3(m.cabeza.x - L * 0.45 * m.medioPecho, pos("Spine2").y, pos("Spine2").z), desde: "frente" },
   IpsiPe: { hueso: "Spine2", punto: (m, L, pos) => v3(m.cabeza.x + L * 0.45 * m.medioPecho, pos("Spine2").y, pos("Spine2").z), desde: "frente" },
-  // el corazón está a la izquierda anatómica del avatar (+X en escena)
-  Cor: { hueso: "Spine2", punto: (m, _L, pos) => v3(m.cabeza.x + 0.3 * m.medioPecho, pos("Spine2").y - 0.25 * (pos("Spine2").y - pos("Spine1").y), pos("Spine2").z), desde: "frente" },
+  // El avatar es el espejo de quien aprende: su corazón (lado izquierdo de
+  // la persona) queda del lado contra (−X) y el hígado del lado ipsi (+X),
+  // como en la silueta del inventario (Cor x 112, Je x 88).
+  Cor: { hueso: "Spine2", punto: (m, L, pos) => v3(m.cabeza.x - L * 0.3 * m.medioPecho, pos("Spine2").y - 0.25 * (pos("Spine2").y - pos("Spine1").y), pos("Spine2").z), desde: "frente" },
   Es: { hueso: "Spine2", punto: (m, _L, pos) => v3(m.cabeza.x, pos("Spine2").y - 0.3 * (pos("Spine2").y - pos("Spine1").y), pos("Spine2").z), desde: "frente" },
   To: { hueso: "Spine1", punto: (m, _L, pos) => v3(m.cabeza.x, lerp(pos("Spine1"), pos("Spine2"), 0.5).y, pos("Spine1").z), desde: "frente" },
   Cos: { hueso: "Spine1", punto: (m, L, pos) => v3(m.cabeza.x + L * 0.6 * m.medioPecho, pos("Spine1").y, pos("Spine1").z), desde: "frente" },
   Dor: { hueso: "Spine2", punto: (m, _L, pos) => v3(m.cabeza.x, pos("Spine2").y, pos("Spine2").z), desde: "atras" },
   Ve: { hueso: "Spine", punto: (m, _L, pos) => v3(m.cabeza.x, lerp(pos("Spine"), pos("Spine1"), 0.4).y, pos("Spine").z), desde: "frente" },
   Abd: { hueso: "Spine", punto: (m, _L, pos) => v3(m.cabeza.x, lerp(pos("Spine"), pos("Hips"), 0.3).y, pos("Spine").z), desde: "frente" },
-  // el hígado está a la derecha anatómica (−X en escena)
-  Je: { hueso: "Spine", punto: (m, _L, pos) => v3(m.cabeza.x - 0.5 * m.medioPecho, pos("Spine").y, pos("Spine").z), desde: "frente" },
+  Je: { hueso: "Spine1", punto: (m, L, pos) => v3(m.cabeza.x + L * 0.5 * m.medioPecho, lerp(pos("Spine"), pos("Spine1"), 0.6).y, pos("Spine1").z), desde: "frente" },
   Cit: { hueso: "Spine", punto: (m, _L, pos) => v3(m.cabeza.x, lerp(pos("Spine"), pos("Hips"), 0.3).y, pos("Hips").z), desde: "ipsi" },
   Cox: { hueso: "Hips", punto: (m, _L, pos) => v3(m.cabeza.x, pos("Hips").y, pos("Hips").z), desde: "ipsi" },
   Fe: { hueso: "DOMUpLeg", punto: (_m, L, pos) => lerp(pos(`${dom(L)}UpLeg`), pos(`${dom(L)}Leg`), 0.4), desde: "frente", radio: 0.25, alcance: 0.5 },
@@ -457,11 +507,11 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
   Cut: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Arm`), 0.05), desde: "atras", radio: 0.2, alcance: 0.3 },
 
   // ── Antebrazo base (pose T, palma abajo: dorso arriba, palmar abajo, radial al frente) ──
-  Abr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.5), desde: "arriba", radio: 0.16, alcance: 0.25 },
+  Abr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.55), desde: "arriba", radio: 0.16, alcance: 0.25 },
   IntAbr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.5), desde: "abajo", radio: 0.16, alcance: 0.25 },
   InfAbr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.8), desde: "arriba", radio: 0.16, alcance: 0.25 },
   RAAbr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.5), desde: "frente", radio: 0.16, alcance: 0.25 },
-  ExtAbr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.5), desde: "atras", radio: 0.16, alcance: 0.25 },
+  ExtAbr: { hueso: "BASEForeArm", punto: (_m, L, pos) => lerp(pos(`${base(L)}ForeArm`), pos(`${base(L)}Hand`), 0.3), desde: "arriba", radio: 0.16, alcance: 0.25 },
 
   // ── Mano base ──
   Car: { hueso: "BASEHand", punto: (_m, L, pos) => lerp(pos(`${base(L)}Hand`), pos(`${base(L)}HandMiddle1`), 0.05), desde: "arriba", radio: 0.12, alcance: 0.2 },
@@ -479,7 +529,7 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
   IntDed: { hueso: "BASEHandMiddle2", punto: (_m, L, pos) => pos(`${base(L)}HandMiddle2`), desde: "abajo", radio: 0.06, alcance: 0.12 },
   ExtDed: { hueso: "BASEHandMiddle2", punto: (_m, L, pos) => lerp(pos(`${base(L)}HandMiddle2`), pos(`${base(L)}HandMiddle3`), 0.5), desde: "arriba", radio: 0.06, alcance: 0.12 },
   Nod: { hueso: "BASEHandMiddle1", punto: (_m, L, pos) => pos(`${base(L)}HandMiddle1`), desde: "arriba", radio: 0.08, alcance: 0.15 },
-  Base: { hueso: "BASEHand", punto: (_m, L, pos) => lerp(pos(`${base(L)}Hand`), pos(`${base(L)}HandMiddle1`), 0.2), desde: "abajo", radio: 0.12, alcance: 0.2 },
+  Base: { hueso: "BASEHand", punto: (_m, L, pos) => lerp(pos(`${base(L)}Hand`), pos(`${base(L)}HandMiddle1`), 0.3), desde: "abajo", radio: 0.12, alcance: 0.2 },
   Cub: { hueso: "BASEHandPinky1", punto: (_m, L, pos) => pos(`${base(L)}HandPinky1`), desde: "atras", radio: 0.08, alcance: 0.15 },
   RA: { hueso: "BASEHandIndex1", punto: (_m, L, pos) => pos(`${base(L)}HandIndex1`), desde: "frente", radio: 0.08, alcance: 0.15 },
   Gem: { hueso: "BASEHandIndex4", punto: (_m, L, pos) => pos(`${base(L)}HandIndex4`), desde: "abajo", radio: 0.05, alcance: 0.1 },
@@ -490,6 +540,7 @@ export const ESPECIFICACION_UB: Record<string, Espec> = {
 
 const _inv = new THREE.Matrix4();
 const _hit = new THREE.Vector3();
+const _normalHit = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const _escalaTmp = new THREE.Vector3();
 
@@ -517,16 +568,19 @@ function anclaRespaldo(
 ): AnclaUB | null {
   const a = UB_BONE_MAP[code];
   if (!a) return null;
-  const nombre =
-    L > 0 ? a.boneName : a.boneName.replace(/^Left/, "Right");
+  // los offsets históricos del brazo están en el brazo izquierdo; aquí el
+  // brazo/mano son los del brazo BASE (contrario al dominante)
+  const esBrazo = /^Left/.test(a.boneName);
+  const nombre = esBrazo && L > 0 ? a.boneName.replace(/^Left/, "Right") : a.boneName;
   const bone = boneMap.get(nombre) ?? boneMap.get(a.boneName);
   if (!bone) return null;
   bone.updateWorldMatrix(true, false);
   const s = bone.getWorldScale(new THREE.Vector3()).x || 1;
+  const fx = esBrazo ? -L : L;
   const p = bone
     .getWorldPosition(new THREE.Vector3())
-    .add(new THREE.Vector3(L * a.offset[0] * s, a.offset[1] * s, a.offset[2] * s));
-  const n = new THREE.Vector3(L * a.offset[0], a.offset[1] * 0.3, a.offset[2]);
+    .add(new THREE.Vector3(fx * a.offset[0] * s, a.offset[1] * s, a.offset[2] * s));
+  const n = new THREE.Vector3(fx * a.offset[0], a.offset[1] * 0.3, a.offset[2]);
   if (n.lengthSq() < 1e-9) n.set(0, 1, 0);
   return anclaDesde(bone, p, n.normalize());
 }
@@ -569,13 +623,23 @@ export function calcularAnclasUB(
             _dir.copy(DIRECCION[spec.desde](L));
             const radioBase = (spec.radio ?? 0.08) * marcas.anchoCabeza;
             const alcance = (spec.alcance ?? 0.7) * marcas.anchoCabeza;
-            let hit = spec.sinProyectar
-              ? _hit.copy(centro)
-              : (extremoEnCilindro(mallas.todos, centro, _dir, radioBase, _hit, alcance) ??
-                extremoEnCilindro(mallas.todos, centro, _dir, radioBase * 2, _hit, alcance));
-            if (!hit) hit = _hit.copy(centro);
-            // lo más saliente en `dir` es la superficie: la normal va hacia allá
-            ancla = anclaDesde(hueso, hit, spec.sinProyectar ? null : _dir);
+            let normal: THREE.Vector3 | null = _dir;
+            let hit: THREE.Vector3 | null;
+            if (spec.sinProyectar) {
+              hit = _hit.copy(centro);
+              normal = null;
+            } else if (impactoEnPiel(mallas.mallas, centro, _dir, alcance, _hit, _normalHit)) {
+              // rayo desde fuera: punto exacto de la piel y su normal real
+              hit = _hit;
+              normal = _normalHit;
+            } else {
+              // sin impacto (entre dedos, borde): vértice más saliente
+              hit =
+                extremoEnCilindro(mallas.todos, centro, _dir, radioBase, _hit, alcance) ??
+                extremoEnCilindro(mallas.todos, centro, _dir, radioBase * 2, _hit, alcance) ??
+                _hit.copy(centro);
+            }
+            ancla = anclaDesde(hueso, hit, normal);
           }
         } catch {
           ancla = null;
@@ -618,7 +682,8 @@ export class LectorUB {
   esBrazoBase(code: string, espejo: boolean): boolean {
     const a = (espejo ? this.anclas.espejo : this.anclas.dominante).get(code);
     if (!a) return false;
-    return /^(Left|Right)(Arm|ForeArm|Hand)/.test(a.hueso) && !/Shoulder/.test(a.hueso);
+    const nombre = a.hueso.replace(/^mixamorig:/, "");
+    return /^(Left|Right)(Arm|ForeArm|Hand)/.test(nombre);
   }
 
   /** Escala de mundo del esqueleto (uniforme), medida en la cabeza. */

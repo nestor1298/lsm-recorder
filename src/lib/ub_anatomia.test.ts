@@ -150,6 +150,10 @@ describe("calcularAnclasUB", () => {
   it("ipsi y contra caen en lados opuestos, y el espejo invierte", () => {
     expect(pos("IpsiFr").x).toBeGreaterThan(0.05);
     expect(pos("XFr").x).toBeLessThan(-0.05);
+    expect(pos("Ci").x).toBeGreaterThan(0.03);
+    expect(pos("Su").x).toBeLessThan(-0.03);
+    expect(pos("Je").x).toBeGreaterThan(0.05); // hígado del lado ipsi (espejo)
+    expect(pos("Cor").x).toBeLessThan(-0.05); // corazón del lado contra
     expect(pos("IpsiOs").x).toBeGreaterThan(0);
     expect(pos("XOs").x).toBeLessThan(0);
     expect(pos("IpsiFr", true).x).toBeLessThan(-0.05);
@@ -173,13 +177,19 @@ describe("calcularAnclasUB", () => {
     expect(pos("Ung").y).toBeGreaterThan(pos("Gem").y);
   });
 
-  it("las normales apuntan hacia fuera del cuerpo", () => {
+  it("las normales son las de la piel y apuntan hacia fuera", () => {
     const n = lector.normal("Fr", false, new THREE.Vector3())!;
-    expect(n.z).toBeGreaterThan(0.9);
+    expect(n.z).toBeGreaterThan(0.7);
+    // en el pómulo (lateral) la normal ya no es la dirección de proyección
+    const np = lector.normal("Po", false, new THREE.Vector3())!;
+    expect(np.x).toBeGreaterThan(0.3);
+    expect(np.z).toBeGreaterThan(0.3);
+    // el punto está sobre la esfera, no flotando delante
+    expect(Math.abs(pos("Po").distanceTo(C) - R)).toBeLessThan(0.01);
     const nd = lector.normal("Dor", false, new THREE.Vector3())!;
     expect(nd.z).toBeLessThan(-0.9);
     const nt = lector.normal("Te", false, new THREE.Vector3())!;
-    expect(nt.x).toBeGreaterThan(0.9);
+    expect(nt.x).toBeGreaterThan(0.7);
   });
 
   it("los puntos de la cara siguen a la cabeza cuando gira", () => {

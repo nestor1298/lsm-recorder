@@ -128,6 +128,7 @@ describe("resolverBrazo", () => {
     const dir = muneca.clone().sub(res.hombro).normalize();
     const dirReal = real.clone().sub(res.hombro).normalize();
     expect(dir.angleTo(dirReal)).toBeLessThan(6 * DEG);
+    expect(res.flexionCodo).toBeGreaterThanOrEqual(ROM_BRAZO.codo[0] - 1e-6);
     expect(res.flexionCodo).toBeLessThan(ROM_BRAZO.codo[0] + 1);
   });
 

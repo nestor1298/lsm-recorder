@@ -7,18 +7,22 @@ Construir) y para cualquier consumidor de `Hand3DViewer`.
 ## Lugares sobre la malla (`src/lib/ub_anatomia.ts`)
 
 Los 80 lugares ya no son offsets a mano: cada uno se define por anatomía
-respecto a marcas medidas en la propia malla al cargar (coronilla, barbilla,
-ojos, nariz, ancho de la cabeza, huesos) y una dirección de proyección
-(frente, atrás, arriba, abajo, lado). El punto se proyecta a la superficie
-tomando el vértice más saliente en esa dirección dentro de un cilindro
-(`extremoEnCilindro`), conservando las coordenadas pedidas y tomando solo
-la profundidad de la malla. Se guarda en el espacio local del hueso más
-cercano, así que:
+respecto a marcas medidas en la propia malla al cargar (coronilla, barbilla
+por el perfil frontal, ojos por su malla, nariz, boca bajo la nariz, ancho y
+línea media de la cabeza, huesos) y una dirección de proyección (frente,
+atrás, arriba, abajo, lado). El punto se proyecta a la piel con un rayo
+lanzado desde fuera hacia dentro (`impactoEnPiel`): da el punto exacto y
+la normal real de la superficie; si el rayo no toca nada (entre dedos), se
+usa el vértice más saliente dentro de un cilindro (`extremoEnCilindro`).
+Se guarda en el espacio local del hueso más cercano, así que:
 
 - los puntos de la cara siguen a la cabeza (cejas, asentir, inclinar);
 - brazo, antebrazo y mano son los del brazo **base** (el que no seña) y
   siguen a ese brazo, incluidos los dedos;
-- hombro y clavícula son los contralaterales (los que sí alcanza la mano).
+- hombro y clavícula son los contralaterales (los que sí alcanza la mano);
+- el avatar es el espejo de quien aprende: corazón (Cor) del lado contra e
+  hígado (Je) del lado ipsi, como en la silueta del inventario; Ci es la
+  ceja ipsi y Su la contra.
 
 `LectorUB` da posición y normal de mundo en tiempo de animación, para la
 mano dominante (`espejo=false`) y para la otra (`espejo=true`). El código
@@ -41,7 +45,7 @@ orientación pedida, respetando el cuerpo:
 | Hombro: elevación desde colgando | 0° – 165° |
 | Hombro: azimut desde el lado (90° = al frente) | −50° (atrás) – 135° (cruzado) |
 | Codo alrededor de hombro–muñeca (swivel) | vuelta completa, con costo |
-| Antebrazo (pronación / supinación desde la pose T, que es neutra) | 80° / 85° |
+| Antebrazo (pronación / supinación desde la pose T, que ya está pronada ~80°) | 10° / 170° |
 | Muñeca: flexión / extensión | 75° / 70° |
 | Muñeca: desviación radial / cubital | 20° / 30° |
 
@@ -87,13 +91,16 @@ con 2.5 u de alto). Por eso:
 - coronilla, codo y cara interior del brazo base se tocan con las yemas;
 - muslo y rodilla quedan lejos (haría falta inclinar el tronco);
 - el lado del cuello del mismo lado queda a ~10 cm (codo al máximo);
-- en el espacio neutro, "dedos arriba" con la palma hacia uno mismo o
-  hacia dentro sale inclinado ~20–50°, y "dedos hacia mí" o "hacia fuera"
-  frente al pecho no son alcanzables: la mano queda lo más cerca posible.
+- en el espacio neutro, "dedos hacia mí" y "dedos hacia fuera" frente al
+  hombro no son alcanzables (haría falta que el codo estuviera donde no
+  puede): la mano queda lo más cerca posible; "palma hacia fuera" también
+  sale rotada.
 
 ## Medición
 
 Con el visor en `/learn` → UB se midió, para los 80 lugares, la distancia
-del centro de la palma (o del punto de contacto en los dedos) al punto:
-75 quedan a ≤ 2.5 cm de escena (la mayoría ≤ 0.5 cm), con el codo entre
-3° y 146° y la elevación del brazo ≤ 160°.
+del punto de contacto (palma, dorso o dedos) al punto: 76 quedan a ≤ 1.5 cm
+de escena (la mayoría ≤ 0.5 cm), coronilla a 5 cm con las yemas, lado del
+cuello ipsilateral a 7 cm, muslo a 5 cm y rodilla fuera de alcance. En el
+espacio neutro, 14 de las 24 orientaciones quedan a ≤ 13° (las comunes,
+como palma hacia mí con dedos arriba, exactas).

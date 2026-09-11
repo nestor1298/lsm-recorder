@@ -406,16 +406,19 @@ function poseArmDown(
 // nada de giro propio (la muñeca no rota sobre su eje). Si la orientación
 // no es alcanzable con la postura del brazo, queda la más cercana posible.
 //
-// Rango del antebrazo: en la pose T de Lexsi (brazos en cruz, palmas
-// abajo) el antebrazo está en posición NEUTRA: al bajar el brazo la palma
-// queda hacia el muslo. Desde ahí caben ~80° de pronación y ~85° de
-// supinación (valores clínicos). En el brazo izquierdo la supinación es
+// Rango del antebrazo, medido en el propio rig: en la pose T de Lexsi las
+// palmas miran abajo pero la bisagra del codo levanta la mano hacia arriba
+// (plano frontal), lo que en un cuerpo real corresponde a un antebrazo ya
+// PRONADO ~80°. Desde ahí quedan ~10° de pronación y hasta ~170° de
+// supinación (80° para volver a neutro + 85–90° de supinación real). Con un
+// rango simétrico ±85° la palma hacia dentro con el brazo al frente queda
+// inalcanzable (haría falta −110°). En el brazo izquierdo la supinación es
 // giro negativo en Y local; el derecho es su espejo.
 
 const DEG_OR = Math.PI / 180;
 /** Grados, en el convenio "valor × lado" (el brazo derecho es el espejo). */
-const ANTEBRAZO_SUPINACION_MAX = 85;
-const ANTEBRAZO_PRONACION_MAX = 80;
+const ANTEBRAZO_SUPINACION_MAX = 170;
+const ANTEBRAZO_PRONACION_MAX = 10;
 const MUNIECA_FLEX = 75 * DEG_OR;
 const MUNIECA_EXT = 70 * DEG_OR;
 const MUNIECA_RADIAL = 20 * DEG_OR;
@@ -1115,6 +1118,7 @@ const _contacto = new THREE.Vector3();
 const _centroContacto = new THREE.Vector3();
 const _palmaMundo = new THREE.Vector3();
 const _palmaPredicha = new THREE.Vector3();
+const _mejorMunecaObj = new THREE.Vector3();
 const _mejorClav = new THREE.Quaternion();
 const _mejorBrazoQ = new THREE.Quaternion();
 const _mejorAntebrazoQ = new THREE.Quaternion();
@@ -1312,6 +1316,7 @@ function colocarBrazo(
     }
     if (err < mejorError) {
       mejorError = err;
+      _mejorMunecaObj.copy(_entradaBrazo.muneca);
       _mejorClav.copy(_tClav);
       _mejorBrazoQ.copy(_tBrazo);
       _mejorAntebrazoQ.copy(_tAntebrazo);
@@ -1326,7 +1331,7 @@ function colocarBrazo(
 
   if (debugInfo) {
     debugInfo.ubTarget.copy(punto);
-    debugInfo.ikTarget.copy(_entradaBrazo.muneca);
+    debugInfo.ikTarget.copy(_mejorMunecaObj);
     debugInfo.active = true;
     chain.hand.updateWorldMatrix(true, false);
     chain.hand.getWorldPosition(debugInfo.handWorldPos);

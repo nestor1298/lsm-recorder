@@ -280,7 +280,9 @@ export function resolverBrazo(
   const encoger =
     elevRel > 60 * DEG ? Math.min(1, (elevRel - 60 * DEG) / (110 * DEG)) * 18 : 0;
   const protraer = Math.min(1, frenteRel * 0.8 + cruce * 1.2) * 12;
-  _clavEuler.set(0, protraer * DEG * lado, encoger * DEG * lado, "XYZ");
+  // ejes de la clavícula Mixamo (medidos en Lexsi): X negativo la sube,
+  // Z positivo (× lado) la lleva al frente; Y es el eje del hueso
+  _clavEuler.set(-encoger * DEG, 0, protraer * DEG * lado, "XYZ");
   out.clavicula.copy(bind.clavicula).multiply(_clavDelta.setFromEuler(_clavEuler));
   _clavW.copy(entrada.padreClaviculaQ).multiply(out.clavicula);
 
@@ -349,8 +351,8 @@ export function resolverBrazo(
       if (!perpendicular(_f, _ejeH, _fProj)) _fProj.copy(_f0);
       perpendicular(_f0, _ejeH, _f0);
       let phi = anguloConSigno(_f0, _fProj, _ejeH);
-      // la flexión es negativa; nunca hiperextender ni pasar el máximo
-      phi = Math.min(0, Math.max(-flexMax, phi));
+      // la flexión es negativa; nunca menos que el mínimo ni más que el máximo
+      phi = Math.min(-flexMin, Math.max(-flexMax, phi));
       const flex = -phi / DEG;
 
       // muñeca lograda
@@ -364,7 +366,8 @@ export function resolverBrazo(
       // no subir el codo por encima de hombro y muñeca, y quedarse cerca
       // del polo si todo lo demás empata
       const alturaCodo = _codo.dot(_abajo) * -1; // altura a lo largo de "arriba"
-      const alturaRef = Math.max(_hombro.dot(_abajo), entrada.muneca.dot(_abajo)) * -1;
+      // la mayor altura entre hombro y muñeca (dot con "abajo" es −altura)
+      const alturaRef = Math.min(_hombro.dot(_abajo), entrada.muneca.dot(_abajo)) * -1;
       const codoAlto = Math.max(0, alturaCodo - alturaRef);
       const costo =
         error * 8 +
