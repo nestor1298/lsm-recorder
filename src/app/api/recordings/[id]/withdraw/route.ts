@@ -23,7 +23,7 @@ export async function POST(
     return Response.json({ error: "id inválido" }, { status: 400 });
   }
 
-  const ok = await withdrawRecording(user.userId, parsed.sessionId, parsed.cmId);
+  const ok = await withdrawRecording(user.userId, parsed.sessionId, parsed.itemId);
   if (!ok) {
     return Response.json({ error: "No encontrado" }, { status: 404 });
   }

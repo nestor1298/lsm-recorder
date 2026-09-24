@@ -25,6 +25,7 @@ import {
   annotSk,
   annotGsi1Sk,
   type AnnotationItem,
+  type CorpusId,
 } from "./keys";
 
 const now = (): string => new Date().toISOString();
@@ -129,6 +130,7 @@ export async function withdrawAllConsent(userId: string): Promise<void> {
 export async function putSession(
   userId: string,
   args: {
+    corpus?: CorpusId;
     sessionId: string;
     name: string;
     deviceInfo?: Record<string, unknown>;
@@ -142,7 +144,8 @@ export async function putSession(
     session_id: args.sessionId,
     user_id: userId,
     name: args.name,
-    task_type: "phonological",
+    task_type: args.corpus === "signaplay" ? "lexical" : "phonological",
+    corpus: args.corpus ?? "lsm",
     created_at: now(),
     device_info: args.deviceInfo,
     session_metadata: args.sessionMetadata,
@@ -159,7 +162,10 @@ export async function putRecording(
   userId: string,
   args: {
     sessionId: string;
-    cmId: number;
+    itemId: string;
+    corpus: CorpusId;
+    cmId?: number;
+    gloss?: string;
     s3Key: string;
     durationMs: number;
     status?: RecordingStatus;
@@ -172,13 +178,16 @@ export async function putRecording(
   const recordedAt = now();
   const item: RecordingItem = {
     pk: sessPk(args.sessionId),
-    sk: recSk(args.cmId),
+    sk: recSk(args.itemId),
     entity: "recording",
     gsi1pk: partPk(userId),
     gsi1sk: recGsi1Sk(recordedAt),
     participant_id: userId,
     session_id: args.sessionId,
+    item_id: args.itemId,
+    corpus: args.corpus,
     cm_id: args.cmId,
+    gloss: args.gloss,
     s3_key: args.s3Key,
     duration_ms: args.durationMs,
     recorded_at: recordedAt,
@@ -197,12 +206,12 @@ export async function putRecording(
 export async function getOwnedRecording(
   userId: string,
   sessionId: string,
-  cmId: number,
+  itemId: string,
 ): Promise<RecordingItem | null> {
   const res = await ddbDoc().send(
     new GetCommand({
       TableName: awsEnv.corpusTable(),
-      Key: { pk: sessPk(sessionId), sk: recSk(cmId) },
+      Key: { pk: sessPk(sessionId), sk: recSk(itemId) },
     }),
   );
   const item = res.Item as RecordingItem | undefined;
@@ -229,14 +238,14 @@ export async function listParticipantRecordings(
 export async function setRecordingTier(
   userId: string,
   sessionId: string,
-  cmId: number,
+  itemId: string,
   tier: AccessTier,
 ): Promise<boolean> {
   try {
     await ddbDoc().send(
       new UpdateCommand({
         TableName: awsEnv.corpusTable(),
-        Key: { pk: sessPk(sessionId), sk: recSk(cmId) },
+        Key: { pk: sessPk(sessionId), sk: recSk(itemId) },
         UpdateExpression: "SET access_tier = :tier",
         ConditionExpression: "participant_id = :uid",
         ExpressionAttributeValues: { ":tier": tier, ":uid": userId },
@@ -251,13 +260,13 @@ export async function setRecordingTier(
 export async function withdrawRecording(
   userId: string,
   sessionId: string,
-  cmId: number,
+  itemId: string,
 ): Promise<boolean> {
   try {
     await ddbDoc().send(
       new UpdateCommand({
         TableName: awsEnv.corpusTable(),
-        Key: { pk: sessPk(sessionId), sk: recSk(cmId) },
+        Key: { pk: sessPk(sessionId), sk: recSk(itemId) },
         UpdateExpression: "SET withdrawn = :t",
         ConditionExpression: "participant_id = :uid",
         ExpressionAttributeValues: { ":t": true, ":uid": userId },

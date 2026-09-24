@@ -47,13 +47,20 @@ export interface RecordingSession {
   id: string;
   name: string;
   created_at: string;
+  /** Corpus al que va la sesión (ver src/lib/corpus.ts). Las sesiones
+   *  anteriores a los dos caminos no lo traen: son "lsm". */
+  corpus?: "lsm" | "signaplay";
   signs: RecordedSign[];
   // Set once the remote Session item has been created in DynamoDB.
   remote_session_created?: boolean;
 }
 
 export interface RecordedSign {
-  cm_id: number;
+  /** Llave del ítem en su corpus: "12" (CM) o "POR_FAVOR" (SignaPlay).
+   *  Las sesiones antiguas solo traen cm_id; store.ts la completa al leer. */
+  item_id: string;
+  /** Solo en el LSM Corpus: la configuración de mano que se graba */
+  cm_id?: number;
   recorded_at: string;
   video_blob_url?: string;
   duration_ms: number;

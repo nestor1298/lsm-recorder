@@ -6,7 +6,21 @@ const ANNOTATIONS_KEY = "lsm-recorder-annotations";
 export function getSessions(): RecordingSession[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(SESSIONS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  const sessions: RecordingSession[] = raw ? JSON.parse(raw) : [];
+  return sessions.map(migrateSession);
+}
+
+/**
+ * Sesiones anteriores a los dos caminos: solo traían cm_id. Se les da su
+ * item_id ("12") y corpus "lsm" al leer; se persisten así al guardar.
+ */
+export function migrateSession(s: RecordingSession): RecordingSession {
+  const signs = s.signs.map((sign) =>
+    sign.item_id
+      ? sign
+      : { ...sign, item_id: String(sign.cm_id ?? "") },
+  );
+  return { ...s, corpus: s.corpus ?? "lsm", signs };
 }
 
 export function saveSession(session: RecordingSession): void {
@@ -29,13 +43,22 @@ export function deleteSession(id: string): void {
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
 }
 
-export function createSession(name: string, cmIds: number[]): RecordingSession {
+export function createSession(
+  name: string,
+  itemIds: string[],
+  corpus: "lsm" | "signaplay" = "lsm",
+): RecordingSession {
   const session: RecordingSession = {
     id: crypto.randomUUID(),
     name,
     created_at: new Date().toISOString(),
-    signs: cmIds.map((cm_id) => ({
-      cm_id,
+    corpus,
+    signs: itemIds.map((item_id) => ({
+      item_id,
+      // en el LSM Corpus el ítem es el número de la CM
+      ...(corpus === "lsm" && Number.isInteger(Number(item_id))
+        ? { cm_id: Number(item_id) }
+        : {}),
       recorded_at: "",
       duration_ms: 0,
       status: "pending" as const,
@@ -47,12 +70,12 @@ export function createSession(name: string, cmIds: number[]): RecordingSession {
 
 export function updateSignRecording(
   sessionId: string,
-  cmId: number,
+  itemId: string,
   update: Partial<RecordedSign>
 ): void {
   const session = getSession(sessionId);
   if (!session) return;
-  const sign = session.signs.find((s) => s.cm_id === cmId);
+  const sign = session.signs.find((s) => s.item_id === itemId);
   if (sign) {
     Object.assign(sign, update);
     saveSession(session);

@@ -1,6 +1,6 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import { listParticipantRecordings } from "@/lib/aws/repo";
-import { recordingId } from "@/lib/aws/keys";
+import { itemIdDeGrabacion, recordingId } from "@/lib/aws/keys";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +16,12 @@ export async function GET(req: Request) {
 
   const items = await listParticipantRecordings(user.userId);
   const recordings = items.map((r) => ({
-    id: recordingId(r.session_id, r.cm_id),
+    id: recordingId(r.session_id, itemIdDeGrabacion(r)),
     sessionId: r.session_id,
+    itemId: itemIdDeGrabacion(r),
+    corpus: r.corpus ?? "lsm",
     cmId: r.cm_id,
+    gloss: r.gloss,
     recordedAt: r.recorded_at,
     durationMs: r.duration_ms,
     status: r.status,

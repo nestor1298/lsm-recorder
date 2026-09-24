@@ -34,7 +34,7 @@ export async function POST(
   const ok = await setRecordingTier(
     user.userId,
     parsed.sessionId,
-    parsed.cmId,
+    parsed.itemId,
     tier,
   );
   if (!ok) {

@@ -1,5 +1,6 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import { getParticipant, putSession } from "@/lib/aws/repo";
+import { leerCorpus } from "@/lib/aws/item";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
   const session = await putSession(user.userId, {
     sessionId: body.sessionId,
     name: body.name,
+    corpus: leerCorpus(body),
     deviceInfo:
       body.deviceInfo && typeof body.deviceInfo === "object"
         ? body.deviceInfo

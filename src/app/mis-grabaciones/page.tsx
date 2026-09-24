@@ -7,10 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { getJson, postJson } from "@/lib/api-client";
 import { ACCESS_TIERS } from "@/lib/tiers";
 import type { AccessTier } from "@/lib/aws/keys";
+import { CORPUS_INFO, describirItem, type CorpusId } from "@/lib/corpus";
 
 interface RecordingRow {
   id: string;
-  cmId: number;
+  itemId: string;
+  corpus: CorpusId;
+  cmId?: number;
+  gloss?: string;
   recordedAt: string;
   durationMs: number;
   status: string;
@@ -146,8 +150,22 @@ export default function MisGrabacionesPage() {
               }`}
             >
               <div>
-                <p className="font-semibold text-ink">Seña #{r.cmId}</p>
+                <p className="font-semibold text-ink">
+                  {describirItem(r.corpus, r.itemId).titulo}
+                  <span className="ml-2 text-xs font-medium text-gray-500">
+                    {describirItem(r.corpus, r.itemId).detalle}
+                  </span>
+                </p>
                 <p className="text-xs text-gray-500">
+                  <span
+                    className={`mr-2 rounded-full px-2 py-0.5 font-medium ${
+                      r.corpus === "signaplay"
+                        ? "bg-gold-tint text-gold-deep"
+                        : "bg-green-tint text-green-deep"
+                    }`}
+                  >
+                    {CORPUS_INFO[r.corpus].nombre}
+                  </span>
                   {new Date(r.recordedAt).toLocaleString()}
                 </p>
                 {r.withdrawn && (

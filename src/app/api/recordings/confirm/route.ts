@@ -5,6 +5,8 @@ import {
   putRecording,
 } from "@/lib/aws/repo";
 import { recordingId } from "@/lib/aws/keys";
+import { ALLOWED_VIDEO_TYPES } from "@/lib/aws/s3";
+import { leerCorpus, leerItemId } from "@/lib/aws/item";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,26 +22,40 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const sessionId = body?.sessionId;
-  const cmId = body?.cmId;
+  const itemId = leerItemId(body);
   const s3Key = body?.s3Key;
   const durationMs = body?.durationMs;
   if (
     typeof sessionId !== "string" ||
-    !Number.isInteger(cmId) ||
+    !itemId ||
     typeof s3Key !== "string" ||
     !Number.isFinite(durationMs)
   ) {
     return Response.json(
-      { error: "sessionId, cmId, s3Key y durationMs son requeridos" },
+      { error: "sessionId, itemId, s3Key y durationMs son requeridos" },
       { status: 400 },
     );
   }
 
-  // The key must belong to the caller and match the expected layout.
-  const expectedKey = `${user.userId}/${sessionId}/${cmId}.webm`;
-  if (s3Key !== expectedKey) {
+  // The key must belong to the caller and match the layout of the presign,
+  // with any of the extensions the presign can issue (webm, mp4, mov).
+  const base = `${user.userId}/${sessionId}/${itemId}.`;
+  const extValida = Object.values(ALLOWED_VIDEO_TYPES).some(
+    (ext) => s3Key === base + ext,
+  );
+  if (!extValida) {
     return Response.json({ error: "s3Key inválida" }, { status: 400 });
   }
+
+  const corpus = leerCorpus(body);
+  const cmId =
+    corpus === "lsm" && Number.isInteger(Number(itemId))
+      ? Number(itemId)
+      : undefined;
+  const gloss =
+    typeof body.gloss === "string" && body.gloss.length <= 80
+      ? body.gloss
+      : undefined;
 
   const participant = await getParticipant(user.userId);
   if (!participant || participant.consent_status !== "granted") {
@@ -50,11 +66,14 @@ export async function POST(req: Request) {
   }
 
   // If this sign was previously withdrawn, re-recording must not resurrect it.
-  const existing = await getOwnedRecording(user.userId, sessionId, cmId);
+  const existing = await getOwnedRecording(user.userId, sessionId, itemId);
 
   const recording = await putRecording(user.userId, {
     sessionId,
+    itemId,
+    corpus,
     cmId,
+    gloss,
     s3Key,
     durationMs,
     status: "approved",
@@ -65,6 +84,6 @@ export async function POST(req: Request) {
 
   return Response.json({
     recording,
-    id: recordingId(sessionId, cmId),
+    id: recordingId(sessionId, itemId),
   });
 }

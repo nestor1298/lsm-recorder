@@ -133,7 +133,80 @@ body {
   animation: pop-derecha 180ms ease-out;
 }
 
+/* Marca «LSM CORPUS»: latido de peso letra por letra (ver MarcaLSMCorpus) */
+.marca-lsm {
+  display: block;
+  aspect-ratio: 1;
+}
+.marca-lsm__fina,
+.marca-lsm__gruesa {
+  transition: opacity 240ms ease;
+}
+.marca-lsm__fina {
+  opacity: 0;
+}
+.marca-lsm--animada .marca-lsm__fina {
+  opacity: 1;
+  animation: marca-fina 5.4s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.18s);
+}
+.marca-lsm--animada .marca-lsm__gruesa {
+  opacity: 0;
+  animation: marca-gruesa 5.4s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.18s);
+}
+/* cada letra engorda un momento y vuelve a lo fino; el desfase por letra
+   hace que el peso recorra la marca de la L a la S */
+@keyframes marca-gruesa {
+  0%,
+  55% {
+    opacity: 0;
+  }
+  62%,
+  78% {
+    opacity: 1;
+  }
+  86%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes marca-fina {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  62%,
+  78% {
+    opacity: 0;
+  }
+  86%,
+  100% {
+    opacity: 1;
+  }
+}
+/* al pasar el cursor, toda la marca en grueso */
+.marca-lsm--animada:hover .marca-lsm__gruesa {
+  animation: none;
+  opacity: 1;
+}
+.marca-lsm--animada:hover .marca-lsm__fina {
+  animation: none;
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .marca-lsm--animada .marca-lsm__fina,
+  .marca-lsm--animada .marca-lsm__gruesa {
+    animation: none;
+  }
+  .marca-lsm--animada .marca-lsm__fina {
+    opacity: 0;
+  }
+  .marca-lsm--animada .marca-lsm__gruesa {
+    opacity: 1;
+  }
+
   *,
   *::before,
   *::after {

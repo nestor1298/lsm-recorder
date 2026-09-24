@@ -13,22 +13,32 @@ export const partPk = (userId: string): string => `PART#${userId}`;
 export const PROFILE_SK = "PROFILE" as const;
 export const sessPk = (sessionId: string): string => `SESS#${sessionId}`;
 export const sessSk = (sessionId: string): string => `SESS#${sessionId}`;
-export const recSk = (cmId: number): string => `REC#${cmId}`;
+// Ítem que se graba: "12" (número de CM, LSM Corpus) o "POR_FAVOR" (glosa,
+// corpus para SignaPlay). Las grabaciones anteriores usaban el número de
+// CM tal cual, así que sus llaves REC#12 siguen siendo válidas.
+export type CorpusId = "lsm" | "signaplay";
+export const ITEM_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+export const recSk = (itemId: string): string => `REC#${itemId}`;
 export const recGsi1Sk = (recordedAt: string): string => `REC#${recordedAt}`;
 
-// A recording is addressed by {sessionId}__{cmId} in the `/api/recordings/{id}` route.
-export const recordingId = (sessionId: string, cmId: number): string =>
-  `${sessionId}__${cmId}`;
+// A recording is addressed by {sessionId}__{itemId} in the `/api/recordings/{id}` route.
+export const recordingId = (sessionId: string, itemId: string): string =>
+  `${sessionId}__${itemId}`;
 
 export function parseRecordingId(
   id: string,
-): { sessionId: string; cmId: number } | null {
+): { sessionId: string; itemId: string } | null {
   const sep = id.lastIndexOf("__");
   if (sep <= 0) return null;
   const sessionId = id.slice(0, sep);
-  const cmId = Number(id.slice(sep + 2));
-  if (!sessionId || !Number.isInteger(cmId)) return null;
-  return { sessionId, cmId };
+  const itemId = id.slice(sep + 2);
+  if (!sessionId || !ITEM_ID_RE.test(itemId)) return null;
+  return { sessionId, itemId };
+}
+
+/** Ítem de una grabación guardada: las antiguas solo traen cm_id. */
+export function itemIdDeGrabacion(r: { item_id?: string; cm_id?: number }): string {
+  return r.item_id ?? String(r.cm_id ?? "");
 }
 
 export const annotPk = (annotationId: string): string => `ANNOT#${annotationId}`;
@@ -59,7 +69,9 @@ export interface SessionItem {
   session_id: string;
   user_id: string;
   name: string;
-  task_type: "phonological";
+  /** "phonological" = LSM Corpus (CM); "lexical" = corpus para SignaPlay */
+  task_type: "phonological" | "lexical";
+  corpus?: CorpusId;
   created_at: string;
   device_info?: Record<string, unknown>;
   session_metadata?: Record<string, unknown>;
@@ -73,7 +85,13 @@ export interface RecordingItem {
   gsi1sk: string;
   participant_id: string;
   session_id: string;
-  cm_id: number;
+  /** ver recSk; las grabaciones anteriores a los dos corpus no lo traen */
+  item_id?: string;
+  corpus?: CorpusId;
+  /** LSM Corpus: la configuración de mano grabada */
+  cm_id?: number;
+  /** SignaPlay: la glosa grabada */
+  gloss?: string;
   s3_key: string;
   duration_ms: number;
   recorded_at: string;

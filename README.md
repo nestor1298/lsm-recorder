@@ -41,3 +41,7 @@ En `/annotate` la anotación se lee como canales apilados (una proyección
 de `PSHRSegment[]` por matriz) con zoom y desplazamiento continuos y
 edición de fronteras al milisegundo. Ver
 [docs/timeline-multicanal.md](docs/timeline-multicanal.md).
+
+## Dos corpus en Grabar
+
+Grabar empieza eligiendo entre el LSM Corpus (101 configuraciones de mano) y el corpus para SignaPlay (121 señas del nivel preescolar). Datos, llaves y compatibilidad en [docs/dos-corpus.md](docs/dos-corpus.md).
