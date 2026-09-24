@@ -48,7 +48,21 @@ cambian.
 
 `/` ya no es un tablero. Explica el camino (grabar → anotar → corpus →
 aprender y jugar), presenta los dos corpus y recuerda que los videos son
-de quien los graba. La marca «LSM CORPUS» (`MarcaLSMCorpus`) viene de
-`lsmcorpus.svg` (iDraw): cada letra existe en trazo fino y grueso, y la
-animación los cruza letra por letra; con `prefers-reduced-motion` queda
-fija en trazo grueso.
+de quien los graba.
+
+**Marca «LSM CORPUS»** (`MarcaLSMCorpus`): letras en verde (Access Green)
+sobre tarjeta blanca, con la coreografía del diseño «LSM Corpus
+Animation» (bucle de 10.4 s): intro en la que cada letra dibuja su
+contorno y se rellena → la marca compacta se sostiene y respira → cada
+letra se desliza y se estira hacia la marca ancha → la ancha se sostiene
+mientras la O se asienta → regreso a la compacta → salida. Las dos
+versiones de cada letra (compacta y ancha) vienen de `lsmcorpus.svg`; la
+transformación interpola la caja de cada letra y cruza la opacidad. Se
+anima con `requestAnimationFrame` escribiendo atributos, se pausa fuera
+de pantalla y con `prefers-reduced-motion` queda fija en la compacta. En
+tarjetas y listas (`animada={false}`) se muestra la compacta fija.
+
+**Marca SignaPlay** (`MarcaSignaPlay`): el wordmark vectorial de
+`signaplay.pdf` («Signa» en #f7931d, «Play» en #fab14b, anchos de letra
+variables) aplanado a `signaplay_glifos.ts` con pdftocairo, sobre la
+misma tarjeta blanca.

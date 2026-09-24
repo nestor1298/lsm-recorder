@@ -1,53 +1,37 @@
 /**
- * MarcaSignaPlay — mosaico del corpus para SignaPlay, hermano visual de la
- * marca LSM CORPUS: mismo cuadro, colores de la app (naranja y azul de
- * SignaPlay) y el nombre del nivel.
+ * MarcaSignaPlay — el wordmark de SignaPlay (signaplay.pdf) sobre tarjeta
+ * blanca, hermano de la marca LSM CORPUS: «Signa» en naranja intenso,
+ * «Play» en naranja claro, con letras de anchos variables. SVG en línea,
+ * nítido a cualquier tamaño.
  */
 
-// Colores de la app SignaPlay (Tokens.swift / signaplay_prek_content.json),
-// declarados como tokens en globals.css: no son del sistema OtherAI.
-const NARANJA = "var(--color-signaplay)";
-const AZUL = "var(--color-signaplay-azul)";
+import { GLIFOS_SIGNAPLAY, VISTA_SIGNAPLAY } from "./signaplay_glifos";
+
+const LADO = 225;
 
 export default function MarcaSignaPlay({
   className = "",
 }: {
   className?: string;
 }) {
+  // El wordmark se centra en la tarjeta cuadrada con un margen del 10 %
+  const [vx, vy, vw, vh] = VISTA_SIGNAPLAY;
+  const margen = LADO * 0.1;
+  const escala = Math.min((LADO - 2 * margen) / vw, (LADO - 2 * margen) / vh);
+  const dx = (LADO - vw * escala) / 2 - vx * escala;
+  const dy = (LADO - vh * escala) / 2 - vy * escala;
   return (
     <svg
-      viewBox="0 0 225 225"
+      viewBox={`0 0 ${LADO} ${LADO}`}
       role="img"
       aria-label="Corpus para SignaPlay, nivel preescolar"
       className={`block aspect-square ${className}`}
     >
-      <rect width="225" height="225" fill={NARANJA} />
-      <text
-        x="27"
-        y="96"
-        fill="#fff"
-        fontFamily="var(--font-display), system-ui, sans-serif"
-        fontWeight="800"
-        fontSize="54"
-        letterSpacing="-2"
-      >
-        Signa
-      </text>
-      <text
-        x="27"
-        y="150"
-        fill="#fff"
-        fontFamily="var(--font-display), system-ui, sans-serif"
-        fontWeight="800"
-        fontSize="54"
-        letterSpacing="-2"
-      >
-        Play
-      </text>
-      {/* el sobre del cartero: «El Correo de Lexsi» */}
-      <g transform="translate(150 158)">
-        <rect width="48" height="34" rx="5" fill={AZUL} />
-        <path d="M0 6 L24 24 L48 6" fill="none" stroke="#fff" strokeWidth="4" strokeLinejoin="round" />
+      <rect width={LADO} height={LADO} fill="#fff" />
+      <g transform={`translate(${dx.toFixed(3)} ${dy.toFixed(3)}) scale(${escala.toFixed(5)})`}>
+        {GLIFOS_SIGNAPLAY.map((g, i) => (
+          <path key={i} d={g.d} fill={g.fill} />
+        ))}
       </g>
     </svg>
   );

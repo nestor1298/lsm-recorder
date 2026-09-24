@@ -621,6 +621,33 @@ const _tBrazo = new THREE.Quaternion();
 const _tAntebrazo = new THREE.Quaternion();
 const _tMano = new THREE.Quaternion();
 
+// ── Dinámica de la cara ──────────────────────────────────────────
+
+/** Duración del cambio de expresión (cejas, boca, ojos). */
+const CARA_TRANSICION_S = 0.42;
+/** Entrada de un gesto de cabeza (inclinar, empezar a asentir). */
+const CABEZA_TRANSICION_S = 0.35;
+
+/** Suavizado de entrada y salida (smoothstep) para 0 ≤ x ≤ 1. */
+function suavizar(x: number): number {
+  const c = Math.min(1, Math.max(0, x));
+  return c * c * (3 - 2 * c);
+}
+
+/**
+ * Gesto repetido: dos vaivenes seguidos y una pausa, en bucle. Arranca
+ * desde cero (el primer movimiento sale del reposo) y cada ráfaga entra
+ * y sale con suavidad para que no se sienta mecánico.
+ */
+function oscilacionGesto(s: number, hz: number): number {
+  const activo = 2 / hz; // dos ciclos
+  const pausa = 0.7;
+  const fase = s % (activo + pausa);
+  if (fase >= activo) return 0;
+  const envolvente = Math.sin((Math.PI * fase) / activo); // 0 → 1 → 0
+  return Math.sin(2 * Math.PI * hz * fase) * envolvente;
+}
+
 // ── Temp animation variables ─────────────────────────────────────
 
 const _headEuler = new THREE.Euler();
@@ -675,16 +702,16 @@ function rnmToMorphWeights(
       set("browInnerUpR", 0.9);
       set("browOuterUpL", 0.7);
       set("browOuterUpR", 0.7);
-      set("eyeWidenUpperL", 0.9);
-      set("eyeWidenUpperR", 0.9);
+      set("eyeWidenUpperL", 0.55);
+      set("eyeWidenUpperR", 0.55);
       break;
     case "FURROWED":
       set("browInnerDnL", 0.8);
       set("browInnerDnR", 0.8);
       set("browSqueezeL", 0.7);
       set("browSqueezeR", 0.7);
-      set("eyeSquintL", 0.85);
-      set("eyeSquintR", 0.85);
+      set("eyeSquintL", 0.55);
+      set("eyeSquintR", 0.55);
       break;
   }
 
@@ -1603,6 +1630,27 @@ export default function AvatarModel({
     return morphMaps.map((mm) => rnmToMorphWeights(rnm, mm));
   }, [rnm, morphMaps]);
 
+  // Transición facial: de qué pesos se parte y cuándo empezó. Se reinicia
+  // cada vez que cambian los pesos objetivo (ver useFrame).
+  const caraRef = useRef<{
+    objetivo: unknown;
+    inicio: number;
+    desde: Float32Array[];
+  }>({ objetivo: null, inicio: -1, desde: [] });
+  // Gesto de cabeza: cuándo empezó (la oscilación arranca desde el reposo)
+  // y de qué rotación se parte.
+  const cabezaRef = useRef<{
+    gesto: string | null;
+    inicio: number;
+    desdeCabeza: THREE.Quaternion;
+    desdeCuello: THREE.Quaternion;
+  }>({
+    gesto: null,
+    inicio: -1,
+    desdeCabeza: new THREE.Quaternion(),
+    desdeCuello: new THREE.Quaternion(),
+  });
+
   // Selected UB code (from props or 3D click)
   // Use explicit selectedUBCode prop if provided, otherwise fall back to ubLocation
   const selectedUBCode = selectedUBCodeProp ?? ubLocation?.code ?? null;
@@ -1817,65 +1865,85 @@ export default function AvatarModel({
     const t = rs.clock.elapsedTime;
 
     // ─ RNM: Morph target animation (blendshapes) — every morph primitive ─
-    for (let m = 0; m < morphMeshesRef.current.length; m++) {
-      const influences = morphMeshesRef.current[m].morphTargetInfluences;
-      if (!influences) continue;
-      const targets = targetMorphWeights[m] ?? {};
-      for (let i = 0; i < influences.length; i++) {
-        const target = targets[i] ?? 0;
-        influences[i] += (target - influences[i]) * factor * 3;
-        if (Math.abs(influences[i]) < 0.001) influences[i] = 0;
+    // Transición con tiempo y suavizado, en dos fases: primero se sueltan
+    // los rasgos que bajan y después entran los que suben. Así las cejas
+    // no están arriba y fruncidas a la vez a mitad del cambio, ni los ojos
+    // abiertos y entrecerrados al mismo tiempo.
+    {
+      const cara = caraRef.current;
+      const mallas = morphMeshesRef.current;
+      if (cara.objetivo !== targetMorphWeights || cara.desde.length !== mallas.length) {
+        cara.objetivo = targetMorphWeights;
+        cara.inicio = t;
+        cara.desde = mallas.map((m) =>
+          Float32Array.from(m.morphTargetInfluences ?? []),
+        );
+      }
+      const p = Math.min(1, (t - cara.inicio) / CARA_TRANSICION_S);
+      // fase de soltar: 0 → 0.5; fase de entrar: 0.35 → 1 (se traslapan un poco)
+      const qSoltar = suavizar(Math.min(1, p / 0.5));
+      const qEntrar = suavizar(Math.max(0, (p - 0.35) / 0.65));
+      for (let m = 0; m < mallas.length; m++) {
+        const influences = mallas[m].morphTargetInfluences;
+        const desde = cara.desde[m];
+        if (!influences || !desde) continue;
+        const targets = targetMorphWeights[m] ?? {};
+        for (let i = 0; i < influences.length; i++) {
+          const target = targets[i] ?? 0;
+          const d = desde[i] ?? 0;
+          const q = target < d ? qSoltar : qEntrar;
+          const v = d + (target - d) * q;
+          influences[i] = Math.abs(v) < 0.001 ? 0 : v;
+        }
       }
     }
 
     // ─ RNM: Head & Neck bone animation ─
-    if (rnm && bones.head && bones.neck) {
+    // Asentir y negar son gestos que empiezan desde el reposo, con entrada
+    // suave, dos vaivenes y una pausa; las inclinaciones llegan con una
+    // transición corta. Sin RNM, la cabeza vuelve al reposo igual.
+    if (bones.head && bones.neck) {
+      const cabeza = cabezaRef.current;
+      const gesto = rnm?.head ?? "NONE";
+      if (cabeza.gesto !== gesto) {
+        cabeza.gesto = gesto;
+        cabeza.inicio = t;
+        cabeza.desdeCabeza.copy(bones.head.quaternion);
+        cabeza.desdeCuello.copy(bones.neck.quaternion);
+      }
+      const desdeInicio = t - cabeza.inicio;
       let headRx = 0,
         headRy = 0,
         headRz = 0;
-      let neckRx = 0,
-        neckRy = 0,
-        neckRz = 0;
-
-      switch (rnm.head) {
+      switch (gesto) {
         case "NOD":
-          headRx = Math.sin(t * 3) * 0.25;
-          neckRx = Math.sin(t * 3) * 0.1;
+          headRx = oscilacionGesto(desdeInicio, 1.1) * 0.16;
           break;
         case "SHAKE":
-          headRy = Math.sin(t * 4) * 0.3;
-          neckRy = Math.sin(t * 4) * 0.1;
+          headRy = oscilacionGesto(desdeInicio, 1.4) * 0.2;
           break;
         case "TILT_LEFT":
           headRz = 0.25;
-          neckRz = 0.08;
           break;
         case "TILT_RIGHT":
           headRz = -0.25;
-          neckRz = -0.08;
           break;
         case "TILT_BACK":
           headRx = -0.3;
-          neckRx = -0.1;
           break;
         case "TILT_DOWN":
           headRx = 0.3;
-          neckRx = 0.1;
           break;
       }
-
+      // el cuello acompaña con un tercio del giro
       _headEuler.set(headRx, headRy, headRz, "XYZ");
-      _headQuat.setFromEuler(_headEuler);
-      _headQuat.premultiply(bindPoses.head);
-      bones.head.quaternion.slerp(_headQuat, factor * 3);
-
-      _neckEuler.set(neckRx, neckRy, neckRz, "XYZ");
-      _neckQuat.setFromEuler(_neckEuler);
-      _neckQuat.premultiply(bindPoses.neck);
-      bones.neck.quaternion.slerp(_neckQuat, factor * 3);
-    } else if (bones.head && bones.neck) {
-      bones.head.quaternion.slerp(bindPoses.head, factor);
-      bones.neck.quaternion.slerp(bindPoses.neck, factor);
+      _headQuat.setFromEuler(_headEuler).premultiply(bindPoses.head);
+      _neckEuler.set(headRx / 3, headRy / 3, headRz / 3, "XYZ");
+      _neckQuat.setFromEuler(_neckEuler).premultiply(bindPoses.neck);
+      // entrada suave desde donde estaba la cabeza al cambiar de gesto
+      const q = suavizar(Math.min(1, desdeInicio / CABEZA_TRANSICION_S));
+      bones.head.quaternion.copy(cabeza.desdeCabeza).slerp(_headQuat, q);
+      bones.neck.quaternion.copy(cabeza.desdeCuello).slerp(_neckQuat, q);
     }
 
     // ─ Determine effective hand mode ─
