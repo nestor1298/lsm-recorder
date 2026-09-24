@@ -4,8 +4,10 @@
  * SignaPlay) y el nombre del nivel.
  */
 
-const NARANJA = "#F97316";
-const AZUL = "#0EA5E9";
+// Colores de la app SignaPlay (Tokens.swift / signaplay_prek_content.json),
+// declarados como tokens en globals.css: no son del sistema OtherAI.
+const NARANJA = "var(--color-signaplay)";
+const AZUL = "var(--color-signaplay-azul)";
 
 export default function MarcaSignaPlay({
   className = "",
@@ -16,7 +18,7 @@ export default function MarcaSignaPlay({
     <svg
       viewBox="0 0 225 225"
       role="img"
-      aria-label="Corpus para SignaPlay"
+      aria-label="Corpus para SignaPlay, nivel preescolar"
       className={`block aspect-square ${className}`}
     >
       <rect width="225" height="225" fill={NARANJA} />
@@ -47,16 +49,6 @@ export default function MarcaSignaPlay({
         <rect width="48" height="34" rx="5" fill={AZUL} />
         <path d="M0 6 L24 24 L48 6" fill="none" stroke="#fff" strokeWidth="4" strokeLinejoin="round" />
       </g>
-      <text
-        x="27"
-        y="192"
-        fill="#fff"
-        fontFamily="var(--font-sans), system-ui, sans-serif"
-        fontWeight="600"
-        fontSize="13"
-      >
-        Preescolar
-      </text>
     </svg>
   );
 }

@@ -1,5 +1,9 @@
 import "server-only";
-import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "./clients";
 
@@ -44,4 +48,24 @@ export async function presignGet(
 ): Promise<string> {
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
   return getSignedUrl(s3Client(), command, { expiresIn: GET_EXPIRY_SECONDS });
+}
+
+/**
+ * ¿Existe ya el objeto en el bucket? Se usa al confirmar una grabación
+ * para no registrar llaves que nunca se subieron. Devuelve `null` cuando
+ * no se pudo saber (permiso o red): quien llama decide si bloquea.
+ */
+export async function existeObjeto(
+  bucket: string,
+  key: string,
+): Promise<boolean | null> {
+  try {
+    await s3Client().send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+    return true;
+  } catch (err) {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+    if (e?.name === "NotFound" || e?.$metadata?.httpStatusCode === 404) return false;
+    console.error("existeObjeto:", e?.name ?? err);
+    return null;
+  }
 }

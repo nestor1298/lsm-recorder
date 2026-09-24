@@ -17,7 +17,7 @@ const PASOS = [
       "Eliges un corpus y la cámara te guía seña por seña. Tú decides quién puede ver tus videos y los puedes retirar cuando quieras.",
     href: "/record",
     enlace: "Ir a grabar",
-    color: "bg-green text-paper",
+    color: "bg-green text-ink",
     icono: (
       <path d="M4 7h3l2-2h6l2 2h3v11H4z M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
     ),
@@ -53,7 +53,7 @@ const PASOS = [
       "Del corpus salen el modo Aprender, para explorar cómo se forma cada seña, y las lecciones de SignaPlay para niñas y niños.",
     href: "/learn",
     enlace: "Ir a aprender",
-    color: "bg-coral text-paper",
+    color: "bg-coral text-ink",
     icono: <path d="M6 4l14 8-14 8z" />,
   },
 ];
@@ -111,8 +111,6 @@ export default function Inicio() {
         </div>
       </section>
 
-      <SesionPendiente />
-
       {/* El camino, en cuatro pasos */}
       <section id="como-funciona" className="space-y-6">
         <div>
@@ -161,8 +159,10 @@ export default function Inicio() {
         </ol>
       </section>
 
-      {/* Los dos corpus */}
+      {/* Los dos corpus (y la sesión a medias, si la hay: aparece al hidratar,
+          aquí abajo no desplaza la portada) */}
       <section className="space-y-6">
+        <SesionPendiente />
         <div>
           <p className="overline-label text-gray-500">Dos corpus, dos caminos</p>
           <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.02em] text-ink">

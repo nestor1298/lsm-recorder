@@ -41,24 +41,24 @@ export default function TarjetaCorpus({
   const info = CORPUS_INFO[corpus];
   const cuerpo = (
     <>
-      <MarcaCorpus
-        corpus={corpus}
-        className="w-24 shrink-0 rounded-xl shadow-card sm:w-28"
-        animada={corpus === "lsm"}
-      />
-      <div className="min-w-0 flex-1">
-        <p className="overline-label text-gray-500">{info.lema}</p>
-        <h3 className="mt-1 font-display text-xl font-bold text-ink">
+      {/* la marca late solo en la portada; aquí queda fija para no duplicar animación */}
+      <span aria-hidden className="w-24 shrink-0 sm:w-28">
+        <MarcaCorpus corpus={corpus} className="rounded-xl shadow-card" />
+      </span>
+      {/* solo contenido de frase: la tarjeta puede ser un <button> */}
+      <span className="block min-w-0 flex-1">
+        <span className="overline-label block text-gray-500">{info.lema}</span>
+        <span className="mt-1 block font-display text-xl font-bold text-ink">
           {info.nombre}
-        </h3>
-        <p className="mt-2 text-sm text-gray-600">{info.descripcion}</p>
-        <p className="mt-3 text-sm font-semibold text-ink">
+        </span>
+        <span className="mt-2 block text-sm text-gray-600">{info.descripcion}</span>
+        <span className="mt-3 block text-sm font-semibold text-ink">
           {info.total} señas
           <span className="ml-3 font-medium text-accent-deep group-hover:underline">
             {accion} →
           </span>
-        </p>
-      </div>
+        </span>
+      </span>
     </>
   );
   const clase =

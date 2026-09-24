@@ -39,7 +39,7 @@ export default function PromptSignaPlay({
   return (
     <div className="rounded-xl border border-gold-tint bg-gold-tint p-6">
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-medium text-gold-deep">
+        <span className="text-sm font-medium text-gray-700">
           Seña {index + 1} de {total}
         </span>
         <div className="mx-4 h-2 flex-1 overflow-hidden rounded-full bg-paper">

@@ -1,4 +1,4 @@
-import { ITEM_ID_RE, type CorpusId } from "./keys";
+import { ITEM_ID_RE, SESSION_ID_RE, type CorpusId } from "./keys";
 
 /**
  * Ítem de grabación pedido por el cliente. Acepta `itemId` (string) y, por
@@ -8,8 +8,16 @@ export function leerItemId(body: unknown): string | null {
   const b = body as { itemId?: unknown; cmId?: unknown } | null;
   if (!b) return null;
   if (typeof b.itemId === "string" && ITEM_ID_RE.test(b.itemId)) return b.itemId;
-  if (Number.isInteger(b.cmId)) return String(b.cmId);
+  if (typeof b.cmId === "number" && Number.isSafeInteger(b.cmId) && b.cmId >= 0) {
+    const id = String(b.cmId);
+    return ITEM_ID_RE.test(id) ? id : null;
+  }
   return null;
+}
+
+export function leerSessionId(body: unknown): string | null {
+  const v = (body as { sessionId?: unknown } | null)?.sessionId;
+  return typeof v === "string" && SESSION_ID_RE.test(v) ? v : null;
 }
 
 export function leerCorpus(body: unknown): CorpusId {

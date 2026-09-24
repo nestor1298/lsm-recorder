@@ -44,6 +44,9 @@
   --color-coral: #ff5a3c; /* Care Coral */
   --color-coral-deep: #d93a20;
   --color-coral-tint: #ffe5df;
+  /* Marca de la app SignaPlay (no forman parte del sistema OtherAI) */
+  --color-signaplay: #f97316;
+  --color-signaplay-azul: #0ea5e9;
 
   /* Tipografía: SF Pro vía stack de sistema; Inter/Roboto Mono de respaldo */
   --font-sans:

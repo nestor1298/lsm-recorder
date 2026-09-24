@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ITEM_ID_RE,
   itemIdDeGrabacion,
   parseRecordingId,
   recordingId,
@@ -21,6 +22,16 @@ describe("llaves de grabación", () => {
         itemId: item,
       });
     }
+  });
+
+  it("rechaza ítems con «__» o que empiezan con «_»: romperían recordingId", () => {
+    expect(ITEM_ID_RE.test("A__B")).toBe(false);
+    expect(ITEM_ID_RE.test("_X")).toBe(false);
+    expect(ITEM_ID_RE.test("POR_FAVOR")).toBe(true);
+    expect(ITEM_ID_RE.test("BUENAS-NOCHES")).toBe(true);
+    expect(ITEM_ID_RE.test("12")).toBe(true);
+    expect(ITEM_ID_RE.test("a".repeat(64))).toBe(true);
+    expect(ITEM_ID_RE.test("a".repeat(65))).toBe(false);
   });
 
   it("rechaza ids sin sesión o con caracteres peligrosos", () => {

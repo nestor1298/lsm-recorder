@@ -6,7 +6,7 @@ import {
   ALLOWED_VIDEO_TYPES,
 } from "@/lib/aws/s3";
 import { awsEnv } from "@/lib/aws/env";
-import { leerItemId } from "@/lib/aws/item";
+import { leerItemId, leerSessionId } from "@/lib/aws/item";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,9 +21,9 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  const sessionId = body?.sessionId;
+  const sessionId = leerSessionId(body);
   const itemId = leerItemId(body);
-  if (typeof sessionId !== "string" || !itemId) {
+  if (!sessionId || !itemId) {
     return Response.json(
       { error: "sessionId (string) e itemId (letras, dígitos, - y _) son requeridos" },
       { status: 400 },

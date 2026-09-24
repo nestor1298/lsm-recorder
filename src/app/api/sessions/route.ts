@@ -1,6 +1,6 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import { getParticipant, putSession } from "@/lib/aws/repo";
-import { leerCorpus } from "@/lib/aws/item";
+import { leerCorpus, leerSessionId } from "@/lib/aws/item";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +15,8 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  if (
-    !body ||
-    typeof body.sessionId !== "string" ||
-    typeof body.name !== "string"
-  ) {
+  const sessionId = leerSessionId(body);
+  if (!body || !sessionId || typeof body.name !== "string") {
     return Response.json(
       { error: "sessionId y name son requeridos" },
       { status: 400 },
@@ -36,7 +33,7 @@ export async function POST(req: Request) {
   }
 
   const session = await putSession(user.userId, {
-    sessionId: body.sessionId,
+    sessionId,
     name: body.name,
     corpus: leerCorpus(body),
     deviceInfo:

@@ -40,7 +40,14 @@ export default function MisGrabacionesPage() {
       const data = await getJson<{ recordings: RecordingRow[] }>(
         "/api/recordings",
       );
-      setRows(data.recordings);
+      // filas de un servidor anterior a los dos corpus: solo traen cmId
+      setRows(
+        data.recordings.map((r) => ({
+          ...r,
+          corpus: r.corpus ?? "lsm",
+          itemId: r.itemId ?? String(r.cmId ?? ""),
+        })),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar");
     } finally {

@@ -17,7 +17,12 @@ export const sessSk = (sessionId: string): string => `SESS#${sessionId}`;
 // corpus para SignaPlay). Las grabaciones anteriores usaban el número de
 // CM tal cual, así que sus llaves REC#12 siguen siendo válidas.
 export type CorpusId = "lsm" | "signaplay";
-export const ITEM_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+// Letras, dígitos, guion y guion bajo; empieza con letra o dígito y nunca
+// lleva "__": ese es el separador de recordingId, y con él dentro del ítem
+// parseRecordingId partiría la llave por el lugar equivocado.
+export const ITEM_ID_RE = /^(?!.*__)[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+// Id de sesión: UUID del cliente (crypto.randomUUID); sin "/", "#" ni "__".
+export const SESSION_ID_RE = /^(?!.*__)[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 export const recSk = (itemId: string): string => `REC#${itemId}`;
 export const recGsi1Sk = (recordedAt: string): string => `REC#${recordedAt}`;
 

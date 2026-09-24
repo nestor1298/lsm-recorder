@@ -56,7 +56,7 @@ export function createSession(
     signs: itemIds.map((item_id) => ({
       item_id,
       // en el LSM Corpus el ítem es el número de la CM
-      ...(corpus === "lsm" && Number.isInteger(Number(item_id))
+      ...(corpus === "lsm" && /^\d{1,3}$/.test(item_id)
         ? { cm_id: Number(item_id) }
         : {}),
       recorded_at: "",

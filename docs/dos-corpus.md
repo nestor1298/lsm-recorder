@@ -33,7 +33,13 @@ lección; entra al final de «todas las rutas».
   `.webm`, así que los mp4 subidos no se confirmaban).
 - API: `itemId` (string) sustituye a `cmId`; los clientes anteriores que
   manden `cmId` entero siguen funcionando (`leerItemId`). Los ids de
-  `/api/recordings/{id}` son `{sessionId}__{itemId}`.
+  `/api/recordings/{id}` son `{sessionId}__{itemId}`; por eso ni el ítem ni
+  la sesión pueden llevar `__` ni empezar con `_` o `-` (`ITEM_ID_RE`,
+  `SESSION_ID_RE`).
+- La confirmación no confía en el cliente: el ítem tiene que existir en el
+  corpus indicado (CM del inventario o glosa del banco), la glosa y la CM
+  se derivan en el servidor, y la llave tiene que existir ya en S3
+  (`HeadObject`; si S3 no responde, no se bloquea).
 
 No hay cambios en `infra/`: la tabla es de esquema libre y los índices no
 cambian.

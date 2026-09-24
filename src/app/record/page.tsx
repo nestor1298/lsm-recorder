@@ -33,6 +33,7 @@ import {
 } from "@/lib/corpus";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchMe, postJson } from "@/lib/api-client";
+import { guardarVolverA } from "@/lib/volver_a";
 import SignPrompt from "@/components/SignPrompt";
 import PromptSignaPlay from "@/components/grabar/PromptSignaPlay";
 import TarjetaCorpus, { MarcaCorpus } from "@/components/grabar/TarjetaCorpus";
@@ -94,8 +95,13 @@ function RecordPageInner() {
   // ── Gate: require sign-in + granted consent ──────────────────────────────
   useEffect(() => {
     if (authState === "loading") return;
+    // Guardar a dónde volver: el corpus elegido en Inicio (?corpus=) o la
+    // sesión a retomar (?session=) sobreviven al inicio de sesión.
+    const volver = () =>
+      guardarVolverA(window.location.pathname + window.location.search);
     if (authState === "signedOut") {
       setGate("redirecting");
+      volver();
       router.replace("/auth");
       return;
     }
@@ -105,6 +111,7 @@ function RecordPageInner() {
         if (!active) return;
         if (me.consentStatus !== "granted") {
           setGate("redirecting");
+          volver();
           router.replace("/consentimiento");
         } else {
           setGate("ok");
@@ -562,13 +569,14 @@ function RecordPageInner() {
           </div>
 
           {corpus === "lsm" ? (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+            <div role="group" aria-labelledby="nivel-frecuencia">
+              <p id="nivel-frecuencia" className="mb-2 block text-sm font-medium text-gray-700">
                 Nivel de frecuencia
-              </label>
+              </p>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedTier(null)}
+                  aria-pressed={selectedTier === null}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     selectedTier === null
                       ? "bg-ink text-white"
@@ -585,6 +593,7 @@ function RecordPageInner() {
                     <button
                       key={tier}
                       onClick={() => setSelectedTier(tier)}
+                      aria-pressed={selectedTier === tier}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         selectedTier === tier
                           ? "bg-ink text-white"
@@ -598,13 +607,14 @@ function RecordPageInner() {
               </div>
             </div>
           ) : (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+            <div role="group" aria-labelledby="ruta-signaplay">
+              <p id="ruta-signaplay" className="mb-2 block text-sm font-medium text-gray-700">
                 Ruta de SignaPlay
-              </label>
+              </p>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedUnidad(null)}
+                  aria-pressed={selectedUnidad === null}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     selectedUnidad === null
                       ? "bg-ink text-white"
@@ -619,6 +629,7 @@ function RecordPageInner() {
                     <button
                       key={u.id}
                       onClick={() => setSelectedUnidad(u.numero)}
+                      aria-pressed={selectedUnidad === u.numero}
                       title={u.concepto}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         selectedUnidad === u.numero
@@ -636,7 +647,7 @@ function RecordPageInner() {
                 {itemsNuevos.slice(0, 40).map((id) => (
                   <span
                     key={id}
-                    className="rounded-full bg-gold-tint px-2.5 py-0.5 text-xs font-semibold text-gold-deep"
+                    className="rounded-full bg-gold-tint px-2.5 py-0.5 text-xs font-semibold text-ink"
                   >
                     {describirItem("signaplay", id).titulo}
                   </span>
@@ -754,6 +765,7 @@ function RecordPageInner() {
           onClick={() => {
             setView("setup");
             setSession(null);
+            setCorpus(null);
           }}
           className="mt-4 rounded-full bg-ink px-6 py-2 text-white"
         >
@@ -781,6 +793,7 @@ function RecordPageInner() {
           onClick={() => {
             setView("setup");
             setSession(null);
+            setCorpus(null);
           }}
           className="shrink-0 rounded-full bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
         >
@@ -906,7 +919,7 @@ function RecordPageInner() {
         )}
       </div>
 
-      <p className="text-center text-xs text-gray-400">
+      <p className="text-center text-sm text-gray-600">
         <Link href="/mis-grabaciones" className="underline-offset-2 hover:underline">
           Ver mis grabaciones
         </Link>
