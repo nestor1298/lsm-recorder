@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { tomarVolverA } from "@/lib/volver_a";
 import { useRouter } from "next/navigation";
 import LSMVideoSlot from "@/components/LSMVideoSlot";
 import { useAuth } from "@/hooks/useAuth";
@@ -117,7 +118,7 @@ export default function PerfilPage() {
         audicion: audicion || undefined,
         participacion_comunidad: comunidad || undefined,
       });
-      router.push("/record");
+      router.push(tomarVolverA() ?? "/record");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al guardar");
     } finally {

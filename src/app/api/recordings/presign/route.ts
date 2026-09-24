@@ -6,6 +6,7 @@ import {
   ALLOWED_VIDEO_TYPES,
 } from "@/lib/aws/s3";
 import { awsEnv } from "@/lib/aws/env";
+import { leerItemId, leerSessionId } from "@/lib/aws/item";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,11 +21,11 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  const sessionId = body?.sessionId;
-  const cmId = body?.cmId;
-  if (typeof sessionId !== "string" || !Number.isInteger(cmId)) {
+  const sessionId = leerSessionId(body);
+  const itemId = leerItemId(body);
+  if (!sessionId || !itemId) {
     return Response.json(
-      { error: "sessionId (string) y cmId (entero) son requeridos" },
+      { error: "sessionId (string) e itemId (letras, dígitos, - y _) son requeridos" },
       { status: 400 },
     );
   }
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
   }
 
   // Key is always prefixed with the caller's userId — the API is the boundary.
-  const key = `${user.userId}/${sessionId}/${cmId}.${ext}`;
+  const key = `${user.userId}/${sessionId}/${itemId}.${ext}`;
   const url = await presignVideoPut(awsEnv.recordingsBucket(), key, contentType);
 
   return Response.json({ url, key, contentType });

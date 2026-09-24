@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { migrateAnnotation, exportAnnotationAsLSMPN } from "./store";
-import type { SignAnnotation } from "./types";
+import {
+  migrateAnnotation,
+  exportAnnotationAsLSMPN,
+  migrateSession,
+} from "./store";
+import type { RecordingSession, SignAnnotation } from "./types";
 
 const base: SignAnnotation = {
   id: "a",
@@ -43,5 +47,30 @@ describe("export LSM-PN 1.1", () => {
     const out = exportAnnotationAsLSMPN(base) as Record<string, unknown>;
     expect(out.schema_version).toBe("1.1");
     expect(out.esquema).toBe("MD");
+  });
+});
+
+describe("migración de sesiones a los dos corpus", () => {
+  it("una sesión antigua (solo cm_id) queda como LSM Corpus con item_id", () => {
+    const vieja = {
+      id: "s",
+      name: "vieja",
+      created_at: "",
+      signs: [{ cm_id: 12, recorded_at: "", duration_ms: 0, status: "pending" }],
+    } as unknown as RecordingSession;
+    const m = migrateSession(vieja);
+    expect(m.corpus).toBe("lsm");
+    expect(m.signs[0].item_id).toBe("12");
+    expect(m.signs[0].cm_id).toBe(12);
+  });
+  it("una sesión nueva no cambia", () => {
+    const nueva: RecordingSession = {
+      id: "s",
+      name: "n",
+      created_at: "",
+      corpus: "signaplay",
+      signs: [{ item_id: "HOLA", recorded_at: "", duration_ms: 0, status: "pending" }],
+    };
+    expect(migrateSession(nueva)).toEqual(nueva);
   });
 });

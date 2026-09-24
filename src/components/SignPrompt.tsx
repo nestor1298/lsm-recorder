@@ -9,12 +9,36 @@ interface SignPromptProps {
   total: number;
 }
 
+// Rasgos de la CM en lenguaje llano (los valores del esquema están en inglés)
+const FLEXION_ES: Record<string, string> = {
+  EXTENDED: "extendido",
+  CURVED: "curvado",
+  BENT: "doblado",
+  CLOSED: "cerrado",
+};
+const OPOSICION_ES: Record<string, string> = {
+  OPPOSED: "opuesto",
+  PARALLEL: "paralelo",
+  CROSSED: "cruzado",
+};
+const SEPARACION_ES: Record<string, string> = {
+  NEUTRAL: "neutra",
+  SPREAD: "separados",
+};
+const INTERACCION_ES: Record<string, string> = {
+  NONE: "ninguna",
+  CROSSED: "cruzados",
+  STACKED: "apilados",
+};
+const es = (tabla: Record<string, string>, v: string) =>
+  tabla[v] ?? v.toLowerCase();
+
 export default function SignPrompt({ cm, index, total }: SignPromptProps) {
   const tierClass = TIER_COLORS[cm.frequency_tier];
 
   const fingerLabels = ["Índice", "Medio", "Anular", "Meñique"];
   const fingerStates = [cm.index, cm.middle, cm.ring, cm.pinky];
-  const thumbLabel = `${cm.thumb_opposition.toLowerCase()}, ${cm.thumb_flexion.toLowerCase()}`;
+  const thumbLabel = `${es(OPOSICION_ES, cm.thumb_opposition)}, ${es(FLEXION_ES, cm.thumb_flexion)}`;
 
   return (
     <div className="rounded-xl border border-accent-tint bg-accent-tint p-6">
@@ -75,7 +99,7 @@ export default function SignPrompt({ cm, index, total }: SignPromptProps) {
                     {label} {isSelected && "*"}
                   </span>
                   <span className="font-mono text-xs">
-                    {fingerStates[i].toLowerCase()}
+                    {es(FLEXION_ES, fingerStates[i])}
                   </span>
                 </div>
               );
@@ -96,14 +120,14 @@ export default function SignPrompt({ cm, index, total }: SignPromptProps) {
             <div className="flex justify-between">
               <span className="text-gray-600">Separación</span>
               <span className="font-mono text-xs text-ink">
-                {cm.spread.toLowerCase()}
+                {es(SEPARACION_ES, cm.spread)}
               </span>
             </div>
             {cm.interaction !== "NONE" && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Interacción</span>
                 <span className="font-mono text-xs text-ink">
-                  {cm.interaction.toLowerCase()}
+                  {es(INTERACCION_ES, cm.interaction)}
                 </span>
               </div>
             )}

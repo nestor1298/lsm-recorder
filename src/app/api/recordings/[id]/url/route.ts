@@ -28,7 +28,7 @@ export async function GET(
   const recording = await getOwnedRecording(
     user.userId,
     parsed.sessionId,
-    parsed.cmId,
+    parsed.itemId,
   );
   if (!recording) {
     return Response.json({ error: "No encontrado" }, { status: 404 });

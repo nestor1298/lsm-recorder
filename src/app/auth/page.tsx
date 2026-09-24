@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { tomarVolverA } from "@/lib/volver_a";
 import { useRouter } from "next/navigation";
 import {
   startEmailOtp,
@@ -24,7 +25,7 @@ export default function AuthPage() {
     (me: MeResponse) => {
       if (me.consentStatus !== "granted") router.push("/consentimiento");
       else if (!me.hasMetadata) router.push("/perfil");
-      else router.push("/record");
+      else router.push(tomarVolverA() ?? "/record");
     },
     [router],
   );

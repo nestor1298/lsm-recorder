@@ -1,0 +1,1507 @@
+{
+ "fuente": {
+  "archivo": "SignaPlay-PreK/Resources/signaplay_prek_content.json",
+  "contentVersion": "2.0.0",
+  "nivel": "Pre-K — El Correo de Lexsi",
+  "edades": "4-5"
+ },
+ "unidades": [
+  {
+   "numero": 1,
+   "id": "prek-u1",
+   "nombre": "Ruta 1 · El primer día",
+   "concepto": "Antes de nombrar nada, hay que poder pedir, aceptar y negarse. Estas nueve señas son las que dejan al niño actuar sobre el mundo, y son las más frecuentes de todo el corpus.",
+   "lecciones": [
+    {
+     "numero": "1.1",
+     "titulo": "Sí, no y más",
+     "senas": [
+      "SI",
+      "NO",
+      "MAS"
+     ]
+    },
+    {
+     "numero": "1.2",
+     "titulo": "Ayúdame, dame, ya terminé",
+     "senas": [
+      "AYUDAR",
+      "DAR",
+      "YA_TERMINE"
+     ]
+    },
+    {
+     "numero": "1.3",
+     "titulo": "Mira, quiero, me gusta",
+     "senas": [
+      "MIRAR",
+      "QUERER",
+      "GUSTAR"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 2,
+   "id": "prek-u2",
+   "nombre": "Ruta 2 · La plaza",
+   "concepto": "Tu primer día como cartero ayudante del pueblo. Aquí ningún recado se entrega sin saludar primero.",
+   "lecciones": [
+    {
+     "numero": "2.1",
+     "titulo": "Tu primer recado",
+     "senas": [
+      "HOLA",
+      "ADIOS",
+      "AMIGO"
+     ]
+    },
+    {
+     "numero": "2.2",
+     "titulo": "Recados de cortesía",
+     "senas": [
+      "GRACIAS",
+      "POR_FAVOR",
+      "PERDON"
+     ]
+    },
+    {
+     "numero": "2.3",
+     "titulo": "La plaza a toda hora",
+     "senas": [
+      "BUENOS_DIAS",
+      "BUENAS_TARDES",
+      "BUENAS_NOCHES",
+      "BIEN"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 3,
+   "id": "prek-u3",
+   "nombre": "Ruta 3 · La oficina y la escuela",
+   "concepto": "En este pueblo la seña-nombre es la dirección: sin ella, un recado no sabe a quién va.",
+   "lecciones": [
+    {
+     "numero": "3.1",
+     "titulo": "¿De quién y para quién?",
+     "senas": [
+      "YO",
+      "TU",
+      "NOMBRE"
+     ]
+    },
+    {
+     "numero": "3.2",
+     "titulo": "La oficina de correos",
+     "senas": [
+      "SENA",
+      "LENGUA_DE_SENAS",
+      "SORDO"
+     ]
+    },
+    {
+     "numero": "3.3",
+     "titulo": "Reparto en la escuela",
+     "senas": [
+      "PERSONA",
+      "MAESTRA",
+      "MAESTRO",
+      "ESCUELA",
+      "CLASE",
+      "MOCHILA",
+      "LAPIZ"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 4,
+   "id": "prek-u4",
+   "nombre": "Ruta 4 · Las casas",
+   "concepto": "Dónde empieza la seña en la cara dice si el recado es para él o para ella. Es la regla que ordena medio pueblo.",
+   "lecciones": [
+    {
+     "numero": "4.1",
+     "titulo": "La casa de la familia",
+     "senas": [
+      "MAMA",
+      "PAPA",
+      "FAMILIA"
+     ]
+    },
+    {
+     "numero": "4.2",
+     "titulo": "¿A quién de la casa?",
+     "senas": [
+      "HIJO",
+      "HIJA",
+      "HERMANO",
+      "HERMANA"
+     ]
+    },
+    {
+     "numero": "4.3",
+     "titulo": "La casa de los abuelos",
+     "senas": [
+      "ABUELO",
+      "ABUELA",
+      "BEBE",
+      "CASA"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 5,
+   "id": "prek-u5",
+   "nombre": "Ruta 5 · La calle de colores",
+   "concepto": "Las puertas del pueblo se distinguen por color. Cada color tiene su propia forma de mano.",
+   "lecciones": [
+    {
+     "numero": "5.1",
+     "titulo": "La puerta roja, la azul, la verde",
+     "senas": [
+      "COLOR",
+      "ROJO",
+      "AZUL",
+      "VERDE"
+     ]
+    },
+    {
+     "numero": "5.2",
+     "titulo": "Más puertas, más colores",
+     "senas": [
+      "AMARILLO",
+      "BLANCO",
+      "NEGRO",
+      "CAFE"
+     ]
+    },
+    {
+     "numero": "5.3",
+     "titulo": "La calle entera",
+     "senas": [
+      "ROSA",
+      "NARANJA",
+      "MORADO",
+      "FAVORITO"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 6,
+   "id": "prek-u6",
+   "nombre": "Ruta 6 · Los números de las puertas",
+   "concepto": "Los números marcan las puertas, y cuando te pierdes solo queda una salida: preguntar.",
+   "lecciones": [
+    {
+     "numero": "6.1",
+     "titulo": "Puertas 1, 2 y 3",
+     "senas": [
+      "UNO",
+      "DOS",
+      "TRES"
+     ]
+    },
+    {
+     "numero": "6.2",
+     "titulo": "Contar los recados",
+     "senas": [
+      "CUATRO",
+      "CINCO",
+      "CONTAR"
+     ]
+    },
+    {
+     "numero": "6.3",
+     "titulo": "Preguntar cuando te pierdes",
+     "senas": [
+      "CUANTOS",
+      "NUMERO",
+      "QUE",
+      "COMO"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 7,
+   "id": "prek-u7",
+   "nombre": "Ruta 7 · Retratos",
+   "concepto": "En el pueblo a la gente se le encuentra por cómo es. Describir un cuerpo es saber a quién buscas.",
+   "lecciones": [
+    {
+     "numero": "7.1",
+     "titulo": "Retratos: la cara",
+     "senas": [
+      "CARA",
+      "OJO",
+      "NARIZ",
+      "BOCA",
+      "OREJA"
+     ]
+    },
+    {
+     "numero": "7.2",
+     "titulo": "Retratos: el cabello",
+     "senas": [
+      "CABEZA",
+      "CABELLO",
+      "CABELLO_RIZADO"
+     ]
+    },
+    {
+     "numero": "7.3",
+     "titulo": "Retratos de cuerpo entero",
+     "senas": [
+      "MANO",
+      "DEDO",
+      "BRAZO",
+      "PIE",
+      "CUERPO"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 8,
+   "id": "prek-u8",
+   "nombre": "Ruta 8 · Las afueras",
+   "concepto": "Los animales tienen las señas más fáciles de recordar, porque la mano imita al animal.",
+   "lecciones": [
+    {
+     "numero": "8.1",
+     "titulo": "Recados en el corral",
+     "senas": [
+      "GATO",
+      "MARIPOSA",
+      "PAJARO"
+     ]
+    },
+    {
+     "numero": "8.2",
+     "titulo": "Los que no salen a la puerta",
+     "senas": [
+      "PEZ",
+      "TORTUGA",
+      "CONEJO",
+      "RATON"
+     ]
+    },
+    {
+     "numero": "8.3",
+     "titulo": "Reparto en el campo",
+     "senas": [
+      "CABALLO",
+      "VACA",
+      "POLLO"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 9,
+   "id": "prek-u9",
+   "nombre": "Ruta 9 · Recados con sentimiento",
+   "concepto": "Un recado llega mal si llega con la cara equivocada. Aquí la cara no acompaña a la seña: la cara es la seña.",
+   "lecciones": [
+    {
+     "numero": "9.1",
+     "titulo": "Recados alegres y tristes",
+     "senas": [
+      "FELIZ",
+      "ALEGRE",
+      "TRISTE"
+     ]
+    },
+    {
+     "numero": "9.2",
+     "titulo": "Recados difíciles",
+     "senas": [
+      "ENOJADO",
+      "MIEDO"
+     ]
+    },
+    {
+     "numero": "9.3",
+     "titulo": "Paquetes grandes y chicos",
+     "senas": [
+      "GRANDE",
+      "PEQUENO",
+      "AMAR"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 10,
+   "id": "prek-u10",
+   "nombre": "Ruta 10 · El mercado",
+   "concepto": "En el mercado los paquetes se señan imitando cómo se comen.",
+   "lecciones": [
+    {
+     "numero": "10.1",
+     "titulo": "El puesto del pan",
+     "senas": [
+      "COMER",
+      "COMIDA",
+      "PAN",
+      "AGUA"
+     ]
+    },
+    {
+     "numero": "10.2",
+     "titulo": "Leche fría y galletas",
+     "senas": [
+      "LECHE",
+      "LECHE_FRIA",
+      "GALLETA"
+     ]
+    },
+    {
+     "numero": "10.3",
+     "titulo": "El puesto de la fruta",
+     "senas": [
+      "MANZANA",
+      "FRUTA",
+      "HUEVO"
+     ]
+    }
+   ]
+  },
+  {
+   "numero": 11,
+   "id": "prek-u11",
+   "nombre": "Ruta 11 · La ruta completa",
+   "concepto": "El último día: una sola ruta, de la mañana a la noche, con todo lo que aprendiste.",
+   "lecciones": [
+    {
+     "numero": "11.1",
+     "titulo": "La ruta empieza temprano",
+     "senas": [
+      "MANANA",
+      "DESPERTAR",
+      "BANARSE",
+      "CEPILLAR"
+     ]
+    },
+    {
+     "numero": "11.2",
+     "titulo": "La ruta del mediodía",
+     "senas": [
+      "DIA",
+      "JUGAR",
+      "SOL",
+      "ARBOL",
+      "FLOR"
+     ]
+    },
+    {
+     "numero": "11.3",
+     "titulo": "El último recado",
+     "senas": [
+      "NOCHE",
+      "DORMIR",
+      "LUNA",
+      "ESTRELLA",
+      "MAR"
+     ]
+    }
+   ]
+  }
+ ],
+ "senas": [
+  {
+   "id": "SI",
+   "glosa": "SÍ",
+   "espanol": "sí",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.1",
+   "orden": 0
+  },
+  {
+   "id": "NO",
+   "glosa": "NO",
+   "espanol": "no",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.1",
+   "orden": 1
+  },
+  {
+   "id": "MAS",
+   "glosa": "MÁS",
+   "espanol": "más",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.1",
+   "orden": 2
+  },
+  {
+   "id": "AYUDAR",
+   "glosa": "AYUDAR",
+   "espanol": "ayudar",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.2",
+   "orden": 3
+  },
+  {
+   "id": "DAR",
+   "glosa": "DAR",
+   "espanol": "dar",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.2",
+   "orden": 4
+  },
+  {
+   "id": "YA_TERMINE",
+   "glosa": "YA / TERMINÉ",
+   "espanol": "ya, terminé",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.2",
+   "orden": 5
+  },
+  {
+   "id": "MIRAR",
+   "glosa": "MIRAR",
+   "espanol": "mirar",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.3",
+   "orden": 6
+  },
+  {
+   "id": "QUERER",
+   "glosa": "QUERER",
+   "espanol": "querer, desear",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.3",
+   "orden": 7
+  },
+  {
+   "id": "GUSTAR",
+   "glosa": "GUSTAR",
+   "espanol": "gustar",
+   "categoria": "pragmática",
+   "unidad": 1,
+   "leccion": "1.3",
+   "orden": 8
+  },
+  {
+   "id": "HOLA",
+   "glosa": "HOLA",
+   "espanol": "hola",
+   "categoria": "saludo",
+   "unidad": 2,
+   "leccion": "2.1",
+   "orden": 9
+  },
+  {
+   "id": "ADIOS",
+   "glosa": "ADIÓS",
+   "espanol": "adiós",
+   "categoria": "saludo",
+   "unidad": 2,
+   "leccion": "2.1",
+   "orden": 10
+  },
+  {
+   "id": "AMIGO",
+   "glosa": "AMIGO",
+   "espanol": "amigo",
+   "categoria": "social",
+   "unidad": 2,
+   "leccion": "2.1",
+   "orden": 11
+  },
+  {
+   "id": "GRACIAS",
+   "glosa": "GRACIAS",
+   "espanol": "gracias",
+   "categoria": "cortesía",
+   "unidad": 2,
+   "leccion": "2.2",
+   "orden": 12
+  },
+  {
+   "id": "POR_FAVOR",
+   "glosa": "POR FAVOR",
+   "espanol": "por favor",
+   "categoria": "cortesía",
+   "unidad": 2,
+   "leccion": "2.2",
+   "orden": 13
+  },
+  {
+   "id": "PERDON",
+   "glosa": "PERDÓN",
+   "espanol": "perdón",
+   "categoria": "cortesía",
+   "unidad": 2,
+   "leccion": "2.2",
+   "orden": 14
+  },
+  {
+   "id": "BUENOS_DIAS",
+   "glosa": "BUENOS DÍAS",
+   "espanol": "buenos días",
+   "categoria": "saludo",
+   "unidad": 2,
+   "leccion": "2.3",
+   "orden": 15
+  },
+  {
+   "id": "BUENAS_TARDES",
+   "glosa": "BUENAS TARDES",
+   "espanol": "buenas tardes",
+   "categoria": "saludo",
+   "unidad": 2,
+   "leccion": "2.3",
+   "orden": 16
+  },
+  {
+   "id": "BUENAS_NOCHES",
+   "glosa": "BUENAS NOCHES",
+   "espanol": "buenas noches",
+   "categoria": "saludo",
+   "unidad": 2,
+   "leccion": "2.3",
+   "orden": 17
+  },
+  {
+   "id": "BIEN",
+   "glosa": "BIEN",
+   "espanol": "bien",
+   "categoria": "estado",
+   "unidad": 2,
+   "leccion": "2.3",
+   "orden": 18
+  },
+  {
+   "id": "YO",
+   "glosa": "YO",
+   "espanol": "yo",
+   "categoria": "pronombre",
+   "unidad": 3,
+   "leccion": "3.1",
+   "orden": 19
+  },
+  {
+   "id": "TU",
+   "glosa": "TÚ",
+   "espanol": "tú",
+   "categoria": "pronombre",
+   "unidad": 3,
+   "leccion": "3.1",
+   "orden": 20
+  },
+  {
+   "id": "NOMBRE",
+   "glosa": "NOMBRE",
+   "espanol": "nombre",
+   "categoria": "identidad",
+   "unidad": 3,
+   "leccion": "3.1",
+   "orden": 21
+  },
+  {
+   "id": "SENA",
+   "glosa": "SEÑA",
+   "espanol": "seña",
+   "categoria": "identidad",
+   "unidad": 3,
+   "leccion": "3.2",
+   "orden": 22
+  },
+  {
+   "id": "LENGUA_DE_SENAS",
+   "glosa": "LENGUA DE SEÑAS",
+   "espanol": "lengua de señas",
+   "categoria": "identidad",
+   "unidad": 3,
+   "leccion": "3.2",
+   "orden": 23
+  },
+  {
+   "id": "SORDO",
+   "glosa": "SORDO",
+   "espanol": "sordo",
+   "categoria": "identidad",
+   "unidad": 3,
+   "leccion": "3.2",
+   "orden": 24
+  },
+  {
+   "id": "PERSONA",
+   "glosa": "PERSONA",
+   "espanol": "persona",
+   "categoria": "identidad",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 25
+  },
+  {
+   "id": "MAESTRA",
+   "glosa": "MAESTRA",
+   "espanol": "maestra",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 26
+  },
+  {
+   "id": "MAESTRO",
+   "glosa": "MAESTRO",
+   "espanol": "maestro",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 27
+  },
+  {
+   "id": "ESCUELA",
+   "glosa": "ESCUELA",
+   "espanol": "escuela",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 28
+  },
+  {
+   "id": "CLASE",
+   "glosa": "CLASE",
+   "espanol": "clase",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 29
+  },
+  {
+   "id": "MOCHILA",
+   "glosa": "MOCHILA",
+   "espanol": "mochila",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 30
+  },
+  {
+   "id": "LAPIZ",
+   "glosa": "LÁPIZ",
+   "espanol": "lápiz",
+   "categoria": "escuela",
+   "unidad": 3,
+   "leccion": "3.3",
+   "orden": 31
+  },
+  {
+   "id": "MAMA",
+   "glosa": "MAMÁ",
+   "espanol": "mamá",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.1",
+   "orden": 32
+  },
+  {
+   "id": "PAPA",
+   "glosa": "PAPÁ",
+   "espanol": "papá",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.1",
+   "orden": 33
+  },
+  {
+   "id": "FAMILIA",
+   "glosa": "FAMILIA",
+   "espanol": "familia",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.1",
+   "orden": 34
+  },
+  {
+   "id": "HIJO",
+   "glosa": "HIJO",
+   "espanol": "hijo",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.2",
+   "orden": 35
+  },
+  {
+   "id": "HIJA",
+   "glosa": "HIJA",
+   "espanol": "hija",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.2",
+   "orden": 36
+  },
+  {
+   "id": "HERMANO",
+   "glosa": "HERMANO",
+   "espanol": "hermano",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.2",
+   "orden": 37
+  },
+  {
+   "id": "HERMANA",
+   "glosa": "HERMANA",
+   "espanol": "hermana",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.2",
+   "orden": 38
+  },
+  {
+   "id": "ABUELO",
+   "glosa": "ABUELO",
+   "espanol": "abuelo",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.3",
+   "orden": 39
+  },
+  {
+   "id": "ABUELA",
+   "glosa": "ABUELA",
+   "espanol": "abuela",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.3",
+   "orden": 40
+  },
+  {
+   "id": "BEBE",
+   "glosa": "BEBÉ",
+   "espanol": "bebé",
+   "categoria": "familia",
+   "unidad": 4,
+   "leccion": "4.3",
+   "orden": 41
+  },
+  {
+   "id": "CASA",
+   "glosa": "CASA",
+   "espanol": "casa",
+   "categoria": "lugar",
+   "unidad": 4,
+   "leccion": "4.3",
+   "orden": 42
+  },
+  {
+   "id": "COLOR",
+   "glosa": "COLOR",
+   "espanol": "color",
+   "categoria": "metacategoría",
+   "unidad": 5,
+   "leccion": "5.1",
+   "orden": 43
+  },
+  {
+   "id": "ROJO",
+   "glosa": "ROJO",
+   "espanol": "rojo",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.1",
+   "orden": 44
+  },
+  {
+   "id": "AZUL",
+   "glosa": "AZUL",
+   "espanol": "azul",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.1",
+   "orden": 45
+  },
+  {
+   "id": "VERDE",
+   "glosa": "VERDE",
+   "espanol": "verde",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.1",
+   "orden": 46
+  },
+  {
+   "id": "AMARILLO",
+   "glosa": "AMARILLO",
+   "espanol": "amarillo",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.2",
+   "orden": 47
+  },
+  {
+   "id": "BLANCO",
+   "glosa": "BLANCO",
+   "espanol": "blanco",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.2",
+   "orden": 48
+  },
+  {
+   "id": "NEGRO",
+   "glosa": "NEGRO",
+   "espanol": "negro",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.2",
+   "orden": 49
+  },
+  {
+   "id": "CAFE",
+   "glosa": "CAFÉ",
+   "espanol": "café",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.2",
+   "orden": 50
+  },
+  {
+   "id": "ROSA",
+   "glosa": "ROSA",
+   "espanol": "rosa",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.3",
+   "orden": 51
+  },
+  {
+   "id": "NARANJA",
+   "glosa": "NARANJA",
+   "espanol": "naranja",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.3",
+   "orden": 52
+  },
+  {
+   "id": "MORADO",
+   "glosa": "MORADO",
+   "espanol": "morado",
+   "categoria": "color",
+   "unidad": 5,
+   "leccion": "5.3",
+   "orden": 53
+  },
+  {
+   "id": "FAVORITO",
+   "glosa": "FAVORITO",
+   "espanol": "favorito",
+   "categoria": "descriptor",
+   "unidad": 5,
+   "leccion": "5.3",
+   "orden": 54
+  },
+  {
+   "id": "UNO",
+   "glosa": "UNO",
+   "espanol": "uno",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.1",
+   "orden": 55
+  },
+  {
+   "id": "DOS",
+   "glosa": "DOS",
+   "espanol": "dos",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.1",
+   "orden": 56
+  },
+  {
+   "id": "TRES",
+   "glosa": "TRES",
+   "espanol": "tres",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.1",
+   "orden": 57
+  },
+  {
+   "id": "CUATRO",
+   "glosa": "CUATRO",
+   "espanol": "cuatro",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.2",
+   "orden": 58
+  },
+  {
+   "id": "CINCO",
+   "glosa": "CINCO",
+   "espanol": "cinco",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.2",
+   "orden": 59
+  },
+  {
+   "id": "CONTAR",
+   "glosa": "CONTAR",
+   "espanol": "contar",
+   "categoria": "número",
+   "unidad": 6,
+   "leccion": "6.2",
+   "orden": 60
+  },
+  {
+   "id": "CUANTOS",
+   "glosa": "CUÁNTOS",
+   "espanol": "cuántos",
+   "categoria": "pregunta",
+   "unidad": 6,
+   "leccion": "6.3",
+   "orden": 61
+  },
+  {
+   "id": "NUMERO",
+   "glosa": "NÚMERO",
+   "espanol": "número",
+   "categoria": "metacategoría",
+   "unidad": 6,
+   "leccion": "6.3",
+   "orden": 62
+  },
+  {
+   "id": "QUE",
+   "glosa": "QUÉ",
+   "espanol": "qué",
+   "categoria": "pregunta",
+   "unidad": 6,
+   "leccion": "6.3",
+   "orden": 63
+  },
+  {
+   "id": "COMO",
+   "glosa": "CÓMO",
+   "espanol": "cómo",
+   "categoria": "pregunta",
+   "unidad": 6,
+   "leccion": "6.3",
+   "orden": 64
+  },
+  {
+   "id": "CARA",
+   "glosa": "CARA",
+   "espanol": "cara",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.1",
+   "orden": 65
+  },
+  {
+   "id": "OJO",
+   "glosa": "OJO",
+   "espanol": "ojo",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.1",
+   "orden": 66
+  },
+  {
+   "id": "NARIZ",
+   "glosa": "NARIZ",
+   "espanol": "nariz",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.1",
+   "orden": 67
+  },
+  {
+   "id": "BOCA",
+   "glosa": "BOCA",
+   "espanol": "boca",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.1",
+   "orden": 68
+  },
+  {
+   "id": "OREJA",
+   "glosa": "OREJA",
+   "espanol": "oreja",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.1",
+   "orden": 69
+  },
+  {
+   "id": "CABEZA",
+   "glosa": "CABEZA",
+   "espanol": "cabeza",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.2",
+   "orden": 70
+  },
+  {
+   "id": "CABELLO",
+   "glosa": "CABELLO",
+   "espanol": "cabello",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.2",
+   "orden": 71
+  },
+  {
+   "id": "CABELLO_RIZADO",
+   "glosa": "CABELLO RIZADO",
+   "espanol": "cabello rizado",
+   "categoria": "compuesto",
+   "unidad": 7,
+   "leccion": "7.2",
+   "orden": 72
+  },
+  {
+   "id": "MANO",
+   "glosa": "MANO",
+   "espanol": "mano",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.3",
+   "orden": 73
+  },
+  {
+   "id": "DEDO",
+   "glosa": "DEDO",
+   "espanol": "dedo",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.3",
+   "orden": 74
+  },
+  {
+   "id": "BRAZO",
+   "glosa": "BRAZO",
+   "espanol": "brazo",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.3",
+   "orden": 75
+  },
+  {
+   "id": "PIE",
+   "glosa": "PIE",
+   "espanol": "pie",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.3",
+   "orden": 76
+  },
+  {
+   "id": "CUERPO",
+   "glosa": "CUERPO",
+   "espanol": "cuerpo",
+   "categoria": "cuerpo",
+   "unidad": 7,
+   "leccion": "7.3",
+   "orden": 77
+  },
+  {
+   "id": "GATO",
+   "glosa": "GATO",
+   "espanol": "gato",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.1",
+   "orden": 78
+  },
+  {
+   "id": "MARIPOSA",
+   "glosa": "MARIPOSA",
+   "espanol": "mariposa",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.1",
+   "orden": 79
+  },
+  {
+   "id": "PAJARO",
+   "glosa": "PÁJARO",
+   "espanol": "pájaro",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.1",
+   "orden": 80
+  },
+  {
+   "id": "PEZ",
+   "glosa": "PEZ",
+   "espanol": "pez",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.2",
+   "orden": 81
+  },
+  {
+   "id": "TORTUGA",
+   "glosa": "TORTUGA",
+   "espanol": "tortuga",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.2",
+   "orden": 82
+  },
+  {
+   "id": "CONEJO",
+   "glosa": "CONEJO",
+   "espanol": "conejo",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.2",
+   "orden": 83
+  },
+  {
+   "id": "RATON",
+   "glosa": "RATÓN",
+   "espanol": "ratón",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.2",
+   "orden": 84
+  },
+  {
+   "id": "CABALLO",
+   "glosa": "CABALLO",
+   "espanol": "caballo",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.3",
+   "orden": 85
+  },
+  {
+   "id": "VACA",
+   "glosa": "VACA",
+   "espanol": "vaca",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.3",
+   "orden": 86
+  },
+  {
+   "id": "POLLO",
+   "glosa": "POLLO",
+   "espanol": "pollo",
+   "categoria": "animal",
+   "unidad": 8,
+   "leccion": "8.3",
+   "orden": 87
+  },
+  {
+   "id": "FELIZ",
+   "glosa": "FELIZ",
+   "espanol": "feliz",
+   "categoria": "emoción",
+   "unidad": 9,
+   "leccion": "9.1",
+   "orden": 88
+  },
+  {
+   "id": "ALEGRE",
+   "glosa": "ALEGRE",
+   "espanol": "alegre",
+   "categoria": "emoción",
+   "unidad": 9,
+   "leccion": "9.1",
+   "orden": 89
+  },
+  {
+   "id": "TRISTE",
+   "glosa": "TRISTE",
+   "espanol": "triste",
+   "categoria": "emoción",
+   "unidad": 9,
+   "leccion": "9.1",
+   "orden": 90
+  },
+  {
+   "id": "ENOJADO",
+   "glosa": "ENOJADO",
+   "espanol": "enojado",
+   "categoria": "emoción",
+   "unidad": 9,
+   "leccion": "9.2",
+   "orden": 91
+  },
+  {
+   "id": "MIEDO",
+   "glosa": "MIEDO",
+   "espanol": "miedo",
+   "categoria": "emoción",
+   "unidad": 9,
+   "leccion": "9.2",
+   "orden": 92
+  },
+  {
+   "id": "GRANDE",
+   "glosa": "GRANDE",
+   "espanol": "grande",
+   "categoria": "descriptor",
+   "unidad": 9,
+   "leccion": "9.3",
+   "orden": 93
+  },
+  {
+   "id": "PEQUENO",
+   "glosa": "PEQUEÑO",
+   "espanol": "pequeño",
+   "categoria": "descriptor",
+   "unidad": 9,
+   "leccion": "9.3",
+   "orden": 94
+  },
+  {
+   "id": "AMAR",
+   "glosa": "AMAR",
+   "espanol": "amar / querer a alguien",
+   "categoria": "verbo",
+   "unidad": 9,
+   "leccion": "9.3",
+   "orden": 95
+  },
+  {
+   "id": "COMER",
+   "glosa": "COMER",
+   "espanol": "comer",
+   "categoria": "rutina",
+   "unidad": 10,
+   "leccion": "10.1",
+   "orden": 96
+  },
+  {
+   "id": "COMIDA",
+   "glosa": "COMIDA",
+   "espanol": "comida",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.1",
+   "orden": 97
+  },
+  {
+   "id": "PAN",
+   "glosa": "PAN",
+   "espanol": "pan",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.1",
+   "orden": 98
+  },
+  {
+   "id": "AGUA",
+   "glosa": "AGUA",
+   "espanol": "agua",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.1",
+   "orden": 99
+  },
+  {
+   "id": "LECHE",
+   "glosa": "LECHE",
+   "espanol": "leche",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.2",
+   "orden": 100
+  },
+  {
+   "id": "LECHE_FRIA",
+   "glosa": "LECHE FRÍA",
+   "espanol": "leche fría",
+   "categoria": "compuesto",
+   "unidad": 10,
+   "leccion": "10.2",
+   "orden": 101
+  },
+  {
+   "id": "GALLETA",
+   "glosa": "GALLETA",
+   "espanol": "galleta",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.2",
+   "orden": 102
+  },
+  {
+   "id": "MANZANA",
+   "glosa": "MANZANA",
+   "espanol": "manzana",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.3",
+   "orden": 103
+  },
+  {
+   "id": "FRUTA",
+   "glosa": "FRUTA",
+   "espanol": "fruta",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.3",
+   "orden": 104
+  },
+  {
+   "id": "HUEVO",
+   "glosa": "HUEVO",
+   "espanol": "huevo",
+   "categoria": "alimento",
+   "unidad": 10,
+   "leccion": "10.3",
+   "orden": 105
+  },
+  {
+   "id": "MANANA",
+   "glosa": "MAÑANA",
+   "espanol": "mañana",
+   "categoria": "tiempo",
+   "unidad": 11,
+   "leccion": "11.1",
+   "orden": 106
+  },
+  {
+   "id": "DESPERTAR",
+   "glosa": "DESPERTAR",
+   "espanol": "despertar",
+   "categoria": "rutina",
+   "unidad": 11,
+   "leccion": "11.1",
+   "orden": 107
+  },
+  {
+   "id": "BANARSE",
+   "glosa": "BAÑARSE",
+   "espanol": "bañarse",
+   "categoria": "rutina",
+   "unidad": 11,
+   "leccion": "11.1",
+   "orden": 108
+  },
+  {
+   "id": "CEPILLAR",
+   "glosa": "CEPILLAR",
+   "espanol": "cepillar",
+   "categoria": "rutina",
+   "unidad": 11,
+   "leccion": "11.1",
+   "orden": 109
+  },
+  {
+   "id": "DIA",
+   "glosa": "DÍA",
+   "espanol": "día",
+   "categoria": "tiempo",
+   "unidad": 11,
+   "leccion": "11.2",
+   "orden": 110
+  },
+  {
+   "id": "JUGAR",
+   "glosa": "JUGAR",
+   "espanol": "jugar",
+   "categoria": "rutina",
+   "unidad": 11,
+   "leccion": "11.2",
+   "orden": 111
+  },
+  {
+   "id": "SOL",
+   "glosa": "SOL",
+   "espanol": "sol",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.2",
+   "orden": 112
+  },
+  {
+   "id": "ARBOL",
+   "glosa": "ÁRBOL",
+   "espanol": "árbol",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.2",
+   "orden": 113
+  },
+  {
+   "id": "FLOR",
+   "glosa": "FLOR",
+   "espanol": "flor",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.2",
+   "orden": 114
+  },
+  {
+   "id": "NOCHE",
+   "glosa": "NOCHE",
+   "espanol": "noche",
+   "categoria": "tiempo",
+   "unidad": 11,
+   "leccion": "11.3",
+   "orden": 115
+  },
+  {
+   "id": "DORMIR",
+   "glosa": "DORMIR",
+   "espanol": "dormir",
+   "categoria": "rutina",
+   "unidad": 11,
+   "leccion": "11.3",
+   "orden": 116
+  },
+  {
+   "id": "LUNA",
+   "glosa": "LUNA",
+   "espanol": "luna",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.3",
+   "orden": 117
+  },
+  {
+   "id": "ESTRELLA",
+   "glosa": "ESTRELLA",
+   "espanol": "estrella",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.3",
+   "orden": 118
+  },
+  {
+   "id": "MAR",
+   "glosa": "MAR",
+   "espanol": "mar",
+   "categoria": "naturaleza",
+   "unidad": 11,
+   "leccion": "11.3",
+   "orden": 119
+  },
+  {
+   "id": "PERRO",
+   "glosa": "PERRO",
+   "espanol": "perro",
+   "categoria": "animal",
+   "unidad": null,
+   "leccion": null,
+   "orden": 120
+  }
+ ]
+}

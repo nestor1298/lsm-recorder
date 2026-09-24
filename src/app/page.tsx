@@ -1,167 +1,203 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CM_INVENTORY, getCMsByTier } from "@/lib/data";
-import { getSessions } from "@/lib/store";
-import type { RecordingSession } from "@/lib/types";
+import MarcaLSMCorpus from "@/components/marca/MarcaLSMCorpus";
+import TarjetaCorpus from "@/components/grabar/TarjetaCorpus";
+import SesionPendiente from "@/components/inicio/SesionPendiente";
 
-export default function Dashboard() {
-  const [sessions, setSessions] = useState<RecordingSession[]>([]);
+/**
+ * Inicio — explica el camino completo en una pantalla: grabar → anotar →
+ * corpus → aprender y jugar. Sin métricas ni tableros: quien llega por
+ * primera vez debe entender qué es esto y por dónde empezar.
+ */
 
-  useEffect(() => {
-    setSessions(getSessions());
-  }, []);
+const PASOS = [
+  {
+    n: 1,
+    titulo: "Graba",
+    texto:
+      "Eliges un corpus y la cámara te guía seña por seña. Tú decides quién puede ver tus videos y los puedes retirar cuando quieras.",
+    href: "/record",
+    enlace: "Ir a grabar",
+    color: "bg-green text-ink",
+    icono: (
+      <path d="M4 7h3l2-2h6l2 2h3v11H4z M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+    ),
+  },
+  {
+    n: 2,
+    titulo: "Anota",
+    texto:
+      "La computadora propone la forma de la mano, el lugar, la orientación y el movimiento. Tú corriges lo que haga falta, canal por canal.",
+    href: "/annotate",
+    enlace: "Ir a anotar",
+    color: "bg-accent text-paper",
+    icono: (
+      <path d="M4 20h4l10-10-4-4L4 16z M13 7l4 4 M4 20v-4" />
+    ),
+  },
+  {
+    n: 3,
+    titulo: "Corpus",
+    texto:
+      "Cada seña queda descrita con la notación de Cruz Aldrete: forma, lugar, orientación, movimiento y cara. Lista para investigar y para enseñar.",
+    href: "/mis-grabaciones",
+    enlace: "Ver mis grabaciones",
+    color: "bg-gold text-ink",
+    icono: (
+      <path d="M4 8h16v12H4z M4 8l2-4h12l2 4 M9 12h6" />
+    ),
+  },
+  {
+    n: 4,
+    titulo: "Aprende y juega",
+    texto:
+      "Del corpus salen el modo Aprender, para explorar cómo se forma cada seña, y las lecciones de SignaPlay para niñas y niños.",
+    href: "/learn",
+    enlace: "Ir a aprender",
+    color: "bg-coral text-ink",
+    icono: <path d="M6 4l14 8-14 8z" />,
+  },
+];
 
-  const tierCounts = [1, 2, 3, 4].map(
-    (t) => getCMsByTier(t as 1 | 2 | 3 | 4).length,
-  );
+const PROMESAS = [
+  {
+    titulo: "Con tu consentimiento",
+    texto: "Antes de grabar, tú dices para qué se puede usar tu video.",
+    href: "/consentimiento",
+  },
+  {
+    titulo: "Con tu nivel de acceso",
+    texto: "Abierto, solo investigación o restringido: lo eliges por video.",
+    href: "/mis-grabaciones",
+  },
+  {
+    titulo: "Y siempre tuyos",
+    texto: "Puedes retirar cualquier grabación cuando quieras.",
+    href: "/perfil",
+  },
+];
 
-  const totalRecorded = sessions.reduce(
-    (acc, s) =>
-      acc + s.signs.filter((sign) => sign.status !== "pending").length,
-    0,
-  );
-
+export default function Inicio() {
   return (
-    <div className="space-y-10">
-      {/* Hero: tinta plana, voz de misión */}
-      <div className="rounded-2xl bg-ink p-10 text-paper">
-        <p className="overline-label text-gray-400">Corpus de LSM</p>
-        <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-[-0.02em]">
-          Tu lengua, documentada contigo.
-        </h1>
-        <p className="mt-3 max-w-xl text-lg text-gray-300">
-          SignaLab graba y anota un corpus de Lengua de Señas Mexicana — las
-          101 configuraciones de mano de Cruz Aldrete — junto con la comunidad
-          sorda.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/record"
-            className="rounded-full bg-paper px-7 py-3 font-semibold text-ink transition-colors hover:bg-gray-100"
-          >
-            Empezar a grabar
-          </Link>
-          <Link
-            href="/inventario"
-            className="rounded-full border-[1.5px] border-paper/40 px-7 py-3 font-semibold text-paper transition-colors hover:bg-paper/10"
-          >
-            Explorar el inventario
-          </Link>
-        </div>
-      </div>
-
-      {/* Métricas */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard
-          label="Configuraciones de mano"
-          value={CM_INVENTORY.length}
-          color="text-ink"
-        />
-        <StatCard
-          label="Señas grabadas"
-          value={totalRecorded}
-          color="text-green-deep"
-        />
-        <StatCard
-          label="Sesiones"
-          value={sessions.length}
-          color="text-accent-deep"
-        />
-        <StatCard
-          label="Avance"
-          value={`${CM_INVENTORY.length > 0 ? Math.round((totalRecorded / CM_INVENTORY.length) * 100) : 0}%`}
-          color="text-gold-deep"
-        />
-      </div>
-
-      {/* Inventario por frecuencia */}
-      <div>
-        <h2 className="mb-4 text-xl font-bold text-ink">
-          Inventario por nivel de frecuencia
-        </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { tier: 1, label: "Frecuencia alta", color: "bg-green" },
-            { tier: 2, label: "Frecuencia media", color: "bg-accent" },
-            { tier: 3, label: "Frecuencia baja", color: "bg-gold" },
-            { tier: 4, label: "Poco frecuentes", color: "bg-coral" },
-          ].map(({ tier, label, color }, i) => (
-            <div
-              key={tier}
-              className="rounded-2xl border border-gray-200 bg-paper p-4 shadow-card"
-            >
-              <div className="flex items-center gap-2">
-                <span className={`h-3 w-3 rounded-full ${color}`} />
-                <span className="text-sm font-medium text-gray-600">
-                  Nivel {tier}
-                </span>
-              </div>
-              <p className="mt-1 text-2xl font-bold text-ink">
-                {tierCounts[i]}
-              </p>
-              <p className="text-xs text-gray-500">{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Sesiones recientes */}
-      {sessions.length > 0 && (
+    <div className="space-y-16">
+      {/* Portada: la marca y la promesa */}
+      <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div>
-          <h2 className="mb-4 text-xl font-bold text-ink">
-            Sesiones recientes
-          </h2>
-          <div className="space-y-3">
-            {sessions
-              .slice(-5)
-              .reverse()
-              .map((session) => {
-                const recorded = session.signs.filter(
-                  (s) => s.status !== "pending",
-                ).length;
-                return (
-                  <Link
-                    key={session.id}
-                    href={`/record?session=${session.id}`}
-                    className="flex items-center justify-between rounded-2xl border border-gray-200 bg-paper p-4 shadow-card transition-colors hover:border-ink"
-                  >
-                    <div>
-                      <p className="font-semibold text-ink">{session.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(session.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-accent-deep">
-                        {recorded}/{session.signs.length}
-                      </p>
-                      <p className="text-xs text-gray-500">grabadas</p>
-                    </div>
-                  </Link>
-                );
-              })}
+          <p className="overline-label text-gray-500">SignaLab · OtherAI</p>
+          <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-[-0.02em] text-ink sm:text-5xl">
+            Tu lengua, documentada contigo.
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-gray-600">
+            Aquí la comunidad sorda graba señas de la Lengua de Señas Mexicana,
+            las describe con precisión y construye un corpus que sirve para
+            investigar y para enseñar.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/record"
+              className="rounded-full bg-ink px-7 py-3 font-semibold text-paper transition-colors hover:bg-gray-800"
+            >
+              Grabar señas
+            </Link>
+            <a
+              href="#como-funciona"
+              className="rounded-full border-[1.5px] border-gray-300 px-7 py-3 font-semibold text-ink transition-colors hover:border-ink"
+            >
+              Ver cómo funciona
+            </a>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
+        <div className="mx-auto w-56 sm:w-72 lg:w-full lg:max-w-xs">
+          <MarcaLSMCorpus className="rounded-2xl shadow-raised" />
+        </div>
+      </section>
 
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number | string;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-paper p-4 shadow-card">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className={`font-display text-3xl font-bold ${color}`}>{value}</p>
+      {/* El camino, en cuatro pasos */}
+      <section id="como-funciona" className="space-y-6">
+        <div>
+          <p className="overline-label text-gray-500">Cómo funciona</p>
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.02em] text-ink">
+            De la seña al corpus, en cuatro pasos
+          </h2>
+        </div>
+        <ol className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {PASOS.map((p) => (
+            <li
+              key={p.n}
+              className="flex flex-col rounded-2xl border border-gray-200 bg-paper p-5 shadow-card"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-full font-display text-lg font-bold ${p.color}`}
+                >
+                  {p.n}
+                </span>
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-7 w-7 text-ink"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  {p.icono}
+                </svg>
+              </div>
+              <h3 className="mt-4 font-display text-xl font-bold text-ink">
+                {p.titulo}
+              </h3>
+              <p className="mt-2 flex-1 text-sm text-gray-600">{p.texto}</p>
+              <Link
+                href={p.href}
+                className="mt-4 text-sm font-semibold text-accent-deep hover:underline"
+              >
+                {p.enlace} →
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Los dos corpus (y la sesión a medias, si la hay: aparece al hidratar,
+          aquí abajo no desplaza la portada) */}
+      <section className="space-y-6">
+        <SesionPendiente />
+        <div>
+          <p className="overline-label text-gray-500">Dos corpus, dos caminos</p>
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-[-0.02em] text-ink">
+            ¿Qué vas a grabar?
+          </h2>
+          <p className="mt-2 max-w-2xl text-gray-600">
+            El LSM Corpus describe cómo se forman las señas; el corpus para
+            SignaPlay junta el vocabulario que verán las niñas y los niños en la
+            app. Los dos se graban igual: seña por seña, con la cámara.
+          </p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TarjetaCorpus corpus="lsm" href="/record?corpus=lsm" accion="Grabar" />
+          <TarjetaCorpus
+            corpus="signaplay"
+            href="/record?corpus=signaplay"
+            accion="Grabar"
+          />
+        </div>
+      </section>
+
+      {/* Tus videos son tuyos */}
+      <section className="rounded-2xl bg-ink p-8 text-paper sm:p-10">
+        <p className="overline-label text-gray-400">Tus videos son tuyos</p>
+        <div className="mt-4 grid gap-6 sm:grid-cols-3">
+          {PROMESAS.map((p) => (
+            <Link key={p.titulo} href={p.href} className="group">
+              <h3 className="font-display text-xl font-bold group-hover:underline">
+                {p.titulo}
+              </h3>
+              <p className="mt-2 text-sm text-gray-300">{p.texto}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

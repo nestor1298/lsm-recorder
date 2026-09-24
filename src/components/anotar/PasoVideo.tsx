@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { describirItem, type CorpusId } from "@/lib/corpus";
 import { useAuth } from "@/hooks/useAuth";
 import { getJson } from "@/lib/api-client";
 import type { PhonSuggestion } from "@/lib/vision/phon/phon_features";
@@ -15,7 +16,10 @@ import type { Pose3DTrack } from "@/lib/vision/pose3d";
 
 interface RecordingRow {
   id: string;
-  cmId: number;
+  itemId?: string;
+  corpus?: CorpusId;
+  cmId?: number;
+  gloss?: string;
   recordedAt: string;
   durationMs: number;
   withdrawn: boolean;
@@ -228,7 +232,7 @@ export default function PasoVideo({
                       disabled={fetchingId !== null}
                       className="rounded-xl border border-gray-200 bg-paper p-3 text-left transition-colors hover:border-accent disabled:opacity-50"
                     >
-                      <p className="font-semibold text-ink">Seña #{r.cmId}</p>
+                      <p className="font-semibold text-ink">{describirItem(r.corpus ?? "lsm", r.itemId ?? String(r.cmId ?? "")).titulo}</p>
                       <p className="text-xs text-gray-500">
                         {new Date(r.recordedAt).toLocaleDateString()}
                       </p>
