@@ -24,3 +24,27 @@ describe("marca LSM CORPUS", () => {
     }
   });
 });
+
+import { GLIFOS_SIGNAPLAY, VISTA_SIGNAPLAY } from "./signaplay_glifos";
+
+describe("wordmark SignaPlay", () => {
+  it("tiene las nueve letras de «Signa» y «Play», en dos naranjas", () => {
+    expect(GLIFOS_SIGNAPLAY.map((g) => g.letra).join("")).toBe("SignaPlay");
+    expect(new Set(GLIFOS_SIGNAPLAY.map((g) => g.fill))).toEqual(
+      new Set(["#f7931d", "#fab14b"]),
+    );
+  });
+
+  it("todos los trazos caben en la vista recortada", () => {
+    const [x, y, w, h] = VISTA_SIGNAPLAY;
+    for (const g of GLIFOS_SIGNAPLAY) {
+      const nums = g.d.match(/-?\d+\.?\d*/g)!.map(Number);
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        expect(nums[i]).toBeGreaterThanOrEqual(x);
+        expect(nums[i]).toBeLessThanOrEqual(x + w);
+        expect(nums[i + 1]).toBeGreaterThanOrEqual(y);
+        expect(nums[i + 1]).toBeLessThanOrEqual(y + h);
+      }
+    }
+  });
+});
