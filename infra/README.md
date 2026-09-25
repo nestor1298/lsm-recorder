@@ -39,33 +39,36 @@ reads/writes to the caller's `userId`. Treat any unscoped query as a bug.
 
 ## Deploy (you run this — agents do not `cdk deploy`)
 
-Prereqs: AWS CLI configured, Node 20+, and CDK bootstrap once per account/region.
+The stack takes account and region from the AWS profile you deploy with
+(`CDK_DEFAULT_ACCOUNT` / `CDK_DEFAULT_REGION`); bucket names embed both.
 
 ```bash
-cd infra
-npm install
-npm run build           # tsc -> dist/  (must pass)
-npm run lint            # eslint        (must pass)
+cd infra && npm ci && npm run build
 
 # One-time per account+region:
-npx cdk bootstrap aws://<ACCOUNT_ID>/<REGION>
+npx cdk bootstrap aws://<ACCOUNT>/<REGION> --profile <PROFILE>
 
-# Deploy. Pass the production origin used for S3 CORS:
-npx cdk deploy -c prodOrigin=https://signalab.other-ai.com
+# Always diff first. Pass the production origin used for S3 CORS.
+# AMPLIFY_GITHUB_TOKEN is REQUIRED on every routine deploy: without it the
+# Amplify app, branch, domain and compute role are omitted from the
+# template and CloudFormation would DELETE them (they are not RETAIN).
+read -s AMPLIFY_GITHUB_TOKEN && export AMPLIFY_GITHUB_TOKEN
+npx cdk diff   -c prodOrigin=https://signalab.other-ai.com --profile <PROFILE>
+npx cdk deploy -c prodOrigin=https://signalab.other-ai.com --profile <PROFILE>
+unset AMPLIFY_GITHUB_TOKEN && rm -rf cdk.out   # cdk.out holds the token in plain text
 ```
 
-On success, copy the stack outputs into the app's `.env.local`
-(see `../.env.local.example`):
+Optional context:
 
-| Stack output | `.env.local` key |
-| --- | --- |
-| `AwsRegion` | `AWS_REGION`, `NEXT_PUBLIC_AWS_REGION` |
-| `UserPoolId` | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` |
-| `UserPoolClientId` | `NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID` |
-| `CorpusTableName` | `SIGNALAB_CORPUS_TABLE` |
-| `RecordingsBucketName` | `SIGNALAB_RECORDINGS_BUCKET` |
-| `ConsentBucketName` | `SIGNALAB_CONSENT_BUCKET` |
-| `AppRuntimePolicyArn` | attach to the IAM user/role for `SIGNALAB_AWS_ACCESS_KEY_ID` |
+- `-c skipDomain=true` — omit the `signalab.other-ai.com` association (a new
+  account while the domain still points at the old app).
+- `-c extraOrigins=https://a,https://b` — extra CORS origins for testing
+  from the Amplify default URL before the DNS cutover.
+
+Domain: after the first deploy the association is `PENDING_VERIFICATION`
+until the two CNAME records from `aws amplify get-domain-association` exist
+in Cloudflare (DNS only). Moving to another account: see
+[docs/migracion-cuenta-aws.md](../docs/migracion-cuenta-aws.md).
 
 ### Runtime credentials
 
