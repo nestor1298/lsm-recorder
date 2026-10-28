@@ -1,12 +1,14 @@
 import Link from "next/link";
-import MarcaLSMCorpus from "@/components/marca/MarcaLSMCorpus";
 import TarjetaCorpus from "@/components/grabar/TarjetaCorpus";
 import SesionPendiente from "@/components/inicio/SesionPendiente";
+import Portada from "@/components/inicio/Portada";
 
 /**
- * Inicio — explica el camino completo en una pantalla: grabar → anotar →
- * corpus → aprender y jugar. Sin métricas ni tableros: quien llega por
- * primera vez debe entender qué es esto y por dónde empezar.
+ * Inicio — la portada (qué es, por qué, un botón para empezar y la intro
+ * de 40 segundos), el camino en cuatro pasos, los dos corpus y la promesa
+ * de que los videos son de quien los graba. Sin métricas ni tableros:
+ * quien llega por primera vez debe entender qué es esto y por dónde
+ * empezar.
  */
 
 const PASOS = [
@@ -15,8 +17,8 @@ const PASOS = [
     titulo: "Graba",
     texto:
       "Eliges un corpus y la cámara te guía seña por seña. Tú decides quién puede ver tus videos y los puedes retirar cuando quieras.",
-    href: "/record",
-    enlace: "Ir a grabar",
+    href: "/listas",
+    enlace: "Ir a señar",
     color: "bg-green text-ink",
     icono: (
       <path d="M4 7h3l2-2h6l2 2h3v11H4z M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
@@ -62,7 +64,7 @@ const PROMESAS = [
   {
     titulo: "Con tu consentimiento",
     texto: "Antes de grabar, tú dices para qué se puede usar tu video.",
-    href: "/consentimiento",
+    href: "/acuerdo",
   },
   {
     titulo: "Con tu nivel de acceso",
@@ -72,44 +74,14 @@ const PROMESAS = [
   {
     titulo: "Y siempre tuyos",
     texto: "Puedes retirar cualquier grabación cuando quieras.",
-    href: "/perfil",
+    href: "/mis-grabaciones",
   },
 ];
 
 export default function Inicio() {
   return (
     <div className="space-y-16">
-      {/* Portada: la marca y la promesa */}
-      <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div>
-          <p className="overline-label text-gray-500">SignaLab · OtherAI</p>
-          <h1 className="mt-3 max-w-2xl font-display text-4xl font-bold tracking-[-0.02em] text-ink sm:text-5xl">
-            Tu lengua, documentada contigo.
-          </h1>
-          <p className="mt-4 max-w-xl text-lg text-gray-600">
-            Aquí la comunidad sorda graba señas de la Lengua de Señas Mexicana,
-            las describe con precisión y construye un corpus que sirve para
-            investigar y para enseñar.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/record"
-              className="rounded-full bg-ink px-7 py-3 font-semibold text-paper transition-colors hover:bg-gray-800"
-            >
-              Grabar señas
-            </Link>
-            <a
-              href="#como-funciona"
-              className="rounded-full border-[1.5px] border-gray-300 px-7 py-3 font-semibold text-ink transition-colors hover:border-ink"
-            >
-              Ver cómo funciona
-            </a>
-          </div>
-        </div>
-        <div className="mx-auto w-56 sm:w-72 lg:w-full lg:max-w-xs">
-          <MarcaLSMCorpus className="rounded-2xl shadow-raised" />
-        </div>
-      </section>
+      <Portada />
 
       {/* El camino, en cuatro pasos */}
       <section id="como-funciona" className="space-y-6">
@@ -175,11 +147,11 @@ export default function Inicio() {
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <TarjetaCorpus corpus="lsm" href="/record?corpus=lsm" accion="Grabar" />
+          <TarjetaCorpus corpus="lsm" href="/listas?corpus=lsm" accion="Elegir lista" />
           <TarjetaCorpus
             corpus="signaplay"
-            href="/record?corpus=signaplay"
-            accion="Grabar"
+            href="/listas?corpus=signaplay"
+            accion="Elegir lista"
           />
         </div>
       </section>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import LSMVideoSlot from "@/components/LSMVideoSlot";
 import { useAuth } from "@/hooks/useAuth";
 import { postJson, fetchMe } from "@/lib/api-client";
+import { pasoPendiente, rutaUnirse } from "@/lib/camino";
 import type {
   AgeBand,
   AcquisitionAge,
@@ -85,9 +86,11 @@ export default function PerfilPage() {
     let active = true;
     fetchMe()
       .then((me) => {
-        if (active && me.consentStatus !== "granted") {
-          router.replace("/consentimiento");
-        }
+        if (!active) return;
+        // Quien no ha terminado de unirse llena el cuestionario corto allá;
+        // este formulario largo es para completar el perfil después.
+        const paso = pasoPendiente(me);
+        if (paso && paso !== 2) router.replace(rutaUnirse(paso));
       })
       .catch(() => {});
     return () => {
@@ -118,7 +121,7 @@ export default function PerfilPage() {
         audicion: audicion || undefined,
         participacion_comunidad: comunidad || undefined,
       });
-      router.push(tomarVolverA() ?? "/record");
+      router.push(tomarVolverA() ?? "/tarjeta");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al guardar");
     } finally {
@@ -129,10 +132,11 @@ export default function PerfilPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink">Tu perfil</h1>
+        <h1 className="text-2xl font-bold text-ink">Tu perfil completo</h1>
         <p className="text-sm text-gray-500">
-          Estos datos ayudan a documentar el corpus. Solo la edad y la edad de
-          adquisición de la LSM son obligatorias.
+          Estos datos ayudan a documentar el corpus; otras personas solo ven
+          tu apodo. Solo la edad y la edad de adquisición de la LSM son
+          obligatorias.
         </p>
       </div>
 

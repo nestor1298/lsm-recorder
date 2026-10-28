@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { withdrawRecording } from "@/lib/aws/repo";
+import {
+  descontarVideo,
+  getOwnedRecording,
+  retirarSiActiva,
+} from "@/lib/aws/repo";
 import { parseRecordingId } from "@/lib/aws/keys";
 
 export const runtime = "nodejs";
@@ -23,9 +27,15 @@ export async function POST(
     return Response.json({ error: "id inválido" }, { status: 400 });
   }
 
-  const ok = await withdrawRecording(user.userId, parsed.sessionId, parsed.itemId);
-  if (!ok) {
+  const antes = await getOwnedRecording(user.userId, parsed.sessionId, parsed.itemId);
+  if (!antes) {
     return Response.json({ error: "No encontrado" }, { status: 404 });
+  }
+  // Solo la llamada que la pasa de activa a retirada descuenta: retirar dos
+  // veces (o con doble clic) no resta dos veces del nivel ni del tablero.
+  const cambio = await retirarSiActiva(user.userId, parsed.sessionId, parsed.itemId);
+  if (cambio) {
+    await descontarVideo(user.userId, { ...antes, withdrawn: true });
   }
   return Response.json({ ok: true });
 }

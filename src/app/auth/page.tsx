@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { tomarVolverA } from "@/lib/volver_a";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   startEmailOtp,
   confirmEmailOtp,
@@ -10,6 +11,7 @@ import {
   signOut,
 } from "@/lib/auth-client";
 import { fetchMe, type MeResponse } from "@/lib/api-client";
+import { rutaDespuesDeEntrar } from "@/lib/camino";
 
 type Phase = "checking" | "email" | "code" | "session_error";
 
@@ -21,11 +23,11 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Al paso de Unirse que falte (apodo, cuestionario, acuerdo), a donde
+  // iba, o a las listas.
   const routeByProfile = useCallback(
     (me: MeResponse) => {
-      if (me.consentStatus !== "granted") router.push("/consentimiento");
-      else if (!me.hasMetadata) router.push("/perfil");
-      else router.push(tomarVolverA() ?? "/record");
+      router.push(rutaDespuesDeEntrar(me, tomarVolverA));
     },
     [router],
   );
@@ -98,9 +100,10 @@ export default function AuthPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-ink">Acceso</h1>
+        <h1 className="text-2xl font-bold text-ink">Entrar</h1>
         <p className="text-sm text-gray-500">
-          Te enviamos un código por correo. No usamos contraseñas.
+          Te mandamos un código por correo. Sin contraseñas: tu nivel, tus
+          señas y tu apodo regresan en cualquier dispositivo.
         </p>
       </div>
 
@@ -206,6 +209,15 @@ export default function AuthPage() {
       {error && (
         <p className="rounded-lg bg-coral-tint px-4 py-3 text-sm text-coral-deep">
           {error}
+        </p>
+      )}
+
+      {phase === "email" && (
+        <p className="text-center text-sm text-gray-500">
+          ¿Primera vez aquí?{" "}
+          <Link href="/unirse" className="font-semibold text-ink underline-offset-4 hover:underline">
+            Empezar a señar
+          </Link>
         </p>
       )}
     </div>

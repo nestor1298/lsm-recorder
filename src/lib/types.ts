@@ -50,6 +50,8 @@ export interface RecordingSession {
   /** Corpus al que va la sesión (ver src/lib/corpus.ts). Las sesiones
    *  anteriores a los dos caminos no lo traen: son "lsm". */
   corpus?: "lsm" | "signaplay";
+  /** Lista del estudio de la que salió la sesión (ver src/lib/listas.ts). */
+  lista_id?: string;
   signs: RecordedSign[];
   // Set once the remote Session item has been created in DynamoDB.
   remote_session_created?: boolean;
@@ -65,6 +67,8 @@ export interface RecordedSign {
   video_blob_url?: string;
   duration_ms: number;
   status: "pending" | "recorded" | "approved" | "rejected";
+  /** En el estudio se saltó esta seña; sigue pendiente, pero al final se ofrece volver. */
+  saltada?: boolean;
   notes?: string;
   // ── Remote sync (S3 + DynamoDB) ──
   sync_status?: SyncStatus;
@@ -90,6 +94,8 @@ export type LearnedHow =
 export type DeafFamily = "si" | "no" | "no_se";
 export type HearingStatus = "sorde" | "hipoacusique" | "oyente";
 export type CommunityParticipation = "frecuente" | "ocasional" | "poca";
+/** Desde cuándo es sorda o hipoacúsica (solo si lo es). */
+export type DeafSince = "nacimiento" | "infancia" | "adolescencia" | "adultez";
 
 export interface ParticipantMetadata {
   // Required
@@ -105,6 +111,7 @@ export interface ParticipantMetadata {
   lengua_casa?: string;
   lengua_escuela?: string;
   audicion?: HearingStatus;
+  sorda_desde?: DeafSince;
   participacion_comunidad?: CommunityParticipation;
   // How consent was given (video, or the text-only skip path).
   consent_mode?: "video" | "text";

@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { ensureParticipant, setParticipantMetadata } from "@/lib/aws/repo";
+import {
+  ensureParticipant,
+  getParticipant,
+  setParticipantMetadata,
+} from "@/lib/aws/repo";
 import type { ParticipantMetadata } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -17,6 +21,7 @@ const LEARNED = ["familia", "escuela", "amistades", "asociacion", "otro"];
 const DEAF_FAMILY = ["si", "no", "no_se"];
 const HEARING = ["sorde", "hipoacusique", "oyente"];
 const COMMUNITY = ["frecuente", "ocasional", "poca"];
+const DEAF_SINCE = ["nacimiento", "infancia", "adolescencia", "adultez"];
 
 function pickEnum<T extends string>(
   value: unknown,
@@ -75,15 +80,22 @@ export async function POST(req: Request) {
       body?.audicion,
       HEARING,
     ),
+    sorda_desde: pickEnum<NonNullable<ParticipantMetadata["sorda_desde"]>>(
+      body?.sorda_desde,
+      DEAF_SINCE,
+    ),
     participacion_comunidad: pickEnum<
       NonNullable<ParticipantMetadata["participacion_comunidad"]>
     >(body?.participacion_comunidad, COMMUNITY),
   };
 
   await ensureParticipant(user.userId);
-  await setParticipantMetadata(
-    user.userId,
-    metadata as unknown as Record<string, unknown>,
+  // Se fusiona con lo guardado: el cuestionario corto de Unirse y el largo
+  // de /perfil no mandan los mismos campos, y ninguno debe borrar al otro.
+  const previo = (await getParticipant(user.userId))?.metadata ?? {};
+  const definidos = Object.fromEntries(
+    Object.entries(metadata).filter(([, v]) => v !== undefined),
   );
+  await setParticipantMetadata(user.userId, { ...previo, ...definidos });
   return Response.json({ ok: true });
 }

@@ -47,12 +47,14 @@ export function createSession(
   name: string,
   itemIds: string[],
   corpus: "lsm" | "signaplay" = "lsm",
+  listaId?: string,
 ): RecordingSession {
   const session: RecordingSession = {
     id: crypto.randomUUID(),
     name,
     created_at: new Date().toISOString(),
     corpus,
+    ...(listaId ? { lista_id: listaId } : {}),
     signs: itemIds.map((item_id) => ({
       item_id,
       // en el LSM Corpus el ítem es el número de la CM

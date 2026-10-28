@@ -45,3 +45,12 @@ edición de fronteras al milisegundo. Ver
 ## Dos corpus en Grabar
 
 Grabar empieza eligiendo entre el LSM Corpus (101 configuraciones de mano) y el corpus para SignaPlay (121 señas del nivel preescolar). Datos, llaves y compatibilidad en [docs/dos-corpus.md](docs/dos-corpus.md).
+
+## El camino del señante
+
+Portada → intro de 40 s → Unirse en tres pasos (correo y apodo, un poco
+de ti, nivel de acceso y acuerdo) → elegir lista → estudio con niveles,
+cofres, medallas, tablero semanal y tarjeta de señante. Inspirado en el
+camino de Huddle (Play With ASL), con la esencia de SignaLab: el corpus
+de la LSM, el rostro como parte de la lengua y los videos siempre de
+quien los graba. Ver [docs/camino-senante.md](docs/camino-senante.md).

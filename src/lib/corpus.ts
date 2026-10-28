@@ -114,7 +114,9 @@ export function itemIdDeCM(cmId: number): string {
 
 export function cmDeItemId(itemId: string): CMEntry | undefined {
   const n = Number(itemId);
-  if (!Number.isInteger(n)) return undefined;
+  // Solo la forma canónica ("5", no "05" ni "5.0"): una misma CM no puede
+  // tener dos llaves en el corpus.
+  if (!Number.isInteger(n) || String(n) !== itemId) return undefined;
   return CM_INVENTORY.find((cm) => cm.cm_id === n);
 }
 

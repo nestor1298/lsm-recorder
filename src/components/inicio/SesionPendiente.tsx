@@ -27,7 +27,7 @@ export default function SesionPendiente() {
   const corpus = sesion.corpus ?? "lsm";
   return (
     <Link
-      href={`/record?session=${sesion.id}`}
+      href={`/estudio?session=${sesion.id}`}
       className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-paper p-4 shadow-card transition-colors hover:border-ink"
     >
       <MarcaCorpus corpus={corpus} className="w-12 shrink-0 rounded-lg" />
