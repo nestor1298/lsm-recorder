@@ -31,7 +31,7 @@ export default function MisGrabacionesPage() {
   const [playUrl, setPlayUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (state === "signedOut") router.replace("/auth");
+    if (state === "signedOut") router.replace("/unirse");
   }, [state, router]);
 
   const load = useCallback(async () => {
@@ -91,7 +91,7 @@ export default function MisGrabacionesPage() {
     }
     try {
       await postJson("/api/consent/withdraw-all", {});
-      router.push("/consentimiento");
+      router.push("/unirse?paso=3");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     }
@@ -120,12 +120,20 @@ export default function MisGrabacionesPage() {
             Cambia el nivel de acceso o retira cualquier video cuando quieras.
           </p>
         </div>
-        <Link
-          href="/record"
-          className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Grabar
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/listas"
+            className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            Señar
+          </Link>
+          <Link
+            href="/record"
+            className="rounded-full border-[1.5px] border-gray-300 px-4 py-2 text-sm font-medium text-ink hover:border-ink"
+          >
+            Subir un video
+          </Link>
+        </div>
       </div>
 
       {playUrl && (
@@ -179,6 +187,18 @@ export default function MisGrabacionesPage() {
                   <p className="mt-1 text-xs text-gold-deep">
                     Retirada. Se elimina del corpus en el siguiente ciclo de
                     procesamiento.
+                  </p>
+                )}
+                {!r.withdrawn && r.status === "rejected" && (
+                  <p className="mt-1 text-xs text-coral-deep">
+                    Rechazada por el equipo: no corresponde a la seña o no se
+                    ve bien.{" "}
+                    <Link
+                      href={`/estudio?corpus=${r.corpus}&items=${encodeURIComponent(r.itemId)}`}
+                      className="font-semibold underline-offset-2 hover:underline"
+                    >
+                      Volver a grabarla
+                    </Link>
                   </p>
                 )}
               </div>

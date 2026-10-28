@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { withdrawRecording } from "@/lib/aws/repo";
+import {
+  descontarVideo,
+  getOwnedRecording,
+  withdrawRecording,
+} from "@/lib/aws/repo";
 import { parseRecordingId } from "@/lib/aws/keys";
 
 export const runtime = "nodejs";
@@ -23,9 +27,18 @@ export async function POST(
     return Response.json({ error: "id inválido" }, { status: 400 });
   }
 
+  // Se lee antes para saber si ya estaba retirada: retirar dos veces no
+  // debe descontar dos veces del nivel ni de la cobertura.
+  const antes = await getOwnedRecording(user.userId, parsed.sessionId, parsed.itemId);
+  if (!antes) {
+    return Response.json({ error: "No encontrado" }, { status: 404 });
+  }
   const ok = await withdrawRecording(user.userId, parsed.sessionId, parsed.itemId);
   if (!ok) {
     return Response.json({ error: "No encontrado" }, { status: 404 });
+  }
+  if (!antes.withdrawn) {
+    await descontarVideo(user.userId, { ...antes, withdrawn: true });
   }
   return Response.json({ ok: true });
 }

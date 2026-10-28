@@ -50,6 +50,22 @@ export const annotPk = (annotationId: string): string => `ANNOT#${annotationId}`
 export const annotSk = (annotationId: string): string => `ANNOT#${annotationId}`;
 export const annotGsi1Sk = (updatedAt: string): string => `ANNOT#${updatedAt}`;
 
+// ── Camino del señante: apodo, tablero semanal y cobertura ──────────────────
+// El runtime solo tiene GetItem/PutItem/UpdateItem/Query (sin Scan), así que
+// todo lo que se lee "entre personas" se acumula al escribir:
+//   APODO#{norm}            → quién tiene ese apodo (unicidad)
+//   TABLERO#{semana}        → una fila por persona con sus videos de la semana
+//   COBERTURA#{corpus}      → una fila por seña con cuántas personas la grabaron
+//   SENANTE#{userId}        → marcador por seña: ¿ya cuenta esta persona?
+export const apodoPk = (apodoNorm: string): string => `APODO#${apodoNorm}`;
+export const tableroPk = (semana: string): string => `TABLERO#${semana}`;
+export const tableroSk = (userId: string): string => `PART#${userId}`;
+export const coberturaPk = (corpus: CorpusId): string => `COBERTURA#${corpus}`;
+export const coberturaSk = (itemId: string): string => `ITEM#${itemId}`;
+export const senantePk = (userId: string): string => `SENANTE#${userId}`;
+export const senanteSk = (corpus: CorpusId, itemId: string): string =>
+  `ITEM#${corpus}#${itemId}`;
+
 // ── Item shapes ─────────────────────────────────────────────────────────────
 export interface ParticipantItem {
   pk: string;
@@ -64,7 +80,58 @@ export interface ParticipantItem {
   consent_status: ConsentStatus;
   consent_video_key?: string;
   consent_mode?: ConsentMode;
+  /** Nombre escrito al firmar el acuerdo (solo para el acuerdo). */
+  consent_signed_name?: string;
+  consent_agreement_version?: string;
+  consent_signed_at?: string;
   default_access_tier: AccessTier;
+  /** Nombre en el tablero; nunca el real. */
+  apodo?: string;
+  apodo_norm?: string;
+  /** Videos confirmados y no retirados; sube/baja al confirmar/retirar. */
+  videos_total?: number;
+}
+
+export interface ApodoItem {
+  pk: string;
+  sk: string;
+  entity: "apodo";
+  apodo_norm: string;
+  user_id: string;
+  /** La persona cambió de apodo: este queda libre para alguien más. */
+  libre?: boolean;
+}
+
+export interface TableroItem {
+  pk: string;
+  sk: string;
+  entity: "tablero";
+  semana: string;
+  user_id: string;
+  apodo?: string;
+  videos: number;
+  nivel: number;
+  actualizado: string;
+}
+
+export interface CoberturaItem {
+  pk: string;
+  sk: string;
+  entity: "cobertura";
+  corpus: CorpusId;
+  item_id: string;
+  senantes: number;
+}
+
+export interface SenanteItem {
+  pk: string;
+  sk: string;
+  entity: "senante";
+  user_id: string;
+  corpus: CorpusId;
+  item_id: string;
+  activo: boolean;
+  desde: string;
 }
 
 export interface SessionItem {

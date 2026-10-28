@@ -27,12 +27,13 @@ import {
   esCorpusId,
   itemsLSM,
   itemsSignaPlay,
-  senaSignaPlay,
   SIGNAPLAY_UNIDADES,
   type CorpusId,
 } from "@/lib/corpus";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchMe, postJson } from "@/lib/api-client";
+import { fetchMe } from "@/lib/api-client";
+import { pasoPendiente, rutaUnirse } from "@/lib/camino";
+import { asegurarSesionRemota, subirGrabacion } from "@/lib/subida";
 import { guardarVolverA } from "@/lib/volver_a";
 import SignPrompt from "@/components/SignPrompt";
 import PromptSignaPlay from "@/components/grabar/PromptSignaPlay";
@@ -102,17 +103,18 @@ function RecordPageInner() {
     if (authState === "signedOut") {
       setGate("redirecting");
       volver();
-      router.replace("/auth");
+      router.replace("/unirse");
       return;
     }
     let active = true;
     fetchMe()
       .then((me) => {
         if (!active) return;
-        if (me.consentStatus !== "granted") {
+        const paso = pasoPendiente(me);
+        if (paso) {
           setGate("redirecting");
           volver();
-          router.replace("/consentimiento");
+          router.replace(rutaUnirse(paso));
         } else {
           setGate("ok");
         }
@@ -184,35 +186,14 @@ function RecordPageInner() {
   }, []);
 
   // ── Remote sync ──────────────────────────────────────────────────────────
-  const ensureRemoteSession = useCallback(
-    async (s: RecordingSession): Promise<void> => {
-      if (s.remote_session_created) return;
-      const settings = cameraSettingsRef.current;
-      await postJson("/api/sessions", {
-        sessionId: s.id,
-        name: s.name,
-        corpus: s.corpus ?? "lsm",
-        deviceInfo: { userAgent: navigator.userAgent },
-        sessionMetadata: {
-          user_agent: navigator.userAgent,
-          screen_width: window.screen?.width,
-          screen_height: window.screen?.height,
-          camera_width: settings?.width,
-          camera_height: settings?.height,
-          camera_frame_rate: settings?.frameRate,
-          lugar: lugarRef.current || undefined,
-          captured_at: new Date().toISOString(),
-        },
-      });
-      const fresh = getSession(s.id);
-      if (fresh) {
-        fresh.remote_session_created = true;
-        saveSession(fresh);
-        setSession(fresh);
-      }
-    },
-    [],
-  );
+  const ensureRemoteSession = useCallback(async (s: RecordingSession): Promise<void> => {
+    await asegurarSesionRemota(s, {
+      camara: cameraSettingsRef.current,
+      lugar: lugarRef.current,
+    });
+    const fresh = getSession(s.id);
+    if (fresh) setSession(fresh);
+  }, []);
 
   const uploadSign = useCallback(
     async (sessionId: string, itemId: string, durationMs: number) => {
@@ -234,44 +215,13 @@ function RecordPageInner() {
         const current = getSession(sessionId);
         if (current) await ensureRemoteSession(current);
         const corpusSesion: CorpusId = current?.corpus ?? "lsm";
-
-        const { url, key, contentType } = await postJson<{
-          url: string;
-          key: string;
-          contentType: string;
-        }>("/api/recordings/presign", {
+        const { id, key } = await subirGrabacion({
           sessionId,
           itemId,
           corpus: corpusSesion,
-          // Tipo real del video (webm de cámara o mp4/mov subido), sin
-          // parámetros de codecs (MediaRecorder produce p. ej.
-          // "video/webm;codecs=vp9"); el servidor valida el tipo base.
-          ...(blob.type
-            ? { contentType: blob.type.split(";")[0].trim() }
-            : {}),
+          blob,
+          durationMs,
         });
-
-        const put = await fetch(url, {
-          method: "PUT",
-          headers: { "Content-Type": contentType },
-          body: blob,
-        });
-        if (!put.ok) throw new Error("Falló la subida del video a S3");
-
-        const { id } = await postJson<{ id: string }>(
-          "/api/recordings/confirm",
-          {
-            sessionId,
-            itemId,
-            corpus: corpusSesion,
-            gloss:
-              corpusSesion === "signaplay"
-                ? senaSignaPlay(itemId)?.glosa
-                : undefined,
-            s3Key: key,
-            durationMs,
-          },
-        );
 
         updateSignRecording(sessionId, itemId, {
           sync_status: "synced",

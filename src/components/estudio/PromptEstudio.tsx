@@ -1,0 +1,108 @@
+"use client";
+
+/**
+ * PromptEstudio — la seña que toca: en grande la glosa; abajo, lo que
+ * ayuda a hacerla bien (la mano de la CM o la palabra en español y su
+ * lección) y su rareza. Sin barra de progreso: esa va en la cabecera.
+ */
+
+import { cmDeItemId, senaSignaPlay, SIGNAPLAY_UNIDADES, type CorpusId } from "@/lib/corpus";
+import { RAREZA_INFO, rarezaDe } from "@/lib/progresion";
+import { MiniHand } from "@/components/learn/MiniHand";
+
+const FLEXION_ES: Record<string, string> = {
+  EXTENDED: "extendido",
+  CURVED: "curvado",
+  BENT: "doblado",
+  CLOSED: "cerrado",
+};
+
+export default function PromptEstudio({
+  corpus,
+  itemId,
+}: {
+  corpus: CorpusId;
+  itemId: string;
+}) {
+  const rareza = RAREZA_INFO[rarezaDe(corpus, itemId)];
+
+  if (corpus === "signaplay") {
+    const s = senaSignaPlay(itemId);
+    const u = s && s.unidad !== null ? SIGNAPLAY_UNIDADES.find((x) => x.numero === s.unidad) : null;
+    const l = u?.lecciones.find((x) => x.numero === s?.leccion);
+    return (
+      <div className="rounded-2xl border border-gold-tint bg-gold-tint p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="overline-label text-gray-600">Corpus para SignaPlay</p>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${rareza.clase}`}>
+            {rareza.nombre}
+          </span>
+        </div>
+        <p className="mt-2 break-words font-display text-4xl font-bold leading-tight tracking-[-0.02em] text-ink sm:text-5xl">
+          {s?.glosa ?? itemId}
+        </p>
+        {s && (
+          <p className="mt-2 text-lg text-gray-700">
+            «{s.espanol}» · {s.categoria}
+          </p>
+        )}
+        {u && l && (
+          <p className="mt-1 text-sm text-gray-600">
+            {u.nombre} · Lección {l.numero}: {l.titulo}
+          </p>
+        )}
+        <p className="mt-4 text-sm text-gray-700">
+          Despacio y completa, con la cara que lleva la seña: las niñas y los niños la van a imitar.
+        </p>
+      </div>
+    );
+  }
+
+  const cm = cmDeItemId(itemId);
+  if (!cm) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-paper p-5">
+        <p className="overline-label text-gray-500">LSM Corpus</p>
+        <p className="mt-2 font-display text-5xl font-bold text-ink">Seña #{itemId}</p>
+      </div>
+    );
+  }
+  const dedos = [
+    ["índice", cm.index],
+    ["medio", cm.middle],
+    ["anular", cm.ring],
+    ["meñique", cm.pinky],
+  ] as const;
+  return (
+    <div className="rounded-2xl border border-accent-tint bg-accent-tint p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="overline-label text-gray-600">
+          LSM Corpus · CM #{cm.cm_id}
+          {cm.alpha_code ? ` · ${cm.alpha_code}` : ""}
+        </p>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${rareza.clase}`}>
+          {rareza.nombre}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-4">
+        <MiniHand cm={cm} size={88} />
+        <div className="min-w-0">
+          <p className="break-words font-display text-4xl font-bold leading-tight tracking-[-0.02em] text-ink sm:text-5xl">
+            {cm.example_sign}
+          </p>
+          <p className="mt-1 font-mono text-sm text-gray-600">{cm.cruz_aldrete_notation}</p>
+        </div>
+      </div>
+      <p className="mt-4 text-sm text-gray-700">
+        Haz la seña de ejemplo con esta mano:{" "}
+        {dedos.map(([n, v], i) => (
+          <span key={n}>
+            {n} {FLEXION_ES[v] ?? v.toLowerCase()}
+            {i < dedos.length - 1 ? ", " : ""}
+          </span>
+        ))}
+        ; pulgar {FLEXION_ES[cm.thumb_flexion] ?? cm.thumb_flexion.toLowerCase()}.
+      </p>
+    </div>
+  );
+}

@@ -1,9 +1,11 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import {
+  contarVideoNuevo,
   getParticipant,
   getOwnedRecording,
   putRecording,
 } from "@/lib/aws/repo";
+import { eventosAlSubir, rarezaDe } from "@/lib/progresion";
 import { recordingId } from "@/lib/aws/keys";
 import { ALLOWED_VIDEO_TYPES, existeObjeto } from "@/lib/aws/s3";
 import { awsEnv } from "@/lib/aws/env";
@@ -98,8 +100,35 @@ export async function POST(req: Request) {
     notes: typeof body.notes === "string" ? body.notes : undefined,
   });
 
+  // Camino del señante: un video nuevo (no la repetición de una seña ya
+  // guardada en esta sesión) sube nivel, cobertura y tablero. Un video
+  // retirado y vuelto a grabar sigue retirado y no cuenta.
+  let progreso: {
+    videos: number;
+    nivel: number;
+    cofre: boolean;
+    medalla: string | null;
+    rareza: string;
+  } | null = null;
+  if (!existing) {
+    const { videosTotal } = await contarVideoNuevo(user.userId, {
+      corpus,
+      itemId,
+      recordedAt: recording.recorded_at,
+    });
+    const ev = eventosAlSubir(videosTotal - 1, videosTotal);
+    progreso = {
+      videos: videosTotal,
+      nivel: ev.nivel,
+      cofre: ev.cofre,
+      medalla: ev.medalla?.id ?? null,
+      rareza: rarezaDe(corpus, itemId),
+    };
+  }
+
   return Response.json({
     recording,
     id: recordingId(sessionId, itemId),
+    progreso,
   });
 }

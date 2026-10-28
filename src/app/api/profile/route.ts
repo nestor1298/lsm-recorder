@@ -17,6 +17,7 @@ const LEARNED = ["familia", "escuela", "amistades", "asociacion", "otro"];
 const DEAF_FAMILY = ["si", "no", "no_se"];
 const HEARING = ["sorde", "hipoacusique", "oyente"];
 const COMMUNITY = ["frecuente", "ocasional", "poca"];
+const DEAF_SINCE = ["nacimiento", "infancia", "adolescencia", "adultez"];
 
 function pickEnum<T extends string>(
   value: unknown,
@@ -74,6 +75,10 @@ export async function POST(req: Request) {
     audicion: pickEnum<NonNullable<ParticipantMetadata["audicion"]>>(
       body?.audicion,
       HEARING,
+    ),
+    sorda_desde: pickEnum<NonNullable<ParticipantMetadata["sorda_desde"]>>(
+      body?.sorda_desde,
+      DEAF_SINCE,
     ),
     participacion_comunidad: pickEnum<
       NonNullable<ParticipantMetadata["participacion_comunidad"]>
