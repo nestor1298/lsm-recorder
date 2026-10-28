@@ -1,12 +1,14 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import {
   contarVideoNuevo,
+  esCondicionFallida,
   getParticipant,
   getOwnedRecording,
+  listParticipantRecordings,
   putRecording,
 } from "@/lib/aws/repo";
 import { eventosAlSubir, rarezaDe } from "@/lib/progresion";
-import { recordingId } from "@/lib/aws/keys";
+import { itemIdDeGrabacion, recordingId } from "@/lib/aws/keys";
 import { ALLOWED_VIDEO_TYPES, existeObjeto } from "@/lib/aws/s3";
 import { awsEnv } from "@/lib/aws/env";
 import { leerCorpus, leerItemId, leerSessionId } from "@/lib/aws/item";
@@ -86,19 +88,30 @@ export async function POST(req: Request) {
   // If this sign was previously withdrawn, re-recording must not resurrect it.
   const existing = await getOwnedRecording(user.userId, sessionId, itemId);
 
-  const recording = await putRecording(user.userId, {
-    sessionId,
-    itemId,
-    corpus,
-    cmId,
-    gloss,
-    s3Key,
-    durationMs,
-    status: "approved",
-    accessTier: participant.default_access_tier,
-    withdrawn: existing?.withdrawn ?? false,
-    notes: typeof body.notes === "string" ? body.notes : undefined,
-  });
+  let recording;
+  try {
+      recording = await putRecording(user.userId, {
+      sessionId,
+      itemId,
+      corpus,
+      cmId,
+      gloss,
+      s3Key,
+      durationMs,
+      status: "approved",
+      accessTier: participant.default_access_tier,
+      withdrawn: existing?.withdrawn ?? false,
+      notes: typeof body.notes === "string" ? body.notes : undefined,
+    });
+  } catch (err) {
+    if (esCondicionFallida(err)) {
+      return Response.json(
+        { error: "Esa sesión pertenece a otra persona; empieza una sesión nueva" },
+        { status: 409 },
+      );
+    }
+    throw err;
+  }
 
   // Camino del señante: un video nuevo (no la repetición de una seña ya
   // guardada en esta sesión) sube nivel, cobertura y tablero. Un video
@@ -111,10 +124,22 @@ export async function POST(req: Request) {
     rareza: string;
   } | null = null;
   if (!existing) {
+    // Perfil anterior a los contadores: el contador arranca con lo que ya
+    // había grabado (sin contar este video, que ya está puesto).
+    let baseSiFalta: number | undefined;
+    if (typeof participant.videos_total !== "number") {
+      const previas = await listParticipantRecordings(user.userId);
+      baseSiFalta = previas.filter(
+        (r) =>
+          !r.withdrawn &&
+          !(r.session_id === sessionId && itemIdDeGrabacion(r) === itemId),
+      ).length;
+    }
     const { videosTotal } = await contarVideoNuevo(user.userId, {
       corpus,
       itemId,
       recordedAt: recording.recorded_at,
+      baseSiFalta,
     });
     const ev = eventosAlSubir(videosTotal - 1, videosTotal);
     progreso = {

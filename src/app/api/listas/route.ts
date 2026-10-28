@@ -1,5 +1,6 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { listCobertura, listSenante } from "@/lib/aws/repo";
+import { listCobertura, listParticipantRecordings } from "@/lib/aws/repo";
+import { itemIdDeGrabacion, type CorpusId } from "@/lib/aws/keys";
 import {
   claveItem,
   LISTAS,
@@ -31,16 +32,24 @@ export async function GET(req: Request) {
   const [cobLsm, cobSp, mias] = await Promise.all([
     listCobertura("lsm"),
     listCobertura("signaplay"),
-    listSenante(user.userId),
+    listParticipantRecordings(user.userId),
   ]);
   const senantes: SenantesPorItem = {};
   for (const c of [...cobLsm, ...cobSp]) {
     senantes[claveItem(c.corpus, c.item_id)] = Math.max(0, Number(c.senantes ?? 0));
   }
+  // Lo que llevas sale de tus grabaciones activas (señas distintas), igual
+  // que en /api/progreso: incluye las anteriores a los contadores.
   const tuyas: Record<string, number> = {};
-  for (const s of mias) {
-    if (!s.activo) continue;
-    const l = listaDeItem(s.corpus, s.item_id);
+  const vistas = new Set<string>();
+  for (const r of mias) {
+    if (r.withdrawn) continue;
+    const corpus: CorpusId = r.corpus ?? "lsm";
+    const itemId = itemIdDeGrabacion(r);
+    const clave = claveItem(corpus, itemId);
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    const l = listaDeItem(corpus, itemId);
     if (l) tuyas[l.id] = (tuyas[l.id] ?? 0) + 1;
   }
 

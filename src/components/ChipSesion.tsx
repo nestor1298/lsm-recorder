@@ -13,6 +13,12 @@ import { fetchMe, type MeResponse } from "@/lib/api-client";
 import { pasoPendiente, rutaUnirse } from "@/lib/camino";
 import { MEDALLAS } from "@/lib/progresion";
 
+/** Quien cambia algo del perfil (apodo, acuerdo) lo avisa con este evento. */
+export const EVENTO_ME = "signalab:me";
+export function avisarCambioDeMe(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_ME));
+}
+
 export default function ChipSesion() {
   const { state } = useAuth();
   const [me, setMe] = useState<MeResponse | null>(null);
@@ -23,13 +29,17 @@ export default function ChipSesion() {
       return;
     }
     let activo = true;
-    fetchMe()
-      .then((m) => {
-        if (activo) setMe(m);
-      })
-      .catch(() => {});
+    const cargar = () =>
+      fetchMe()
+        .then((m) => {
+          if (activo) setMe(m);
+        })
+        .catch(() => {});
+    void cargar();
+    window.addEventListener(EVENTO_ME, cargar);
     return () => {
       activo = false;
+      window.removeEventListener(EVENTO_ME, cargar);
     };
   }, [state]);
 

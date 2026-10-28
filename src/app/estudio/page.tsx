@@ -79,9 +79,26 @@ function Estudio() {
   const [celebracion, setCelebracion] = useState<Celebracion | null>(null);
   const [avisoNivel, setAvisoNivel] = useState<number | null>(null);
   const cola = useRef<Celebracion[]>([]);
+  const mostrando = useRef(false);
   const recientes = useRef<{ corpus: CorpusId; itemId: string; rareza: Rareza }[]>([]);
   const blobs = useRef<Map<string, Blob>>(new Map());
   const camaraRef = useRef<CamaraHandle>(null);
+  // Mientras la cámara cuenta o graba no se cambia de seña: el clip se
+  // guardaría con el ítem equivocado.
+  const camaraOcupada = useRef(false);
+  const alCambiarCamara = useCallback((e: EstadoCamara) => {
+    camaraOcupada.current = e === "grabando" || e === "cuenta";
+    setCamara(e);
+  }, []);
+  // El descanso vuelve a donde estabas (con la toma en revisión intacta).
+  const faseAntesDeDescanso = useRef<Fase>("senar");
+  const abrirDescanso = useCallback(() => {
+    if (camaraOcupada.current) return;
+    setFase((f) => {
+      if (f === "senar" || f === "revisar") faseAntesDeDescanso.current = f;
+      return "descanso";
+    });
+  }, []);
   const camSettings = useRef<MediaTrackSettings | null>(null);
 
   // ── Puerta ──
@@ -169,18 +186,22 @@ function Estudio() {
   const grabadas = session?.signs.filter((s) => s.status !== "pending").length ?? 0;
   const pendientes = session?.signs.filter((s) => s.status === "pending").length ?? 0;
   const subiendo = session?.signs.filter((s) => s.status === "approved" && s.sync_status === "uploading").length ?? 0;
+  const sinSubir = session?.signs.filter((s) => s.status === "approved" && s.sync_status === "failed").length ?? 0;
 
   // ── Celebraciones en fila (una a la vez) ──
   const siguienteCelebracion = useCallback(() => {
     const c = cola.current.shift() ?? null;
+    mostrando.current = c !== null;
     setCelebracion(c);
   }, []);
+  // `mostrando` es ref y no estado: una subida que termina mientras hay
+  // una celebración abierta no debe reemplazarla, aunque su cierre sea viejo.
   const encolar = useCallback(
     (cs: Celebracion[]) => {
       cola.current.push(...cs);
-      if (!celebracion) siguienteCelebracion();
+      if (!mostrando.current) siguienteCelebracion();
     },
-    [celebracion, siguienteCelebracion],
+    [siguienteCelebracion],
   );
 
   // ── Subida ──
@@ -245,7 +266,7 @@ function Estudio() {
   // ── Navegación por la lista ──
   const irA = useCallback(
     (i: number) => {
-      if (!session) return;
+      if (!session || camaraOcupada.current) return;
       if (i < 0 || i >= session.signs.length) return;
       setIndice(i);
       setFase("senar");
@@ -317,7 +338,7 @@ function Estudio() {
   }, [session, itemActual, ultimo, refrescar, subir, siguientePendiente, indice, irA]);
 
   const saltar = useCallback(() => {
-    if (!session || !itemActual) return;
+    if (!session || !itemActual || camaraOcupada.current) return;
     updateSignRecording(session.id, itemActual, { saltada: true });
     refrescar();
     avanzar(indice);
@@ -352,8 +373,7 @@ function Estudio() {
         rehacer();
       } else if (k === "b") {
         e.preventDefault();
-        if (camara === "grabando" || camara === "cuenta") camaraRef.current?.detener();
-        setFase("descanso");
+        abrirDescanso();
       } else if (k === "arrowright" && fase === "senar") {
         e.preventDefault();
         irA(indice + 1);
@@ -367,7 +387,7 @@ function Estudio() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [gate, fase, camara, celebracion, guardar, rehacer, irA, indice, saltar]);
+  }, [gate, fase, camara, celebracion, guardar, rehacer, irA, indice, saltar, abrirDescanso]);
 
   // Avisar antes de cerrar con subidas en curso
   useEffect(() => {
@@ -450,8 +470,9 @@ function Estudio() {
           </Link>
           <button
             type="button"
-            onClick={() => setFase("descanso")}
-            className="rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-ink"
+            onClick={abrirDescanso}
+            disabled={camara === "grabando" || camara === "cuenta"}
+            className="rounded-full border border-gray-200 px-3 py-1 text-gray-700 hover:border-ink disabled:opacity-40"
           >
             Descanso (B)
           </button>
@@ -459,15 +480,15 @@ function Estudio() {
       </div>
 
       {/* Cuerpo: cámara + seña */}
-      <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] sm:px-6">
-        <div className="relative min-h-[14rem]">
+      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 sm:px-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:overflow-hidden">
+        <div className="relative h-[42vh] min-h-[14rem] lg:h-auto">
           <CamaraEstudio
             ref={camaraRef}
             onRecordingComplete={alGrabar}
             onStreamReady={(s) => {
               camSettings.current = s;
             }}
-            onEstado={setCamara}
+            onEstado={alCambiarCamara}
           />
           {fase === "revisar" && ultimo && (
             <div className="absolute inset-0 overflow-hidden rounded-2xl bg-ink">
@@ -488,7 +509,7 @@ function Estudio() {
           {avisoNivel !== null && <AvisoNivel nivel={avisoNivel} />}
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
           {itemActual && <PromptEstudio corpus={corpus} itemId={itemActual} />}
 
           {/* Acción principal */}
@@ -497,7 +518,7 @@ function Estudio() {
               <button
                 type="button"
                 onClick={guardar}
-                className="rounded-full bg-green py-3 font-semibold text-paper hover:bg-green-deep"
+                className="rounded-full bg-green-deep py-3 font-semibold text-paper hover:bg-ink"
               >
                 Guardar (Enter)
               </button>
@@ -534,7 +555,7 @@ function Estudio() {
             <button
               type="button"
               onClick={() => irA(indice - 1)}
-              disabled={indice === 0 || fase === "revisar"}
+              disabled={indice === 0 || fase === "revisar" || camara === "grabando" || camara === "cuenta"}
               className="rounded-full border border-gray-200 bg-paper py-2 font-medium text-gray-700 hover:border-ink disabled:opacity-40"
             >
               ‹ Atrás
@@ -542,7 +563,7 @@ function Estudio() {
             <button
               type="button"
               onClick={() => irA(indice + 1)}
-              disabled={indice >= items.length - 1 || fase === "revisar"}
+              disabled={indice >= items.length - 1 || fase === "revisar" || camara === "grabando" || camara === "cuenta"}
               className="rounded-full border border-gray-200 bg-paper py-2 font-medium text-gray-700 hover:border-ink disabled:opacity-40"
             >
               Siguiente ›
@@ -550,7 +571,7 @@ function Estudio() {
             <button
               type="button"
               onClick={saltar}
-              disabled={fase === "revisar" || session.signs[indice]?.status !== "pending"}
+              disabled={fase === "revisar" || camara === "grabando" || camara === "cuenta" || session.signs[indice]?.status !== "pending"}
               className="rounded-full border border-gray-200 bg-paper py-2 font-medium text-gray-700 hover:border-ink disabled:opacity-40"
             >
               Saltar (S)
@@ -564,14 +585,14 @@ function Estudio() {
 
       {/* Tira de la lista */}
       <div className="border-t border-gray-200 bg-paper px-4 py-2 sm:px-6">
-        <div className="flex gap-1 overflow-x-auto" role="list" aria-label="Señas de la lista">
+        <ul className="flex gap-1 overflow-x-auto" aria-label="Señas de la lista">
           {session.signs.map((sign, i) => (
+            <li key={sign.item_id} className="shrink-0">
             <button
-              key={sign.item_id}
-              role="listitem"
               type="button"
               onClick={() => fase !== "revisar" && irA(i)}
-              className={`h-7 shrink-0 rounded px-2 text-xs font-medium transition-colors ${claseFicha(
+              aria-label={tituloFicha(describirItem(corpus, sign.item_id).titulo, sign.status, sign.sync_status, sign.saltada)}
+              className={`h-7 rounded px-2 text-xs font-medium transition-colors ${claseFicha(
                 i === indice,
                 sign.status,
                 sign.sync_status,
@@ -582,10 +603,11 @@ function Estudio() {
             >
               {describirItem(corpus, sign.item_id).corto}
             </button>
+            </li>
           ))}
-        </div>
+        </ul>
         {session.signs.some((s) => s.status === "approved" && s.sync_status === "failed") && (
-          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-gold-tint px-3 py-2 text-xs text-gold-deep">
+          <div role="status" className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-gold-tint px-3 py-2 text-xs text-ink">
             <span>Hay videos sin subir. Solo se conservan mientras esta pestaña siga abierta.</span>
             {session.signs
               .filter((s) => s.status === "approved" && s.sync_status === "failed")
@@ -605,7 +627,11 @@ function Estudio() {
 
       {/* Capas */}
       {fase === "descanso" && (
-        <Descanso nivel={nivel} videosSesion={videosSesion} onSeguir={() => setFase("senar")} />
+        <Descanso
+          nivel={nivel}
+          videosSesion={videosSesion}
+          onSeguir={() => setFase(faseAntesDeDescanso.current)}
+        />
       )}
       {fase === "fin" && (
         <FinDeLista
@@ -614,7 +640,9 @@ function Estudio() {
           total={items.length}
           saltadas={pendientes}
           pendientesSubida={subiendo}
+          sinSubir={sinSubir}
           onVolverASaltadas={volverASaltadas}
+          onVolverAlEstudio={() => setFase("senar")}
         />
       )}
       {celebracion?.tipo === "cofre" && (
@@ -642,7 +670,7 @@ function claseFicha(actual: boolean, status: string, sync?: SyncStatus, saltada?
     return "bg-green-tint text-green-deep";
   }
   if (saltada) return "bg-gray-200 text-gray-600";
-  return "bg-gray-100 text-gray-400 hover:bg-gray-200";
+  return "bg-gray-100 text-gray-600 hover:bg-gray-200";
 }
 
 function tituloFicha(nombre: string, status: string, sync?: SyncStatus, saltada?: boolean): string {

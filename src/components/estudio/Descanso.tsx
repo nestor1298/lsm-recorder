@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { faltanParaCofre, MEDALLAS, siguienteMedalla } from "@/lib/progresion";
 import TablaSemana from "@/components/tablero/TablaSemana";
+import { useFocoInicial } from "@/hooks/useFocoInicial";
 
 export default function Descanso({
   nivel,
@@ -31,6 +32,7 @@ export default function Descanso({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onSeguir]);
 
+  const foco = useFocoInicial<HTMLButtonElement>();
   const medalla = MEDALLAS.filter((m) => nivel >= m.nivel).at(-1) ?? null;
   const siguiente = siguienteMedalla(nivel);
   return (
@@ -71,6 +73,7 @@ export default function Descanso({
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           <button
+            ref={foco}
             type="button"
             onClick={onSeguir}
             className="flex-1 rounded-full bg-ink px-6 py-3 font-semibold text-paper hover:bg-gray-800"

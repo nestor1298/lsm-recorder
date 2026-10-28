@@ -127,8 +127,8 @@ function Unirse() {
       {fase === "correo" && (
         <PasoCorreo
           onEntro={() => {
+            // useAuth pasa a "signedIn" (evento de auth) y el efecto ubica.
             void refresh();
-            void ubicar(false);
           }}
         />
       )}

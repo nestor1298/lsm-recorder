@@ -27,11 +27,18 @@ export function rutaUnirse(paso: PasoUnirse): string {
   return `/unirse?paso=${paso}`;
 }
 
-/** Ruta después de entrar: el paso que falte, o a donde iba, o las listas. */
-export function rutaDespuesDeEntrar(me: EstadoCamino, volverA: string | null): string {
+/**
+ * Ruta después de entrar: el paso que falte, o a donde iba, o las listas.
+ * `tomarVolverA` se llama solo si no falta ningún paso: si falta, la ruta
+ * guardada se conserva para cuando Unirse termine.
+ */
+export function rutaDespuesDeEntrar(
+  me: EstadoCamino,
+  tomarVolverA: () => string | null,
+): string {
   const paso = pasoPendiente(me);
   if (paso) return rutaUnirse(paso);
-  return volverA ?? "/listas";
+  return tomarVolverA() ?? "/listas";
 }
 
 export function leerPaso(valor: string | null): PasoUnirse | null {

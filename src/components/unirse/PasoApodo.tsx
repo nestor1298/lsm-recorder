@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { postJson } from "@/lib/api-client";
+import { avisarCambioDeMe } from "@/components/ChipSesion";
 import { sugerirApodo, validarApodo, APODO_MAX } from "@/lib/apodos";
 import { BotonPrincipal, Campo, claseInput, ErrorForm } from "./campos";
 
@@ -31,6 +32,7 @@ export default function PasoApodo({
     setOcupado(true);
     try {
       const r = await postJson<{ apodo: string }>("/api/apodo", { apodo });
+      avisarCambioDeMe();
       onListo(r.apodo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar el apodo.");

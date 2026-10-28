@@ -9,6 +9,12 @@ import {
 } from "aws-amplify/auth";
 import "./amplify";
 
+/** Se emite al entrar o salir: cada useAuth de la página se actualiza. */
+export const EVENTO_AUTH = "signalab:auth";
+function avisarAuth(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EVENTO_AUTH));
+}
+
 /**
  * Cognito's API requires a password at sign-up even for passwordless pools.
  * We register participants with a throwaway random secret that is never shown
@@ -62,6 +68,7 @@ export async function startEmailOtp(email: string): Promise<void> {
 /** Complete sign-in with the emailed OTP code. */
 export async function confirmEmailOtp(code: string): Promise<void> {
   await confirmSignIn({ challengeResponse: code });
+  avisarAuth();
 }
 
 export async function getAccessToken(): Promise<string | null> {
@@ -84,4 +91,5 @@ export async function currentUserId(): Promise<string | null> {
 
 export async function signOut(): Promise<void> {
   await amplifySignOut();
+  avisarAuth();
 }

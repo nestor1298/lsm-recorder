@@ -31,6 +31,21 @@ describe("apodos", () => {
     expect(limpiarApodo("  Colibrí   42 ")).toBe("Colibrí 42");
   });
 
+  it("solo alfabeto latino: los apodos idénticos a la vista no conviven", () => {
+    // «С» y «о» cirílicas
+    expect(validarApodo(String.fromCharCode(0x421, 0x43e) + "librí 42")).toMatch(/Solo letras/);
+    expect(validarApodo(String.fromCharCode(0x3a9) + "mega 1")).toMatch(/Solo letras/);
+  });
+
+  it("acepta texto descompuesto (NFD) y conserva la ñ al comparar", () => {
+    const nfd = "Colibri" + String.fromCharCode(0x301) + " 42";
+    expect(validarApodo(nfd)).toBeNull();
+    expect(limpiarApodo(nfd)).toBe("Colibrí 42");
+    expect(normalizarApodo("Peña 7")).toBe("peña 7");
+    expect(normalizarApodo("Peña 7")).not.toBe(normalizarApodo("Pena 7"));
+    expect(normalizarApodo("PEN" + String.fromCharCode(0x303) + "A 7")).toBe("peña 7");
+  });
+
   it("sugiere una palabra de la lista con dos dígitos, siempre válida", () => {
     let i = 0;
     const seq = [0, 0, 0.999, 0.999];

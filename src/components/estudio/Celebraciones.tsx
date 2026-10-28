@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { cmDeItemId, describirItem, type CorpusId } from "@/lib/corpus";
 import { MEDALLAS, RAREZA_INFO, type Medalla, type Rareza } from "@/lib/progresion";
 import { MiniHand } from "@/components/learn/MiniHand";
+import { useFocoInicial } from "@/hooks/useFocoInicial";
 
 export type Celebracion =
   | { tipo: "nivel"; nivel: number }
@@ -56,6 +57,7 @@ export function Cofre({
   onCerrar: () => void;
 }) {
   useCerrarConTeclado(onCerrar);
+  const foco = useFocoInicial<HTMLButtonElement>();
   const info = RAREZA_INFO[rareza];
   const cm = corpus === "lsm" ? cmDeItemId(itemId) : undefined;
   const d = describirItem(corpus, itemId);
@@ -87,6 +89,7 @@ export function Cofre({
           La más rara de tus últimos diez videos. Está en tu tarjeta de señante.
         </p>
         <button
+          ref={foco}
           type="button"
           onClick={onCerrar}
           className="mt-5 w-full rounded-full bg-ink py-3 font-semibold text-paper hover:bg-gray-800"
@@ -100,6 +103,7 @@ export function Cofre({
 
 export function MedallaGanada({ medalla, onCerrar }: { medalla: Medalla; onCerrar: () => void }) {
   useCerrarConTeclado(onCerrar);
+  const foco = useFocoInicial<HTMLButtonElement>();
   const siguiente = MEDALLAS.find((m) => m.nivel > medalla.nivel);
   return (
     <div className="velo fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4">
@@ -125,6 +129,7 @@ export function MedallaGanada({ medalla, onCerrar }: { medalla: Medalla; onCerra
             : "La última medalla. Gracias por tanto."}
         </p>
         <button
+          ref={foco}
           type="button"
           onClick={onCerrar}
           className="mt-5 w-full rounded-full bg-ink py-3 font-semibold text-paper hover:bg-gray-800"

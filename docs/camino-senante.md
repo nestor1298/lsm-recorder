@@ -54,9 +54,17 @@ El rol del runtime solo tiene `GetItem/PutItem/UpdateItem/Query` (sin
 `contarVideoNuevo` corre en `/api/recordings/confirm` solo cuando la
 grabación no existía (una repetición de la misma seña en la misma sesión
 sobrescribe el mismo ítem y no cuenta); `descontarVideo` en
-`/api/recordings/{id}/withdraw` solo si no estaba retirada. Las
-grabaciones anteriores a este cambio no están en los contadores: el
-operador puede recalcularlos con un *backfill* (pendiente).
+`/api/recordings/{id}/withdraw` solo cuando el retiro la cambia de activa
+a retirada (condición en DynamoDB: el doble clic no descuenta dos veces).
+`putRecording` nunca reemplaza la grabación de otra persona (409). El
+apodo anterior no se libera al cambiarlo: queda reservado a quien lo usó.
+
+Perfiles anteriores a los contadores: `/api/me` y `/api/progreso` cuentan
+sus grabaciones activas mientras `videos_total` no exista, y el primer
+video nuevo lo crea con `if_not_exists(videos_total, base) + 1`, donde
+`base` son las grabaciones activas previas. Lo que no se reconstruye solo
+es la cobertura (`SENANTE#`/`COBERTURA#`) ni el tablero de semanas
+pasadas: para eso hace falta un *backfill* del operador (pendiente).
 
 ## API
 
@@ -83,7 +91,13 @@ en el piloto sin apodo entra por el paso 1 al volver.
 
 ## Pendientes
 
-- *Backfill* de contadores para las grabaciones anteriores.
+- *Backfill* de cobertura y tablero para las grabaciones anteriores.
+- Rehacer en otra semana una seña ya guardada mueve su `recorded_at`; si
+  luego se retira, el tablero descuenta en la semana nueva y no en la
+  original. Raro en el piloto; se corrige guardando la semana en que contó.
+- Si `contarVideoNuevo` falla después de guardar la grabación (error de
+  DynamoDB), ese video queda en el corpus sin sumar nivel ni cobertura; el
+  *backfill* lo reconcilia.
 - Validar con OtherAI el correo de contacto (`CONTACTO_SIGNALAB`) y el
   texto del acuerdo (versión 1.0) antes de abrirlo a la comunidad.
 - Videos en LSM para la intro y para cada paso de Unirse.

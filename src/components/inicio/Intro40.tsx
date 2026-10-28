@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useFocoInicial } from "@/hooks/useFocoInicial";
 
 interface Diapositiva {
   /** segundos en pantalla */
@@ -87,6 +88,7 @@ export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
   const [progreso, setProgreso] = useState(0); // 0..1 de la diapositiva actual
   const [pausada, setPausada] = useState(false);
   const [terminada, setTerminada] = useState(false);
+  const cerrarRef = useFocoInicial<HTMLButtonElement>();
   const inicioRef = useRef(0);
   const acumuladoRef = useRef(0);
   // Solo se monta en el cliente (al pulsar «Ver la intro»), así que se puede leer aquí.
@@ -173,6 +175,7 @@ export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
           ))}
         </div>
         <button
+          ref={cerrarRef}
           type="button"
           onClick={onCerrar}
           className="rounded-full border border-gray-600 px-3 py-1 text-sm text-gray-300 hover:border-paper hover:text-paper"

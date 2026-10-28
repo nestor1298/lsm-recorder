@@ -27,7 +27,7 @@ export default function AuthPage() {
   // iba, o a las listas.
   const routeByProfile = useCallback(
     (me: MeResponse) => {
-      router.push(rutaDespuesDeEntrar(me, tomarVolverA()));
+      router.push(rutaDespuesDeEntrar(me, tomarVolverA));
     },
     [router],
   );

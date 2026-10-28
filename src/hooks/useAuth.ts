@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { currentUserId } from "@/lib/auth-client";
+import { currentUserId, EVENTO_AUTH } from "@/lib/auth-client";
 
 export type AuthState = "loading" | "signedIn" | "signedOut";
 
@@ -16,6 +16,11 @@ export function useAuth() {
 
   useEffect(() => {
     void refresh();
+    // Entrar o salir en otra parte de la página (el chip del encabezado,
+    // por ejemplo) también actualiza a este hook.
+    const alCambiar = () => void refresh();
+    window.addEventListener(EVENTO_AUTH, alCambiar);
+    return () => window.removeEventListener(EVENTO_AUTH, alCambiar);
   }, [refresh]);
 
   return { state, userId, refresh };

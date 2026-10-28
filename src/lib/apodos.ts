@@ -9,23 +9,34 @@
 export const APODO_MIN = 3;
 export const APODO_MAX = 20;
 
-/** Letras (con acentos y ñ), dígitos, espacio, guion y guion bajo. */
-export const APODO_RE = /^[\p{L}\p{N}][\p{L}\p{N} _-]{2,19}$/u;
+/**
+ * Letras latinas (con acentos y ñ), dígitos 0-9, espacio, guion y guion
+ * bajo. Solo alfabeto latino: con cirílico o griego dos apodos idénticos a
+ * la vista («Colibrí» con una «о» cirílica) podrían convivir en el tablero.
+ */
+export const APODO_RE = /^[\p{Script=Latin}0-9][\p{Script=Latin}0-9 _-]{2,19}$/u;
 
-/** Quita acentos, junta espacios y pasa a minúsculas: "Colibrí  42" → "colibri 42". */
+/**
+ * Forma para comparar apodos: minúsculas, sin acentos, espacios juntos.
+ * La ñ se conserva: «Peña 7» y «Pena 7» son apodos distintos.
+ * "Colibrí  42" → "colibri 42".
+ */
 export function normalizarApodo(apodo: string): string {
   return apodo
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .normalize("NFC")
+    .toLowerCase()
+    .split("ñ")
+    .map((parte) => parte.normalize("NFD").replace(/\p{M}/gu, ""))
+    .join("ñ")
     .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+    .trim();
 }
 
 /** Mensaje de error en español, o null si el apodo sirve. */
 export function validarApodo(apodo: unknown): string | null {
   if (typeof apodo !== "string") return "Escribe un apodo.";
-  const limpio = apodo.replace(/\s+/g, " ").trim();
+  // NFC: lo pegado desde macOS puede venir descompuesto (i + acento)
+  const limpio = limpiarApodo(apodo);
   if (limpio.length < APODO_MIN) return `El apodo necesita al menos ${APODO_MIN} caracteres.`;
   if (limpio.length > APODO_MAX) return `El apodo puede tener hasta ${APODO_MAX} caracteres.`;
   if (!APODO_RE.test(limpio)) return "Solo letras, números, espacios, guion y guion bajo.";
@@ -34,7 +45,7 @@ export function validarApodo(apodo: unknown): string | null {
 
 /** Apodo limpio para guardar (espacios juntos, sin orillas). */
 export function limpiarApodo(apodo: string): string {
-  return apodo.replace(/\s+/g, " ").trim();
+  return apodo.normalize("NFC").replace(/\s+/g, " ").trim();
 }
 
 // Naturaleza de México, para sugerir apodos cortos y amables.

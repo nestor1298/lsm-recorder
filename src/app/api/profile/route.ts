@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { ensureParticipant, setParticipantMetadata } from "@/lib/aws/repo";
+import {
+  ensureParticipant,
+  getParticipant,
+  setParticipantMetadata,
+} from "@/lib/aws/repo";
 import type { ParticipantMetadata } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -86,9 +90,12 @@ export async function POST(req: Request) {
   };
 
   await ensureParticipant(user.userId);
-  await setParticipantMetadata(
-    user.userId,
-    metadata as unknown as Record<string, unknown>,
+  // Se fusiona con lo guardado: el cuestionario corto de Unirse y el largo
+  // de /perfil no mandan los mismos campos, y ninguno debe borrar al otro.
+  const previo = (await getParticipant(user.userId))?.metadata ?? {};
+  const definidos = Object.fromEntries(
+    Object.entries(metadata).filter(([, v]) => v !== undefined),
   );
+  await setParticipantMetadata(user.userId, { ...previo, ...definidos });
   return Response.json({ ok: true });
 }

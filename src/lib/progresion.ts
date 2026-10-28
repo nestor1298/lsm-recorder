@@ -160,7 +160,8 @@ export function inicioDeSemana(semana: string): Date | null {
   lunesSemana1.setUTCDate(cuatroEnero.getUTCDate() - dia + 1);
   const lunes = new Date(lunesSemana1);
   lunes.setUTCDate(lunesSemana1.getUTCDate() + (n - 1) * 7);
-  return lunes;
+  // W53 solo existe en algunos años: si el lunes cae en otra semana, no existe.
+  return semanaIso(lunes) === semana ? lunes : null;
 }
 
 /** Texto corto para la gente: "27 oct – 2 nov". */

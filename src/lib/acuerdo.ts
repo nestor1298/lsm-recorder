@@ -28,7 +28,7 @@ export const ACUERDO_SECCIONES: SeccionAcuerdo[] = [
   {
     titulo: "2. Es gratis y sin pago",
     parrafos: [
-      "Participas de forma voluntaria. No hay pago por tus videos, ni ahora ni después. Lo que sí hay es el juego del estudio: niveles, cofres de señas, medallas, el tablero de la semana y tu tarjeta de señante. Tú eliges cómo aparece tu crédito: con tu apodo, con tu nombre o sin nombre.",
+      "Participas de forma voluntaria. No hay pago por tus videos, ni ahora ni después. Lo que sí hay es el juego del estudio: niveles, cofres de señas, medallas, el tablero de la semana y tu tarjeta de señante. En todo eso apareces con tu apodo, nunca con tu nombre real.",
     ],
   },
   {

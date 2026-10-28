@@ -1,5 +1,9 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { ensureParticipant, getParticipant } from "@/lib/aws/repo";
+import {
+  ensureParticipant,
+  getParticipant,
+  listParticipantRecordings,
+} from "@/lib/aws/repo";
 import { medallaDe, nivelDe } from "@/lib/progresion";
 
 export const runtime = "nodejs";
@@ -16,7 +20,12 @@ export async function GET(req: Request) {
 
   await ensureParticipant(user.userId);
   const participant = await getParticipant(user.userId);
-  const videos = Math.max(0, Number(participant?.videos_total ?? 0));
+  // Perfiles anteriores a los contadores: se cuentan sus grabaciones activas
+  // (el contador nace con el primer video confirmado desde entonces).
+  const videos =
+    typeof participant?.videos_total === "number"
+      ? Math.max(0, participant.videos_total)
+      : (await listParticipantRecordings(user.userId)).filter((r) => !r.withdrawn).length;
   const nivel = nivelDe(videos);
 
   return Response.json({

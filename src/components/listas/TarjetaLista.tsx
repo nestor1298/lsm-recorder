@@ -38,7 +38,6 @@ export default function TarjetaLista({
       className={`group flex w-full flex-col rounded-2xl border bg-paper p-5 text-left shadow-card transition-colors hover:border-ink focus-visible:outline-2 focus-visible:outline-accent ${
         estado?.masNecesitada ? "border-coral" : lista.prioridad ? "border-ink" : "border-gray-200"
       }`}
-      aria-label={`${lista.nombre}, ${total} señas, ${lista.corpus === "lsm" ? "LSM Corpus" : "corpus para SignaPlay"}`}
     >
       <div className="flex items-start gap-4">
         <span aria-hidden className="w-14 shrink-0">

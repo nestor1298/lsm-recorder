@@ -11,12 +11,19 @@ describe("camino", () => {
   });
 
   it("después de entrar: al paso pendiente, o a donde iba, o a las listas", () => {
-    expect(rutaDespuesDeEntrar({ consentStatus: "none", hasMetadata: false }, "/estudio")).toBe(
+    let tomado = false;
+    const tomar = () => {
+      tomado = true;
+      return "/estudio";
+    };
+    expect(rutaDespuesDeEntrar({ consentStatus: "none", hasMetadata: false }, tomar)).toBe(
       "/unirse?paso=1",
     );
+    // Si falta un paso, la ruta guardada no se consume
+    expect(tomado).toBe(false);
     const lista = { consentStatus: "granted" as const, hasMetadata: true, apodo: "x" };
-    expect(rutaDespuesDeEntrar(lista, "/estudio?session=1")).toBe("/estudio?session=1");
-    expect(rutaDespuesDeEntrar(lista, null)).toBe("/listas");
+    expect(rutaDespuesDeEntrar(lista, () => "/estudio?session=1")).toBe("/estudio?session=1");
+    expect(rutaDespuesDeEntrar(lista, () => null)).toBe("/listas");
   });
 
   it("lee el paso de la URL con cuidado", () => {

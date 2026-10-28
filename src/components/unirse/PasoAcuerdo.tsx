@@ -9,6 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { postJson } from "@/lib/api-client";
+import { avisarCambioDeMe } from "@/components/ChipSesion";
 import {
   ACUERDO_ACEPTO,
   ACUERDO_FECHA,
@@ -64,12 +65,13 @@ export default function PasoAcuerdo({
     try {
       const videoKey = firma === "video" && video ? await subirVideo(video) : undefined;
       await postJson("/api/consent/grant", {
-        mode: firma,
+        mode: firma === "video" ? "video" : "text",
         videoKey,
         defaultTier: tier,
         signedName: nombre.trim() || undefined,
         agreementVersion: ACUERDO_VERSION,
       });
+      avisarCambioDeMe();
       onListo();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar tu firma.");

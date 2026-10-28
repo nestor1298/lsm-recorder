@@ -1,6 +1,6 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import { listTablero } from "@/lib/aws/repo";
-import { medallaDe, rangoDeSemana, SEMANA_RE, semanaIso } from "@/lib/progresion";
+import { inicioDeSemana, medallaDe, rangoDeSemana, semanaIso } from "@/lib/progresion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const pedida = url.searchParams.get("semana");
-  const semana = pedida && SEMANA_RE.test(pedida) ? pedida : semanaIso(new Date());
+  const semana = pedida && inicioDeSemana(pedida) ? pedida : semanaIso(new Date());
 
   const filas = (await listTablero(semana))
     .filter((f) => Number(f.videos) > 0)

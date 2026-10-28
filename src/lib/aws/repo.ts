@@ -169,15 +169,18 @@ export async function reclamarApodo(
       ExpressionAttributeValues: { ":a": apodo, ":n": norm },
     }),
   );
+  // El apodo anterior NO se libera: las filas del tablero de semanas
+  // pasadas lo siguen mostrando y nadie más debe poder ocuparlo. La fila de
+  // esta semana sí toma el apodo nuevo.
   if (anterior && anterior !== norm) {
     try {
       await ddbDoc().send(
         new UpdateCommand({
           TableName: awsEnv.corpusTable(),
-          Key: { pk: apodoPk(anterior), sk: apodoPk(anterior) },
-          UpdateExpression: "SET libre = :t",
-          ConditionExpression: "user_id = :uid",
-          ExpressionAttributeValues: { ":t": true, ":uid": userId },
+          Key: { pk: tableroPk(semanaIso(new Date())), sk: tableroSk(userId) },
+          UpdateExpression: "SET apodo = :a",
+          ConditionExpression: "attribute_exists(pk)",
+          ExpressionAttributeValues: { ":a": apodo },
         }),
       );
     } catch (err) {
@@ -197,7 +200,13 @@ export async function reclamarApodo(
  */
 export async function contarVideoNuevo(
   userId: string,
-  args: { corpus: CorpusId; itemId: string; recordedAt: string },
+  args: {
+    corpus: CorpusId;
+    itemId: string;
+    recordedAt: string;
+    /** Perfil sin contador (anterior al camino): videos activos previos a este. */
+    baseSiFalta?: number;
+  },
 ): Promise<{ videosTotal: number; apodo?: string }> {
   const tabla = awsEnv.corpusTable();
   const t = now();
@@ -247,8 +256,13 @@ export async function contarVideoNuevo(
     new UpdateCommand({
       TableName: tabla,
       Key: { pk: partPk(userId), sk: PROFILE_SK },
-      UpdateExpression: "ADD videos_total :uno",
-      ExpressionAttributeValues: { ":uno": 1 },
+      // El contador nace con las grabaciones que ya había (baseSiFalta) y
+      // sube una; si ya existe, if_not_exists devuelve el valor actual.
+      UpdateExpression: "SET videos_total = if_not_exists(videos_total, :base) + :uno",
+      ExpressionAttributeValues: {
+        ":base": Math.max(0, Math.floor(args.baseSiFalta ?? 0)),
+        ":uno": 1,
+      },
       ReturnValues: "ALL_NEW",
     }),
   );
@@ -525,10 +539,18 @@ export async function putRecording(
     notes: args.notes,
   };
   await ddbDoc().send(
-    new PutCommand({ TableName: awsEnv.corpusTable(), Item: item }),
+    new PutCommand({
+      TableName: awsEnv.corpusTable(),
+      Item: item,
+      // Mismo sessionId e ítem de otra persona: nunca se reemplaza su grabación.
+      ConditionExpression: "attribute_not_exists(pk) OR participant_id = :uid",
+      ExpressionAttributeValues: { ":uid": userId },
+    }),
   );
   return item;
 }
+
+export { esCondicionFallida };
 
 /** Fetch one recording, scoped: returns null if it isn't the caller's. */
 export async function getOwnedRecording(
@@ -603,6 +625,33 @@ export async function withdrawRecording(
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Retira solo si estaba activa: devuelve true únicamente a la llamada que
+ * la cambió. Dos retiros simultáneos (doble clic) descuentan una sola vez.
+ */
+export async function retirarSiActiva(
+  userId: string,
+  sessionId: string,
+  itemId: string,
+): Promise<boolean> {
+  try {
+    await ddbDoc().send(
+      new UpdateCommand({
+        TableName: awsEnv.corpusTable(),
+        Key: { pk: sessPk(sessionId), sk: recSk(itemId) },
+        UpdateExpression: "SET withdrawn = :t",
+        ConditionExpression:
+          "participant_id = :uid AND (attribute_not_exists(withdrawn) OR withdrawn = :f)",
+        ExpressionAttributeValues: { ":t": true, ":f": false, ":uid": userId },
+      }),
+    );
+    return true;
+  } catch (err) {
+    if (esCondicionFallida(err)) return false;
+    throw err;
   }
 }
 

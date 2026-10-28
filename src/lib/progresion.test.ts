@@ -13,6 +13,7 @@ import {
   siguienteMedalla,
 } from "./progresion";
 import { CM_INVENTORY } from "./data";
+import { cmDeItemId } from "./corpus";
 
 describe("niveles y medallas", () => {
   it("cada video sube un nivel; nada raro con valores malos", () => {
@@ -64,6 +65,9 @@ describe("rareza", () => {
     expect(rarezaDe("lsm", String(porTier(3).cm_id))).toBe("epica");
     expect(rarezaDe("lsm", String(porTier(4).cm_id))).toBe("legendaria");
     expect(rarezaDe("lsm", "no-existe")).toBe("comun");
+    // Solo ids canónicos: "05" no es la CM 5
+    expect(cmDeItemId("05")).toBeUndefined();
+    expect(cmDeItemId("5")?.cm_id).toBe(5);
   });
 
   it("en SignaPlay sale de la ruta; la seña sin ruta es legendaria", () => {
@@ -88,6 +92,9 @@ describe("semana ISO", () => {
     expect(inicioDeSemana("2026-W44")?.toISOString()).toBe("2026-10-26T00:00:00.000Z");
     expect(inicioDeSemana("2027-W01")?.toISOString()).toBe("2027-01-04T00:00:00.000Z");
     expect(inicioDeSemana("2026-W60")).toBeNull();
+    // 2025 tiene 52 semanas; 2026 tiene 53
+    expect(inicioDeSemana("2025-W53")).toBeNull();
+    expect(inicioDeSemana("2026-W53")?.toISOString()).toBe("2026-12-28T00:00:00.000Z");
     expect(inicioDeSemana("hola")).toBeNull();
   });
 

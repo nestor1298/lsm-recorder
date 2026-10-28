@@ -2,7 +2,7 @@ import { requireUser, authErrorResponse } from "@/lib/aws/auth";
 import {
   descontarVideo,
   getOwnedRecording,
-  withdrawRecording,
+  retirarSiActiva,
 } from "@/lib/aws/repo";
 import { parseRecordingId } from "@/lib/aws/keys";
 
@@ -27,17 +27,14 @@ export async function POST(
     return Response.json({ error: "id inválido" }, { status: 400 });
   }
 
-  // Se lee antes para saber si ya estaba retirada: retirar dos veces no
-  // debe descontar dos veces del nivel ni de la cobertura.
   const antes = await getOwnedRecording(user.userId, parsed.sessionId, parsed.itemId);
   if (!antes) {
     return Response.json({ error: "No encontrado" }, { status: 404 });
   }
-  const ok = await withdrawRecording(user.userId, parsed.sessionId, parsed.itemId);
-  if (!ok) {
-    return Response.json({ error: "No encontrado" }, { status: 404 });
-  }
-  if (!antes.withdrawn) {
+  // Solo la llamada que la pasa de activa a retirada descuenta: retirar dos
+  // veces (o con doble clic) no resta dos veces del nivel ni del tablero.
+  const cambio = await retirarSiActiva(user.userId, parsed.sessionId, parsed.itemId);
+  if (cambio) {
     await descontarVideo(user.userId, { ...antes, withdrawn: true });
   }
   return Response.json({ ok: true });

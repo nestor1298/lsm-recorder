@@ -22,7 +22,7 @@ export default function BarraPasos({ paso }: { paso: 1 | 2 | 3 }) {
             />
             <span
               className={`mt-2 block text-xs font-semibold ${
-                actual ? "text-ink" : hecho ? "text-green-deep" : "text-gray-400"
+                actual ? "text-ink" : hecho ? "text-green-deep" : "text-gray-600"
               }`}
             >
               {p.n}. {p.titulo}
