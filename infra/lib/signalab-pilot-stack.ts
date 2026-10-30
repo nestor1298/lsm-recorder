@@ -37,9 +37,16 @@ export class SignalabPilotStack extends Stack {
     const prodOrigin = this.node.tryGetContext("prodOrigin") as
       | string
       | undefined;
+    // Orígenes extra para pruebas (p. ej. la URL por defecto de Amplify
+    // antes del cutover de DNS): `-c extraOrigins=https://a,https://b`.
+    const extraOrigins = ((this.node.tryGetContext("extraOrigins") as string | undefined) ?? "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean);
     const corsOrigins = [
       "http://localhost:3000",
       ...(prodOrigin ? [prodOrigin] : []),
+      ...extraOrigins,
     ];
 
     // ── S3: corpus archive buckets ──────────────────────────────────────────
@@ -247,12 +254,20 @@ export class SignalabPilotStack extends Stack {
       // hasta que los registros CNAME (validación de cert + tráfico) se den
       // de alta en Cloudflare — leerlos con
       // `aws amplify get-domain-association` y crearlos en modo DNS only.
-      const domain = new amplify.CfnDomain(this, "AmplifyDomain", {
-        appId: amplifyApp.attrAppId,
-        domainName: "signalab.other-ai.com",
-        subDomainSettings: [{ prefix: "", branchName: "main" }],
-      });
-      domain.addDependency(mainBranch);
+      //
+      // `-c skipDomain=true` omite la asociación: sirve para levantar la app
+      // en una cuenta nueva y probarla en su URL por defecto mientras el
+      // dominio sigue asociado a la app anterior (Amplify no permite el
+      // mismo dominio en dos apps a la vez).
+      const skipDomain = this.node.tryGetContext("skipDomain") === "true";
+      if (!skipDomain) {
+        const domain = new amplify.CfnDomain(this, "AmplifyDomain", {
+          appId: amplifyApp.attrAppId,
+          domainName: "signalab.other-ai.com",
+          subDomainSettings: [{ prefix: "", branchName: "main" }],
+        });
+        domain.addDependency(mainBranch);
+      }
 
       new CfnOutput(this, "AmplifyAppId", { value: amplifyApp.attrAppId });
       new CfnOutput(this, "AmplifyDefaultDomain", {
