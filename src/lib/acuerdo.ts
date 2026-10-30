@@ -7,8 +7,8 @@
  * versión que firmó.
  */
 
-export const ACUERDO_VERSION = "1.0";
-export const ACUERDO_FECHA = "28 de octubre de 2026";
+export const ACUERDO_VERSION = "1.1";
+export const ACUERDO_FECHA = "29 de octubre de 2026";
 
 /** Correo de contacto del equipo. VALIDAR: confirmar la cuenta con OtherAI. */
 export const CONTACTO_SIGNALAB = "signalab@other-ai.com";
@@ -28,7 +28,7 @@ export const ACUERDO_SECCIONES: SeccionAcuerdo[] = [
   {
     titulo: "2. Es gratis y sin pago",
     parrafos: [
-      "Participas de forma voluntaria. No hay pago por tus videos, ni ahora ni después. Lo que sí hay es el juego del estudio: niveles, cofres de señas, medallas, el tablero de la semana y tu tarjeta de señante. En todo eso apareces con tu apodo, nunca con tu nombre real.",
+      "Participas de forma voluntaria. No hay pago por tus videos, ni ahora ni después. Lo que sí hay es el juego de las nueve manos: cada seña busca nueve personas distintas, y en el círculo de cada seña que grabes aparece tu apodo junto al de las demás; también tu atlas de la mano, tus sellos de ruta y tu tarjeta de señante. En todo eso apareces con tu apodo, nunca con tu nombre real.",
     ],
   },
   {
@@ -54,7 +54,7 @@ export const ACUERDO_SECCIONES: SeccionAcuerdo[] = [
   {
     titulo: "6. Tus datos",
     parrafos: [
-      "Guardamos tu nombre (solo para este acuerdo), tu correo (solo para que entres con un código) y lo que respondes en «Un poco de ti» (edad, región, desde cuándo señas). Esos datos describen el corpus, no se venden ni se comparten con tu nombre. Otras personas solo ven tu apodo.",
+      "Guardamos tu nombre (solo para este acuerdo), tu correo (solo para que entres con un código) y lo que respondes en «Un poco de ti» (edad, región, desde cuándo señas). Esos datos describen el corpus, no se venden ni se comparten con tu nombre. Tu estado suma, sin decir quién, al mapa de manos por estado de la comunidad. Otras personas solo ven tu apodo.",
       `Puedes pedir ver, corregir o borrar tus datos escribiendo a ${CONTACTO_SIGNALAB} desde el correo con el que entras.`,
     ],
   },
@@ -74,7 +74,7 @@ export const ACUERDO_SECCIONES: SeccionAcuerdo[] = [
 
 /** Resumen de tres líneas que acompaña a la palomita. */
 export const ACUERDO_RESUMEN = [
-  "Gratis: participas sin pago; a cambio hay niveles, cofres y medallas.",
+  "Gratis: participas sin pago; lo que hay es el juego de las nueve manos.",
   "Tuyo: tú decides quién ve cada video y lo retiras cuando quieras.",
   "Tu rostro no se borra: es parte de la seña; el nivel de acceso te protege.",
 ];

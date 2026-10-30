@@ -7,7 +7,8 @@
  * Por seña: Grabar (espacio) → cuenta de 3 → REC → Detener (espacio) →
  * revisar: Guardar (Enter) o Rehacer (R). Guardar sube el video en
  * segundo plano y pasa a la siguiente seña; al confirmar, el servidor
- * dice si subiste de nivel, si se abre un cofre o si ganaste medalla.
+ * dice qué mano fuiste en el círculo de la seña y si cerraste el círculo,
+ * completaste un grupo del atlas o sellaste una ruta.
  * Atrás/Siguiente/Saltar (flechas, S), Descanso (B).
  *
  * La sesión vive en localStorage (`?session=`), como en Grabar; aquí
@@ -25,15 +26,14 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchMe, type MeResponse } from "@/lib/api-client";
+import { fetchListas, fetchMe, type MeResponse } from "@/lib/api-client";
 import { pasoPendiente, rutaUnirse } from "@/lib/camino";
 import { guardarVolverA } from "@/lib/volver_a";
 import { CORPUS_INFO, describirItem, esCorpusId, type CorpusId } from "@/lib/corpus";
 import { ITEM_ID_RE } from "@/lib/aws/keys";
-import { listaDe } from "@/lib/listas";
+import { claveItem, listaDe } from "@/lib/listas";
 import { createSession, getSession, saveSession, updateSignRecording } from "@/lib/store";
 import { asegurarSesionRemota, subirGrabacion } from "@/lib/subida";
-import { MEDALLAS, masRara, nivelDe, type Rareza } from "@/lib/progresion";
 import { TIER_BY_VALUE } from "@/lib/tiers";
 import type { RecordingSession, SyncStatus } from "@/lib/types";
 import CamaraEstudio, {
@@ -42,11 +42,14 @@ import CamaraEstudio, {
 } from "@/components/estudio/CamaraEstudio";
 import PromptEstudio from "@/components/estudio/PromptEstudio";
 import {
-  AvisoNivel,
-  Cofre,
-  MedallaGanada,
+  AvisoMano,
+  CirculoCerrado,
+  GrupoCompleto,
+  PrimeraMano,
+  SelloGanado,
   type Celebracion,
 } from "@/components/estudio/Celebraciones";
+import CirculoManos from "@/components/manos/CirculoManos";
 import Descanso from "@/components/estudio/Descanso";
 import FinDeLista from "@/components/estudio/FinDeLista";
 
@@ -74,13 +77,18 @@ function Estudio() {
   const [fase, setFase] = useState<Fase>("senar");
   const [camara, setCamara] = useState<EstadoCamara>("apagada");
   const [ultimo, setUltimo] = useState<{ blob: Blob; url: string; ms: number } | null>(null);
-  const [nivel, setNivel] = useState(0);
   const [videosSesion, setVideosSesion] = useState(0);
   const [celebracion, setCelebracion] = useState<Celebracion | null>(null);
-  const [avisoNivel, setAvisoNivel] = useState<number | null>(null);
+  const [avisoMano, setAvisoMano] = useState<{
+    corpus: CorpusId;
+    itemId: string;
+    mano: number | null;
+  } | null>(null);
+  // Nueve manos: cuántas tiene cada seña y en cuáles ya eres una
+  const [senantes, setSenantes] = useState<Record<string, number> | null>(null);
+  const [eres, setEres] = useState<Set<string>>(() => new Set());
   const cola = useRef<Celebracion[]>([]);
   const mostrando = useRef(false);
-  const recientes = useRef<{ corpus: CorpusId; itemId: string; rareza: Rareza }[]>([]);
   const blobs = useRef<Map<string, Blob>>(new Map());
   const camaraRef = useRef<CamaraHandle>(null);
   // Mientras la cámara cuenta o graba no se cambia de seña: el clip se
@@ -123,8 +131,16 @@ function Estudio() {
           return;
         }
         setMe(m);
-        setNivel(nivelDe(m.videos ?? 0));
         setGate("ok");
+        fetchListas()
+          .then((l) => {
+            if (!activo) return;
+            setSenantes(l.senantes ?? {});
+            setEres(new Set(l.eres ?? []));
+          })
+          .catch(() => {
+            if (activo) setSenantes({});
+          });
       })
       .catch(() => {
         if (activo) setGate("error");
@@ -232,24 +248,29 @@ function Estudio() {
         blobs.current.delete(itemId);
         if (r.progreso) {
           const p = r.progreso;
-          setNivel(p.nivel);
+          const clave = claveItem(c, itemId);
           setVideosSesion((v) => v + 1);
-          recientes.current.push({ corpus: c, itemId, rareza: p.rareza });
-          if (recientes.current.length > 10) recientes.current.shift();
+          if (p.mano !== null) {
+            const mano = p.mano;
+            setSenantes((prev) => ({ ...(prev ?? {}), [clave]: Math.max(prev?.[clave] ?? 0, mano) }));
+          }
+          setEres((prev) => (prev.has(clave) ? prev : new Set(prev).add(clave)));
           const nuevas: Celebracion[] = [];
-          if (p.cofre) {
-            const mejor = recientes.current.reduce((a, b) =>
-              masRara(a.rareza, b.rareza) === a.rareza ? a : b,
+          for (const m of p.momentos) {
+            if (m.tipo === "primera") nuevas.push({ tipo: "primera", corpus: c, itemId, mano: p.mano });
+            else if (m.tipo === "circulo") nuevas.push({ tipo: "circulo", corpus: c, itemId });
+            else if (m.tipo === "grupo") nuevas.push({ tipo: "grupo", grupo: m.grupo });
+            else if (m.tipo === "sello") nuevas.push({ tipo: "sello", ruta: m.ruta });
+          }
+          // El aviso breve va siempre, salvo cuando un diálogo ya lo dice
+          if (!nuevas.some((n) => n.tipo === "primera" || n.tipo === "circulo")) {
+            setAvisoMano({ corpus: c, itemId, mano: p.mano });
+            setTimeout(
+              () => setAvisoMano((a) => (a?.itemId === itemId && a.corpus === c ? null : a)),
+              2600,
             );
-            nuevas.push({ tipo: "cofre", ...mejor, nivel: p.nivel });
           }
-          const medalla = MEDALLAS.find((m) => m.id === p.medalla);
-          if (medalla) nuevas.push({ tipo: "medalla", medalla });
           if (nuevas.length) encolar(nuevas);
-          else {
-            setAvisoNivel(p.nivel);
-            setTimeout(() => setAvisoNivel(null), 1800);
-          }
         }
       } catch (err) {
         updateSignRecording(sid, itemId, {
@@ -439,7 +460,6 @@ function Estudio() {
   if (!session) return null;
 
   const tier = TIER_BY_VALUE[me?.defaultTier ?? "restringido"];
-  const medalla = MEDALLAS.filter((m) => nivel >= m.nivel).at(-1) ?? null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-[69px] flex flex-col bg-gray-50">
@@ -456,10 +476,11 @@ function Estudio() {
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full px-3 py-1 font-semibold ${medalla ? medalla.clase : "bg-gray-100 text-gray-700"}`}
-            title={medalla ? `Medalla de ${medalla.nombre.toLowerCase()}` : "Cada video sube un nivel"}
+            className="flex items-center gap-1.5 rounded-full bg-gray-100 py-0.5 pl-1 pr-3 font-semibold text-gray-700"
+            title="Las señas en las que ya eres una de las nueve manos"
           >
-            Nivel {nivel}
+            <CirculoManos manos={Math.min(eres.size, 9)} size={22} />
+            {eres.size === 1 ? "Mano de 1 seña" : `Mano de ${eres.size} señas`}
           </span>
           <Link
             href="/mis-grabaciones"
@@ -506,11 +527,20 @@ function Estudio() {
               </p>
             </div>
           )}
-          {avisoNivel !== null && <AvisoNivel nivel={avisoNivel} />}
+          {avisoMano && (
+            <AvisoMano corpus={avisoMano.corpus} itemId={avisoMano.itemId} mano={avisoMano.mano} />
+          )}
         </div>
 
         <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
-          {itemActual && <PromptEstudio corpus={corpus} itemId={itemActual} />}
+          {itemActual && (
+            <PromptEstudio
+              corpus={corpus}
+              itemId={itemActual}
+              manos={senantes ? (senantes[claveItem(corpus, itemActual)] ?? 0) : undefined}
+              eres={eres.has(claveItem(corpus, itemActual))}
+            />
+          )}
 
           {/* Acción principal */}
           {fase === "revisar" ? (
@@ -628,7 +658,7 @@ function Estudio() {
       {/* Capas */}
       {fase === "descanso" && (
         <Descanso
-          nivel={nivel}
+          senas={eres.size}
           videosSesion={videosSesion}
           onSeguir={() => setFase(faseAntesDeDescanso.current)}
         />
@@ -645,17 +675,26 @@ function Estudio() {
           onVolverAlEstudio={() => setFase("senar")}
         />
       )}
-      {celebracion?.tipo === "cofre" && (
-        <Cofre
+      {celebracion?.tipo === "primera" && (
+        <PrimeraMano
           corpus={celebracion.corpus}
           itemId={celebracion.itemId}
-          rareza={celebracion.rareza}
-          nivel={celebracion.nivel}
+          mano={celebracion.mano}
           onCerrar={siguienteCelebracion}
         />
       )}
-      {celebracion?.tipo === "medalla" && (
-        <MedallaGanada medalla={celebracion.medalla} onCerrar={siguienteCelebracion} />
+      {celebracion?.tipo === "circulo" && (
+        <CirculoCerrado
+          corpus={celebracion.corpus}
+          itemId={celebracion.itemId}
+          onCerrar={siguienteCelebracion}
+        />
+      )}
+      {celebracion?.tipo === "grupo" && (
+        <GrupoCompleto grupo={celebracion.grupo} onCerrar={siguienteCelebracion} />
+      )}
+      {celebracion?.tipo === "sello" && (
+        <SelloGanado ruta={celebracion.ruta} onCerrar={siguienteCelebracion} />
       )}
     </div>
   );

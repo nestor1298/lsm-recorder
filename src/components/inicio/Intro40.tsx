@@ -1,87 +1,77 @@
 "use client";
 
 /**
- * Intro40 — la intro de 40 segundos: ocho diapositivas que cuentan por
- * qué señar aquí, qué se graba, qué pasa con tu rostro y cómo es el
- * juego. Se abre encima de Inicio, con barra de progreso por diapositiva,
- * Pausa y Saltar; al final ofrece empezar o leer las preguntas.
+ * Intro40 — la intro de 40 segundos: la historia de una seña. Alguien
+ * busca MAÑANA y no la encuentra descrita; una sola persona no basta;
+ * cada seña busca nueve manos; tú puedes ser una; tu cara se queda; la
+ * novena mano cierra el círculo; y la seña sigue su camino a la
+ * investigación, a Aprender y a SignaPlay.
  *
- * Sin sonido: todo está en el texto y en el movimiento de los números.
+ * Ocho escenas, cada una con su dibujo animado (historia/Escenas.tsx),
+ * movidas por un solo reloj: barra de progreso por escena, Pausa, Saltar
+ * (→), Esc para cerrar. Con movimiento reducido cada escena se dibuja en
+ * su cuadro final. Sin sonido: todo está en el texto y en el dibujo.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useFocoInicial } from "@/hooks/useFocoInicial";
+import { ESCENAS, Lienzo } from "./historia/Escenas";
+import CirculoManos from "@/components/manos/CirculoManos";
 
-interface Diapositiva {
+interface Escena {
   /** segundos en pantalla */
   dura: number;
-  /** cifras grandes (se cuentan desde cero) o frase grande */
-  grande: { cifra?: number; sufijo?: string; texto?: string }[];
+  titulo: string;
   linea: string;
-  nota?: string;
 }
 
-const DIAPOSITIVAS: Diapositiva[] = [
+const HISTORIA: Escena[] = [
   {
-    dura: 5,
-    grande: [
-      { cifra: 70, sufijo: " M+" },
-      { cifra: 300, sufijo: "+" },
-    ],
-    linea: "70 millones de personas sordas. Más de 300 lenguas de señas.",
-    nota: "Y la tecnología apenas entiende las señas. Tus manos pueden cambiarlo. Fuente: Federación Mundial de Sordos.",
+    dura: 4.5,
+    titulo: "Piensa en una seña.",
+    linea: "La primera que aprendiste. La que usas todos los días.",
   },
   {
     dura: 5,
-    grande: [{ texto: "Desde 2005 la LSM es lengua nacional." }],
-    linea: "Pero casi no hay corpus: videos de señas descritos uno por uno, para investigar y para enseñar.",
+    titulo: "Ahora búscala en internet.",
+    linea: "Con suerte hay un video. Casi nunca dice cómo se forma: qué mano, dónde, hacia dónde, con qué cara.",
   },
   {
     dura: 5,
-    grande: [{ texto: "Lee una seña. Hazla. Siguiente." }],
-    linea: "Una seña por video, de 3 a 7 segundos, con tu cámara. Desde tu casa, a la hora que sea. Sin mínimo: paras cuando quieras.",
+    titulo: "Una sola persona no basta.",
+    linea: "Cada quien la hace con sus manos, su cara, su región y su historia. Una lengua viva se documenta con muchas.",
   },
   {
     dura: 5.5,
-    grande: [{ texto: "Tu rostro es parte de tu lengua." }],
-    linea: "No lo borramos. Tú decides quién ve cada video: abierto, investigación o restringido. Y lo retiras cuando quieras.",
+    titulo: "Nueve manos por seña.",
+    linea: "Nueve personas distintas, de distintos lugares, hacen la misma seña. Así se arma el corpus de la LSM.",
   },
   {
     dura: 5,
-    grande: [{ texto: "Un juego. Gratis." }],
-    linea: "Cada video sube un nivel. Un cofre cada 10 videos. Colecciona señas: comunes, raras, épicas y legendarias.",
+    titulo: "Tú puedes ser una.",
+    linea: "Lees la seña, la haces frente a tu cámara y sigues. Desde tu casa, a tu ritmo, sin mínimo.",
   },
   {
     dura: 5,
-    grande: [{ texto: "Gana tus medallas." }],
-    linea: "Bronce al nivel 30, Plata al 50, Oro al 70, Diamante al 100. Y el tablero de la semana, con tu apodo.",
-  },
-  {
-    dura: 4.5,
-    grande: [{ texto: "Tu tarjeta de señante." }],
-    linea: "Tus videos, tus configuraciones de mano, tu seña más rara. Para compartir, sin tu nombre real.",
+    titulo: "Tu cara se queda.",
+    linea: "Es parte de la seña: no la borramos. Tú eliges quién ve cada video y lo retiras cuando quieras.",
   },
   {
     dura: 5,
-    grande: [{ texto: "De la seña al corpus." }],
-    linea: "Para investigar, para el modo Aprender y para las lecciones de SignaPlay. Más personas señantes, mejor corpus. Esto lo cambia todo para nosotros.",
+    titulo: "La novena mano cierra el círculo.",
+    linea: "La seña queda completa, con los apodos de sus nueve manos. Nunca tu nombre.",
+  },
+  {
+    dura: 5,
+    titulo: "Y la seña sigue su camino.",
+    linea: "A la investigación, al modo Aprender y a las lecciones de SignaPlay, donde una niña o un niño puede aprenderla de ti.",
   },
 ];
 
-export const INTRO_SEGUNDOS = Math.round(DIAPOSITIVAS.reduce((a, d) => a + d.dura, 0));
+const DIAPOSITIVAS = HISTORIA;
 
-function Cifra({ hasta, sufijo, progreso }: { hasta: number; sufijo?: string; progreso: number }) {
-  // cuenta desde 0 en el primer 60 % del tiempo de la diapositiva
-  const p = Math.min(1, progreso / 0.6);
-  const suave = 1 - Math.pow(1 - p, 3);
-  return (
-    <span className="tabular-nums">
-      {Math.round(hasta * suave)}
-      {sufijo}
-    </span>
-  );
-}
+export const INTRO_SEGUNDOS = Math.round(DIAPOSITIVAS.reduce((a, d) => a + d.dura, 0));
 
 export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
   const [i, setI] = useState(0);
@@ -157,7 +147,7 @@ export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Intro de 40 segundos"
+      aria-label="Intro de 40 segundos: la historia de una seña"
       className="velo fixed inset-0 z-50 flex flex-col bg-ink text-paper"
     >
       {/* barra de progreso por diapositiva + cerrar */}
@@ -185,39 +175,33 @@ export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
         </button>
       </div>
 
-      {/* la diapositiva */}
-      <div className="flex flex-1 items-center justify-center px-6 text-center">
+      {/* la escena: dibujo arriba, texto abajo */}
+      <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-4 text-center">
         {!terminada ? (
-          <div key={i} className={reducido ? "" : "diapositiva"}>
-            <p className="font-display text-4xl font-bold tracking-[-0.02em] sm:text-6xl">
-              {d.grande.map((g, k) => (
-                <span key={k} className={k > 0 ? "ml-6" : ""}>
-                  {g.cifra !== undefined ? (
-                    <Cifra
-                      hasta={g.cifra}
-                      sufijo={g.sufijo}
-                      progreso={reducido ? 1 : progreso}
-                    />
-                  ) : (
-                    g.texto
-                  )}
-                </span>
-              ))}
-            </p>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-200 sm:text-xl">{d.linea}</p>
-            {d.nota && <p className="mx-auto mt-3 max-w-xl text-sm text-gray-400">{d.nota}</p>}
-          </div>
+          <>
+            <Lienzo className="aspect-[480/270] max-h-[50vh] w-full max-w-2xl">
+              {(() => {
+                const Dibujo = ESCENAS[i];
+                return <Dibujo p={reducido ? 1 : progreso} />;
+              })()}
+            </Lienzo>
+            <div key={i} className={reducido ? "mt-6" : "diapositiva mt-6"}>
+              <p className="font-display text-3xl font-bold tracking-[-0.02em] sm:text-5xl">{d.titulo}</p>
+              <p className="mx-auto mt-4 max-w-2xl text-base text-gray-200 sm:text-xl">{d.linea}</p>
+            </div>
+          </>
         ) : (
-          <div className="diapositiva space-y-6">
+          <div className="diapositiva flex flex-col items-center space-y-6">
+            <CirculoManos manos={8} esperando oscuro size={150} />
             <p className="font-display text-4xl font-bold tracking-[-0.02em] sm:text-5xl">
-              ¿Empezamos?
+              ¿Le das una mano a la LSM?
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link
                 href="/unirse"
                 className="rounded-full bg-paper px-7 py-3 font-semibold text-ink transition-colors hover:bg-gray-200"
               >
-                Empezar a señar
+                Dar mi mano
               </Link>
               <Link
                 href="/preguntas"
@@ -249,7 +233,7 @@ export default function Intro40({ onCerrar }: { onCerrar: () => void }) {
             {pausada ? "Seguir" : "Pausa"}
           </button>
           <span aria-live="polite" className="sr-only">
-            Diapositiva {i + 1} de {DIAPOSITIVAS.length}
+            Escena {i + 1} de {DIAPOSITIVAS.length}: {d.titulo} {d.linea}
           </span>
           <button
             type="button"

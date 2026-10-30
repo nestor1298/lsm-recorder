@@ -27,18 +27,29 @@ import {
   type AnnotationItem,
   type CorpusId,
   apodoPk,
-  tableroPk,
-  tableroSk,
   coberturaPk,
   coberturaSk,
   senantePk,
   senanteSk,
   type CoberturaItem,
   type SenanteItem,
-  type TableroItem,
+  circuloPk,
+  circuloSk,
+  completasPk,
+  completasSk,
+  SEMANAS_PK,
+  semanaSk,
+  ESTADOS_PK,
+  estadoSk,
+  type CirculoItem,
+  type CompletaItem,
+  type EstadoComunidadItem,
+  type SemanaComunidadItem,
 } from "./keys";
 import { normalizarApodo } from "@/lib/apodos";
-import { nivelDe, semanaIso } from "@/lib/progresion";
+import { semanaIso } from "@/lib/semana";
+import { MANOS_POR_SENA } from "@/lib/nueve_manos";
+import { esEstadoMx } from "@/lib/mapa_mx";
 
 const now = (): string => new Date().toISOString();
 
@@ -169,34 +180,49 @@ export async function reclamarApodo(
       ExpressionAttributeValues: { ":a": apodo, ":n": norm },
     }),
   );
-  // El apodo anterior NO se libera: las filas del tablero de semanas
-  // pasadas lo siguen mostrando y nadie más debe poder ocuparlo. La fila de
-  // esta semana sí toma el apodo nuevo.
+  // El apodo anterior NO se libera: queda reservado a quien lo usó, para
+  // que nadie más aparezca con él. En los círculos de sus señas se cambia
+  // por el nuevo.
   if (anterior && anterior !== norm) {
-    try {
-      await ddbDoc().send(
-        new UpdateCommand({
-          TableName: awsEnv.corpusTable(),
-          Key: { pk: tableroPk(semanaIso(new Date())), sk: tableroSk(userId) },
-          UpdateExpression: "SET apodo = :a",
-          ConditionExpression: "attribute_exists(pk)",
-          ExpressionAttributeValues: { ":a": apodo },
+    const marcas = (await listSenante(userId)).filter((m) => m.activo);
+    for (let i = 0; i < marcas.length; i += 10) {
+      await Promise.all(
+        marcas.slice(i, i + 10).map(async (m) => {
+          try {
+            await ddbDoc().send(
+              new UpdateCommand({
+                TableName: awsEnv.corpusTable(),
+                Key: { pk: circuloPk(m.corpus, m.item_id), sk: circuloSk(userId) },
+                UpdateExpression: "SET apodo = :a",
+                ConditionExpression: "attribute_exists(pk)",
+                ExpressionAttributeValues: { ":a": apodo },
+              }),
+            );
+          } catch (err) {
+            if (!esCondicionFallida(err)) throw err;
+          }
         }),
       );
-    } catch (err) {
-      if (!esCondicionFallida(err)) throw err;
     }
   }
   return "ok";
 }
 
-// ── Progresión: contadores que se acumulan al escribir ──────────────────────
+// ── Nueve manos: contadores que se acumulan al escribir ─────────────────────
+
+export interface VideoContado {
+  videosTotal: number;
+  apodo?: string;
+  /** su lugar en el círculo de la seña; null si ya era una de sus manos */
+  mano: number | null;
+}
 
 /**
  * Un video nuevo (no una repetición de la misma seña en la misma sesión):
- * marca a la persona como señante de la seña (si no lo era), sube la
- * cobertura de la seña, el total de la persona y su fila del tablero.
- * Devuelve el total de videos después de contar.
+ * suma al total de la persona y, si todavía no era una de las manos de la
+ * seña, la suma al círculo (cobertura, miembro con su apodo y su lugar), a
+ * los contadores de la semana y al mapa de su estado. La novena mano marca
+ * la seña como completa en la semana.
  */
 export async function contarVideoNuevo(
   userId: string,
@@ -207,50 +233,9 @@ export async function contarVideoNuevo(
     /** Perfil sin contador (anterior al camino): videos activos previos a este. */
     baseSiFalta?: number;
   },
-): Promise<{ videosTotal: number; apodo?: string }> {
+): Promise<VideoContado> {
   const tabla = awsEnv.corpusTable();
   const t = now();
-
-  let nuevaSenante = false;
-  try {
-    await ddbDoc().send(
-      new UpdateCommand({
-        TableName: tabla,
-        Key: { pk: senantePk(userId), sk: senanteSk(args.corpus, args.itemId) },
-        UpdateExpression:
-          "SET entity = :e, user_id = :uid, corpus = :c, item_id = :i, activo = :t, desde = if_not_exists(desde, :now)",
-        ConditionExpression: "attribute_not_exists(pk) OR activo = :f",
-        ExpressionAttributeValues: {
-          ":e": "senante",
-          ":uid": userId,
-          ":c": args.corpus,
-          ":i": args.itemId,
-          ":t": true,
-          ":f": false,
-          ":now": t,
-        },
-      }),
-    );
-    nuevaSenante = true;
-  } catch (err) {
-    if (!esCondicionFallida(err)) throw err;
-  }
-  if (nuevaSenante) {
-    await ddbDoc().send(
-      new UpdateCommand({
-        TableName: tabla,
-        Key: { pk: coberturaPk(args.corpus), sk: coberturaSk(args.itemId) },
-        UpdateExpression:
-          "SET entity = :e, corpus = :c, item_id = :i ADD senantes :uno",
-        ExpressionAttributeValues: {
-          ":e": "cobertura",
-          ":c": args.corpus,
-          ":i": args.itemId,
-          ":uno": 1,
-        },
-      }),
-    );
-  }
 
   const res = await ddbDoc().send(
     new UpdateCommand({
@@ -269,34 +254,125 @@ export async function contarVideoNuevo(
   const participante = res.Attributes as ParticipantItem | undefined;
   const videosTotal = Math.max(0, Number(participante?.videos_total ?? 0));
   const apodo = participante?.apodo;
+  const region = participante?.metadata?.region_vive;
+  const estado = esEstadoMx(region) ? region : undefined;
 
-  const semana = semanaIso(new Date(args.recordedAt));
-  await ddbDoc().send(
+  let nuevaMano = false;
+  try {
+    await ddbDoc().send(
+      new UpdateCommand({
+        TableName: tabla,
+        Key: { pk: senantePk(userId), sk: senanteSk(args.corpus, args.itemId) },
+        UpdateExpression:
+          "SET entity = :e, user_id = :uid, corpus = :c, item_id = :i, activo = :t, desde = if_not_exists(desde, :now)" +
+          (estado ? ", estado = :es" : " REMOVE estado"),
+        ConditionExpression: "attribute_not_exists(pk) OR activo = :f",
+        ExpressionAttributeValues: {
+          ":e": "senante",
+          ":uid": userId,
+          ":c": args.corpus,
+          ":i": args.itemId,
+          ":t": true,
+          ":f": false,
+          ":now": t,
+          ...(estado ? { ":es": estado } : {}),
+        },
+      }),
+    );
+    nuevaMano = true;
+  } catch (err) {
+    if (!esCondicionFallida(err)) throw err;
+  }
+  if (!nuevaMano) return { videosTotal, apodo, mano: null };
+
+  const cob = await ddbDoc().send(
     new UpdateCommand({
       TableName: tabla,
-      Key: { pk: tableroPk(semana), sk: tableroSk(userId) },
-      UpdateExpression:
-        "SET entity = :e, semana = :s, user_id = :uid, nivel = :n, actualizado = :now" +
-        (apodo ? ", apodo = :a" : "") +
-        " ADD videos :uno",
+      Key: { pk: coberturaPk(args.corpus), sk: coberturaSk(args.itemId) },
+      UpdateExpression: "SET entity = :e, corpus = :c, item_id = :i ADD senantes :uno",
       ExpressionAttributeValues: {
-        ":e": "tablero",
-        ":s": semana,
-        ":uid": userId,
-        ":n": nivelDe(videosTotal),
-        ":now": t,
+        ":e": "cobertura",
+        ":c": args.corpus,
+        ":i": args.itemId,
         ":uno": 1,
-        ...(apodo ? { ":a": apodo } : {}),
       },
+      ReturnValues: "UPDATED_NEW",
     }),
   );
+  const mano = Math.max(1, Number((cob.Attributes as { senantes?: number } | undefined)?.senantes ?? 1));
+  const semana = semanaIso(new Date(args.recordedAt));
+  const cierra = mano === MANOS_POR_SENA;
 
-  return { videosTotal, apodo };
+  await Promise.all([
+    ddbDoc().send(
+      new UpdateCommand({
+        TableName: tabla,
+        Key: { pk: senantePk(userId), sk: senanteSk(args.corpus, args.itemId) },
+        UpdateExpression: "SET mano = :m",
+        ExpressionAttributeValues: { ":m": mano },
+      }),
+    ),
+    ddbDoc().send(
+      new PutCommand({
+        TableName: tabla,
+        Item: {
+          pk: circuloPk(args.corpus, args.itemId),
+          sk: circuloSk(userId),
+          entity: "circulo",
+          corpus: args.corpus,
+          item_id: args.itemId,
+          user_id: userId,
+          ...(apodo ? { apodo } : {}),
+          mano,
+          activo: true,
+          desde: t,
+        } satisfies CirculoItem,
+      }),
+    ),
+    ddbDoc().send(
+      new UpdateCommand({
+        TableName: tabla,
+        Key: { pk: SEMANAS_PK, sk: semanaSk(semana) },
+        UpdateExpression:
+          "SET entity = :e, semana = :s ADD manos :uno" + (cierra ? ", completas :uno" : ""),
+        ExpressionAttributeValues: { ":e": "semana_comunidad", ":s": semana, ":uno": 1 },
+      }),
+    ),
+    cierra
+      ? ddbDoc().send(
+          new PutCommand({
+            TableName: tabla,
+            Item: {
+              pk: completasPk(semana),
+              sk: completasSk(args.corpus, args.itemId),
+              entity: "completa",
+              semana,
+              corpus: args.corpus,
+              item_id: args.itemId,
+              cerrada: t,
+            } satisfies CompletaItem,
+          }),
+        )
+      : Promise.resolve(),
+    estado
+      ? ddbDoc().send(
+          new UpdateCommand({
+            TableName: tabla,
+            Key: { pk: ESTADOS_PK, sk: estadoSk(estado) },
+            UpdateExpression: "SET entity = :e, estado = :es ADD manos :uno",
+            ExpressionAttributeValues: { ":e": "estado_comunidad", ":es": estado, ":uno": 1 },
+          }),
+        )
+      : Promise.resolve(),
+  ]);
+
+  return { videosTotal, apodo, mano };
 }
 
 /**
- * Al retirar un video: baja el total y la fila de su semana; si la persona
- * ya no tiene otro video activo de esa seña, deja de contar en la cobertura.
+ * Un video retirado: baja el total y, si era el último video activo de la
+ * persona en esa seña, la quita del círculo (cobertura, miembro, mapa).
+ * Los contadores de la semana cuentan llegadas y no bajan.
  */
 export async function descontarVideo(
   userId: string,
@@ -315,24 +391,32 @@ export async function descontarVideo(
       (r.item_id ?? String(r.cm_id ?? "")) === itemId,
   );
   if (!otraActiva) {
-    let dejaDeContar = false;
+    let marca: SenanteItem | undefined;
     try {
-      await ddbDoc().send(
+      const r = await ddbDoc().send(
         new UpdateCommand({
           TableName: tabla,
           Key: { pk: senantePk(userId), sk: senanteSk(corpus, itemId) },
           UpdateExpression: "SET activo = :f",
           ConditionExpression: "activo = :t",
           ExpressionAttributeValues: { ":f": false, ":t": true },
+          ReturnValues: "ALL_OLD",
         }),
       );
-      dejaDeContar = true;
+      marca = r.Attributes as SenanteItem | undefined;
     } catch (err) {
       if (!esCondicionFallida(err)) throw err;
     }
-    if (dejaDeContar) {
-      try {
-        await ddbDoc().send(
+    if (marca) {
+      const opcional = async (cmd: UpdateCommand) => {
+        try {
+          await ddbDoc().send(cmd);
+        } catch (err) {
+          if (!esCondicionFallida(err)) throw err;
+        }
+      };
+      await Promise.all([
+        opcional(
           new UpdateCommand({
             TableName: tabla,
             Key: { pk: coberturaPk(corpus), sk: coberturaSk(itemId) },
@@ -340,10 +424,28 @@ export async function descontarVideo(
             ConditionExpression: "senantes >= :uno",
             ExpressionAttributeValues: { ":menos": -1, ":uno": 1 },
           }),
-        );
-      } catch (err) {
-        if (!esCondicionFallida(err)) throw err;
-      }
+        ),
+        opcional(
+          new UpdateCommand({
+            TableName: tabla,
+            Key: { pk: circuloPk(corpus, itemId), sk: circuloSk(userId) },
+            UpdateExpression: "SET activo = :f",
+            ConditionExpression: "attribute_exists(pk)",
+            ExpressionAttributeValues: { ":f": false },
+          }),
+        ),
+        marca.estado
+          ? opcional(
+              new UpdateCommand({
+                TableName: tabla,
+                Key: { pk: ESTADOS_PK, sk: estadoSk(marca.estado) },
+                UpdateExpression: "ADD manos :menos",
+                ConditionExpression: "manos >= :uno",
+                ExpressionAttributeValues: { ":menos": -1, ":uno": 1 },
+              }),
+            )
+          : Promise.resolve(),
+      ]);
     }
   }
 
@@ -366,27 +468,6 @@ export async function descontarVideo(
   } catch (err) {
     if (!esCondicionFallida(err)) throw err;
   }
-
-  const semana = semanaIso(new Date(rec.recorded_at));
-  try {
-    await ddbDoc().send(
-      new UpdateCommand({
-        TableName: tabla,
-        Key: { pk: tableroPk(semana), sk: tableroSk(userId) },
-        UpdateExpression: "SET nivel = :n, actualizado = :now ADD videos :menos",
-        ConditionExpression: "videos >= :uno",
-        ExpressionAttributeValues: {
-          ":n": nivelDe(videosTotal),
-          ":now": now(),
-          ":menos": -1,
-          ":uno": 1,
-        },
-      }),
-    );
-  } catch (err) {
-    if (!esCondicionFallida(err)) throw err;
-  }
-
   return { videosTotal };
 }
 
@@ -423,9 +504,28 @@ export async function listSenante(userId: string): Promise<SenanteItem[]> {
   return queryTodo<SenanteItem>({ pk: senantePk(userId) });
 }
 
-/** Filas del tablero de una semana (todas las personas con videos esa semana). */
-export async function listTablero(semana: string): Promise<TableroItem[]> {
-  return queryTodo<TableroItem>({ pk: tableroPk(semana) });
+/** Las manos (activas) del círculo de una seña. */
+export async function listCirculo(corpus: CorpusId, itemId: string): Promise<CirculoItem[]> {
+  return (await queryTodo<CirculoItem>({ pk: circuloPk(corpus, itemId) })).filter(
+    (m) => m.activo,
+  );
+}
+
+/** Señas cuyo círculo se cerró en una semana. */
+export async function listCompletas(semana: string): Promise<CompletaItem[]> {
+  return queryTodo<CompletaItem>({ pk: completasPk(semana) });
+}
+
+export async function getSemanaComunidad(semana: string): Promise<SemanaComunidadItem | null> {
+  const r = await ddbDoc().send(
+    new GetCommand({ TableName: awsEnv.corpusTable(), Key: { pk: SEMANAS_PK, sk: semanaSk(semana) } }),
+  );
+  return (r.Item as SemanaComunidadItem | undefined) ?? null;
+}
+
+/** Manos por estado (agregado). */
+export async function listEstados(): Promise<EstadoComunidadItem[]> {
+  return queryTodo<EstadoComunidadItem>({ pk: ESTADOS_PK });
 }
 
 export async function setDefaultTier(

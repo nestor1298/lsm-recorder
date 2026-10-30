@@ -5,9 +5,11 @@ import {
   getParticipant,
   getOwnedRecording,
   listParticipantRecordings,
+  listSenante,
   putRecording,
 } from "@/lib/aws/repo";
-import { eventosAlSubir, rarezaDe } from "@/lib/progresion";
+import { momentosAlGuardar, type Momento } from "@/lib/nueve_manos";
+import { claveItem } from "@/lib/listas";
 import { itemIdDeGrabacion, recordingId } from "@/lib/aws/keys";
 import { ALLOWED_VIDEO_TYPES, existeObjeto } from "@/lib/aws/s3";
 import { awsEnv } from "@/lib/aws/env";
@@ -113,15 +115,15 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  // Camino del señante: un video nuevo (no la repetición de una seña ya
-  // guardada en esta sesión) sube nivel, cobertura y tablero. Un video
-  // retirado y vuelto a grabar sigue retirado y no cuenta.
+  // Nueve manos: un video nuevo (no la repetición de una seña ya guardada
+  // en esta sesión) suma al total y, si la persona todavía no era una de
+  // las manos de la seña, entra a su círculo. Un video retirado y vuelto a
+  // grabar sigue retirado y no cuenta.
   let progreso: {
     videos: number;
-    nivel: number;
-    cofre: boolean;
-    medalla: string | null;
-    rareza: string;
+    /** su lugar en el círculo; null si ya era una de sus manos */
+    mano: number | null;
+    momentos: Momento[];
   } | null = null;
   if (!existing) {
     // Perfil anterior a los contadores: el contador arranca con lo que ya
@@ -135,19 +137,25 @@ export async function POST(req: Request) {
           !(r.session_id === sessionId && itemIdDeGrabacion(r) === itemId),
       ).length;
     }
-    const { videosTotal } = await contarVideoNuevo(user.userId, {
+    const { videosTotal, mano } = await contarVideoNuevo(user.userId, {
       corpus,
       itemId,
       recordedAt: recording.recorded_at,
       baseSiFalta,
     });
-    const ev = eventosAlSubir(videosTotal - 1, videosTotal);
+    // Las señas en las que ya era una mano, sin esta (para atlas y sellos)
+    const clave = claveItem(corpus, itemId);
+    const antes =
+      mano === null
+        ? []
+        : (await listSenante(user.userId))
+            .filter((m) => m.activo)
+            .map((m) => claveItem(m.corpus, m.item_id))
+            .filter((k) => k !== clave);
     progreso = {
       videos: videosTotal,
-      nivel: ev.nivel,
-      cofre: ev.cofre,
-      medalla: ev.medalla?.id ?? null,
-      rareza: rarezaDe(corpus, itemId),
+      mano,
+      momentos: momentosAlGuardar({ corpus, itemId, mano, videos: videosTotal, antes }),
     };
   }
 

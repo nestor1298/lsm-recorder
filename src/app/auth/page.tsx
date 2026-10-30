@@ -102,8 +102,8 @@ export default function AuthPage() {
       <div>
         <h1 className="text-2xl font-bold text-ink">Entrar</h1>
         <p className="text-sm text-gray-500">
-          Te mandamos un código por correo. Sin contraseñas: tu nivel, tus
-          señas y tu apodo regresan en cualquier dispositivo.
+          Te mandamos un código por correo. Sin contraseñas: tus señas, tu
+          atlas y tu apodo regresan en cualquier dispositivo.
         </p>
       </div>
 

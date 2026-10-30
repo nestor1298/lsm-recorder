@@ -48,9 +48,12 @@ Grabar empieza eligiendo entre el LSM Corpus (101 configuraciones de mano) y el 
 
 ## El camino del señante
 
-Portada → intro de 40 s → Unirse en tres pasos (correo y apodo, un poco
-de ti, nivel de acceso y acuerdo) → elegir lista → estudio con niveles,
-cofres, medallas, tablero semanal y tarjeta de señante. Inspirado en el
-camino de Huddle (Play With ASL), con la esencia de SignaLab: el corpus
-de la LSM, el rostro como parte de la lengua y los videos siempre de
-quien los graba. Ver [docs/camino-senante.md](docs/camino-senante.md).
+Portada → la historia de una seña en 40 s (dibujos animados) → Unirse en
+tres pasos (correo y apodo, un poco de ti, nivel de acceso y acuerdo) →
+elegir lista → estudio → **nueve manos**: cada seña busca nueve personas
+distintas; ves qué mano eres, la novena cierra el círculo, llenas tu atlas
+de la mano y ganas sellos de ruta; `/comunidad` muestra a qué señas les
+falta poco y el mapa de manos por estado, sin posiciones. El camino se
+inspira en Huddle (Play With ASL); la historia y el juego son propios, con
+la esencia de SignaLab: el corpus de la LSM, el rostro como parte de la
+lengua y los videos siempre de quien los graba. Ver [docs/camino-senante.md](docs/camino-senante.md).

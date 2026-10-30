@@ -48,34 +48,41 @@ export interface MeResponse {
   apodo?: string | null;
   agreementVersion?: string | null;
   videos?: number;
-  nivel?: number;
-  medalla?: MedallaId | null;
+  /** estado donde vive (cuestionario), para el mapa de la comunidad */
+  estado?: string | null;
 }
-
-export type MedallaId = "bronce" | "plata" | "oro" | "diamante";
-export type RarezaId = "comun" | "rara" | "epica" | "legendaria";
 
 export const fetchMe = (): Promise<MeResponse> => getJson<MeResponse>("/api/me");
 
 // ── Camino del señante ──────────────────────────────────────────
 
+export type CorpusCliente = "lsm" | "signaplay";
+
+/** Tu parte de las nueve manos (ver src/lib/nueve_manos.ts). */
 export interface ProgresoResponse {
   apodo: string | null;
   videos: number;
   videosSemana: number;
   semana: string;
-  nivel: number;
-  medalla: MedallaId | null;
-  siguienteMedalla: { id: MedallaId; nivel: number } | null;
-  faltanParaCofre: number;
-  senasDistintas: number;
-  cmDistintas: number;
-  rarezaMax: RarezaId | null;
-  porLista: Record<string, number>;
-  coleccion: {
-    corpus: "lsm" | "signaplay";
+  /** señas en las que eres una mano */
+  senas: number;
+  /** de esas, cuántas ya tienen sus nueve manos */
+  completas: number;
+  /** círculos que tú cerraste (fuiste la novena mano) */
+  cerraste: number;
+  atlas: {
+    tuyas: number;
+    total: number;
+    grupos: { id: "A" | "B" | "C" | "D" | "E"; tuyas: number[]; completo: boolean }[];
+  };
+  rutas: { numero: number; nombre: string; total: number; tuyas: number; sellada: boolean }[];
+  sellos: number;
+  misSenas: {
+    corpus: CorpusCliente;
     itemId: string;
-    rareza: RarezaId;
+    mano: number | null;
+    manos: number;
+    completa: boolean;
     desde: string;
     veces: number;
   }[];
@@ -94,36 +101,52 @@ export interface ListasResponse {
     masNecesitada: boolean;
   }[];
   comunidad: { pct: number; hechas: number; meta: number };
+  /** manos por seña, con la llave "corpus:itemId" (ver claveItem) */
+  senantes?: Record<string, number>;
+  /** señas en las que ya eres una mano ("corpus:itemId") */
+  eres?: string[];
 }
 
 export const fetchListas = (): Promise<ListasResponse> =>
   getJson<ListasResponse>("/api/listas");
 
-export interface TableroResponse {
+export interface ComunidadResponse {
   semana: string;
   rango: string;
-  filas: {
-    puesto: number;
-    apodo: string;
-    videos: number;
-    nivel: number;
-    medalla: MedallaId | null;
-    eresTu: boolean;
-  }[];
   total: number;
-  tu: { puesto: number; videos: number; nivel: number } | null;
+  completas: number;
+  meta: { pct: number; hechas: number; meta: number };
+  casi: { corpus: CorpusCliente; itemId: string; manos: number; faltan: number }[];
+  deLaSemana: {
+    manos: number;
+    completas: number;
+    circulos: {
+      corpus: CorpusCliente;
+      itemId: string;
+      cerrada: string;
+      apodos: string[];
+      estuviste: boolean;
+    }[];
+  };
+  estados: { estado: string; manos: number }[];
 }
 
-export const fetchTablero = (semana?: string): Promise<TableroResponse> =>
-  getJson<TableroResponse>(
-    semana ? `/api/tablero?semana=${encodeURIComponent(semana)}` : "/api/tablero",
+export const fetchComunidad = (semana?: string): Promise<ComunidadResponse> =>
+  getJson<ComunidadResponse>(
+    semana ? `/api/comunidad?semana=${encodeURIComponent(semana)}` : "/api/comunidad",
   );
 
 /** Lo que devuelve /api/recordings/confirm además de la grabación. */
+export type MomentoCliente =
+  | { tipo: "primera" }
+  | { tipo: "mano"; mano: number | null }
+  | { tipo: "circulo" }
+  | { tipo: "grupo"; grupo: "A" | "B" | "C" | "D" | "E" }
+  | { tipo: "sello"; ruta: number };
+
 export interface ProgresoAlConfirmar {
   videos: number;
-  nivel: number;
-  cofre: boolean;
-  medalla: MedallaId | null;
-  rareza: RarezaId;
+  /** tu lugar en el círculo de la seña; null si ya eras una de sus manos */
+  mano: number | null;
+  momentos: MomentoCliente[];
 }

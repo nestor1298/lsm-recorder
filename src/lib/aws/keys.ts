@@ -50,21 +50,33 @@ export const annotPk = (annotationId: string): string => `ANNOT#${annotationId}`
 export const annotSk = (annotationId: string): string => `ANNOT#${annotationId}`;
 export const annotGsi1Sk = (updatedAt: string): string => `ANNOT#${updatedAt}`;
 
-// ── Camino del señante: apodo, tablero semanal y cobertura ──────────────────
+// ── Camino del señante: apodo y las nueve manos ───────────────────────────
 // El runtime solo tiene GetItem/PutItem/UpdateItem/Query (sin Scan), así que
 // todo lo que se lee "entre personas" se acumula al escribir:
-//   APODO#{norm}            → quién tiene ese apodo (unicidad)
-//   TABLERO#{semana}        → una fila por persona con sus videos de la semana
-//   COBERTURA#{corpus}      → una fila por seña con cuántas personas la grabaron
-//   SENANTE#{userId}        → marcador por seña: ¿ya cuenta esta persona?
+//   APODO#{norm}                 → quién tiene ese apodo (unicidad)
+//   COBERTURA#{corpus}           → una fila por seña: cuántas manos tiene
+//   SENANTE#{userId}             → marcador por seña: ¿ya es una de sus manos?
+//   CIRCULO#{corpus}#{itemId}    → las manos de una seña (apodo, lugar)
+//   COMPLETAS#{semana}           → señas cuyo círculo se cerró esa semana
+//   COMUNIDAD#SEMANAS            → manos y círculos cerrados por semana
+//   COMUNIDAD#ESTADOS            → manos por estado (agregado, sin personas)
+// Las filas TABLERO#{semana} del primer camino quedan en la tabla sin uso.
 export const apodoPk = (apodoNorm: string): string => `APODO#${apodoNorm}`;
-export const tableroPk = (semana: string): string => `TABLERO#${semana}`;
-export const tableroSk = (userId: string): string => `PART#${userId}`;
 export const coberturaPk = (corpus: CorpusId): string => `COBERTURA#${corpus}`;
 export const coberturaSk = (itemId: string): string => `ITEM#${itemId}`;
 export const senantePk = (userId: string): string => `SENANTE#${userId}`;
 export const senanteSk = (corpus: CorpusId, itemId: string): string =>
   `ITEM#${corpus}#${itemId}`;
+export const circuloPk = (corpus: CorpusId, itemId: string): string =>
+  `CIRCULO#${corpus}#${itemId}`;
+export const circuloSk = (userId: string): string => `PART#${userId}`;
+export const completasPk = (semana: string): string => `COMPLETAS#${semana}`;
+export const completasSk = (corpus: CorpusId, itemId: string): string =>
+  `ITEM#${corpus}#${itemId}`;
+export const SEMANAS_PK = "COMUNIDAD#SEMANAS";
+export const semanaSk = (semana: string): string => `SEMANA#${semana}`;
+export const ESTADOS_PK = "COMUNIDAD#ESTADOS";
+export const estadoSk = (estado: string): string => `ESTADO#${estado}`;
 
 // ── Item shapes ─────────────────────────────────────────────────────────────
 export interface ParticipantItem {
@@ -85,7 +97,7 @@ export interface ParticipantItem {
   consent_agreement_version?: string;
   consent_signed_at?: string;
   default_access_tier: AccessTier;
-  /** Nombre en el tablero; nunca el real. */
+  /** Nombre en la comunidad (círculos de las señas); nunca el real. */
   apodo?: string;
   apodo_norm?: string;
   /** Videos confirmados y no retirados; sube/baja al confirmar/retirar. */
@@ -100,18 +112,6 @@ export interface ApodoItem {
   user_id: string;
   /** La persona cambió de apodo: este queda libre para alguien más. */
   libre?: boolean;
-}
-
-export interface TableroItem {
-  pk: string;
-  sk: string;
-  entity: "tablero";
-  semana: string;
-  user_id: string;
-  apodo?: string;
-  videos: number;
-  nivel: number;
-  actualizado: string;
 }
 
 export interface CoberturaItem {
@@ -132,6 +132,50 @@ export interface SenanteItem {
   item_id: string;
   activo: boolean;
   desde: string;
+  /** su lugar en el círculo de la seña cuando llegó (1 = la primera mano) */
+  mano?: number;
+  /** estado donde vivía al llegar (para descontar del mapa al retirar) */
+  estado?: string;
+}
+
+export interface CirculoItem {
+  pk: string;
+  sk: string;
+  entity: "circulo";
+  corpus: CorpusId;
+  item_id: string;
+  user_id: string;
+  apodo?: string;
+  mano: number;
+  activo: boolean;
+  desde: string;
+}
+
+export interface CompletaItem {
+  pk: string;
+  sk: string;
+  entity: "completa";
+  semana: string;
+  corpus: CorpusId;
+  item_id: string;
+  cerrada: string;
+}
+
+export interface SemanaComunidadItem {
+  pk: string;
+  sk: string;
+  entity: "semana_comunidad";
+  semana: string;
+  manos?: number;
+  completas?: number;
+}
+
+export interface EstadoComunidadItem {
+  pk: string;
+  sk: string;
+  entity: "estado_comunidad";
+  estado: string;
+  manos: number;
 }
 
 export interface SessionItem {
