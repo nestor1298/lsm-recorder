@@ -33,6 +33,7 @@ export default function TarjetaLista({
 
   return (
     <button
+      id={lista.id}
       type="button"
       onClick={() => onElegir(lista)}
       className={`group flex w-full flex-col rounded-2xl border bg-paper p-5 text-left shadow-card transition-colors hover:border-ink focus-visible:outline-2 focus-visible:outline-accent ${
@@ -72,7 +73,7 @@ export default function TarjetaLista({
           <strong className="text-ink">{total}</strong> señas · unos{" "}
           <strong className="text-ink">{minutosEstimados(total)}</strong> min
         </span>
-        <span className="flex items-center gap-2" title={`Personas por seña: ${estado?.senantes ?? 0} de ${META_SENANTES}`}>
+        <span className="flex items-center gap-2" title={`Manos por seña, en promedio: ${estado?.senantes ?? 0} de ${META_SENANTES}`}>
           <span className="flex gap-0.5" aria-hidden>
             {Array.from({ length: META_SENANTES }, (_, i) => (
               <i
@@ -84,7 +85,7 @@ export default function TarjetaLista({
             ))}
           </span>
           <span className="text-gray-500">
-            {estado?.senantes ?? 0}/{META_SENANTES} personas
+            {estado?.senantes ?? 0} de {META_SENANTES} manos
           </span>
         </span>
       </div>

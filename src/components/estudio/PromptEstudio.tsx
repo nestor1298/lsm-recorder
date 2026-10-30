@@ -3,12 +3,14 @@
 /**
  * PromptEstudio — la seña que toca: en grande la glosa; abajo, lo que
  * ayuda a hacerla bien (la mano de la CM o la palabra en español y su
- * lección) y su rareza. Sin barra de progreso: esa va en la cabecera.
+ * lección) y cómo va su círculo de nueve manos. Sin barra de progreso:
+ * esa va en la cabecera.
  */
 
 import { cmDeItemId, senaSignaPlay, SIGNAPLAY_UNIDADES, type CorpusId } from "@/lib/corpus";
-import { RAREZA_INFO, rarezaDe } from "@/lib/progresion";
+import { circuloDe, MANOS_POR_SENA } from "@/lib/nueve_manos";
 import { MiniHand } from "@/components/learn/MiniHand";
+import CirculoManos from "@/components/manos/CirculoManos";
 
 const FLEXION_ES: Record<string, string> = {
   EXTENDED: "extendido",
@@ -17,14 +19,44 @@ const FLEXION_ES: Record<string, string> = {
   CLOSED: "cerrado",
 };
 
+/** Cómo va el círculo de la seña, y dónde entrarías tú. */
+export function EstadoCirculo({
+  manos,
+  eres,
+}: {
+  /** manos que ya tiene (undefined mientras carga) */
+  manos?: number;
+  eres: boolean;
+}) {
+  if (manos === undefined) return <span className="h-10" aria-hidden />;
+  const c = circuloDe(manos);
+  const texto = eres
+    ? "Ya eres una de sus manos: otro video suma variedad."
+    : c.completo
+      ? "Ya tiene sus nueve manos. La tuya suma variedad."
+      : c.manos === 0
+        ? "Nadie la ha grabado. La tuya sería la primera mano."
+        : `${c.manos} de ${MANOS_POR_SENA} manos. La tuya sería la ${c.manos + 1}${c.faltan === 1 ? " y cerraría el círculo" : ""}.`;
+  return (
+    <div className="flex items-center gap-3">
+      <CirculoManos manos={c.manos} esperando={!eres && !c.completo} size={40} />
+      <p className="text-sm text-gray-700">{texto}</p>
+    </div>
+  );
+}
+
 export default function PromptEstudio({
   corpus,
   itemId,
+  manos,
+  eres = false,
 }: {
   corpus: CorpusId;
   itemId: string;
+  manos?: number;
+  eres?: boolean;
 }) {
-  const rareza = RAREZA_INFO[rarezaDe(corpus, itemId)];
+  const circulo = <EstadoCirculo manos={manos} eres={eres} />;
 
   if (corpus === "signaplay") {
     const s = senaSignaPlay(itemId);
@@ -32,12 +64,7 @@ export default function PromptEstudio({
     const l = u?.lecciones.find((x) => x.numero === s?.leccion);
     return (
       <div className="rounded-2xl border border-gold-tint bg-gold-tint p-5">
-        <div className="flex items-start justify-between gap-3">
-          <p className="overline-label text-gray-600">Corpus para SignaPlay</p>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${rareza.clase}`}>
-            {rareza.nombre}
-          </span>
-        </div>
+        <p className="overline-label text-gray-600">Corpus para SignaPlay</p>
         <p className="mt-2 break-words font-display text-4xl font-bold leading-tight tracking-[-0.02em] text-ink sm:text-5xl">
           {s?.glosa ?? itemId}
         </p>
@@ -54,6 +81,7 @@ export default function PromptEstudio({
         <p className="mt-4 text-sm text-gray-700">
           Despacio y completa, con la cara que lleva la seña: las niñas y los niños la van a imitar.
         </p>
+        <div className="mt-4 border-t border-gold/40 pt-3">{circulo}</div>
       </div>
     );
   }
@@ -75,15 +103,10 @@ export default function PromptEstudio({
   ] as const;
   return (
     <div className="rounded-2xl border border-accent-tint bg-accent-tint p-5">
-      <div className="flex items-start justify-between gap-3">
-        <p className="overline-label text-gray-600">
-          LSM Corpus · CM #{cm.cm_id}
-          {cm.alpha_code ? ` · ${cm.alpha_code}` : ""}
-        </p>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${rareza.clase}`}>
-          {rareza.nombre}
-        </span>
-      </div>
+      <p className="overline-label text-gray-600">
+        LSM Corpus · CM #{cm.cm_id}
+        {cm.alpha_code ? ` · ${cm.alpha_code}` : ""}
+      </p>
       <div className="mt-2 flex items-center gap-4">
         <MiniHand cm={cm} size={88} />
         <div className="min-w-0">
@@ -103,6 +126,7 @@ export default function PromptEstudio({
         ))}
         ; pulgar {FLEXION_ES[cm.thumb_flexion] ?? cm.thumb_flexion.toLowerCase()}.
       </p>
+      <div className="mt-4 border-t border-accent/20 pt-3">{circulo}</div>
     </div>
   );
 }

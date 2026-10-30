@@ -1,5 +1,5 @@
 import { requireUser, authErrorResponse } from "@/lib/aws/auth";
-import { listCobertura, listParticipantRecordings } from "@/lib/aws/repo";
+import { listCobertura, listParticipantRecordings, listSenante } from "@/lib/aws/repo";
 import { itemIdDeGrabacion, type CorpusId } from "@/lib/aws/keys";
 import {
   claveItem,
@@ -18,7 +18,8 @@ export const dynamic = "force-dynamic";
 /**
  * Las listas con su cobertura (cuántas personas por seña, de las 9 de la
  * meta), cuántas señas de cada una ya grabó quien llama, cuál es la más
- * necesitada y la meta de la comunidad. Lee los contadores de cobertura,
+ * necesitada, la meta de la comunidad y, por seña, cuántas manos tiene y
+ * si quien llama ya es una de ellas. Lee los contadores de cobertura,
  * que se acumulan al confirmar y al retirar; nunca recorre la tabla.
  */
 export async function GET(req: Request) {
@@ -29,10 +30,11 @@ export async function GET(req: Request) {
     return authErrorResponse(err);
   }
 
-  const [cobLsm, cobSp, mias] = await Promise.all([
+  const [cobLsm, cobSp, mias, marcas] = await Promise.all([
     listCobertura("lsm"),
     listCobertura("signaplay"),
     listParticipantRecordings(user.userId),
+    listSenante(user.userId),
   ]);
   const senantes: SenantesPorItem = {};
   for (const c of [...cobLsm, ...cobSp]) {
@@ -63,9 +65,17 @@ export async function GET(req: Request) {
     masNecesitada: r.id === masNecesitada,
   }));
 
+  // Para el estudio: cuántas manos tiene cada seña y en cuáles ya eres una
+  // (tus marcadores y, para lo anterior al juego, tus grabaciones).
+  const eres = new Set([
+    ...vistas,
+    ...marcas.filter((m) => m.activo).map((m) => claveItem(m.corpus, m.item_id)),
+  ]);
   return Response.json({
     metaSenantes: META_SENANTES,
     listas,
     comunidad: metaComunidad(senantes),
+    senantes,
+    eres: [...eres],
   });
 }

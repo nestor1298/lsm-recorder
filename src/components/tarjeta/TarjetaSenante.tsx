@@ -1,25 +1,26 @@
 "use client";
 
 /**
- * TarjetaSenante — la tarjeta para compartir (1080 × 1350): apodo, nivel y
- * medalla, videos, señas distintas, configuraciones de mano, la seña más
- * rara y la marca LSM CORPUS. Se dibuja en un canvas y se descarga como
- * PNG; nunca lleva el nombre real.
+ * TarjetaSenante — la tarjeta para compartir (1080 × 1350): apodo, el
+ * círculo de nueve manos, las señas en las que eres una mano, los círculos
+ * completos, tu atlas de la mano y tus sellos de ruta, y la marca LSM
+ * CORPUS. Se dibuja en un canvas y se descarga como PNG; nunca lleva el
+ * nombre real.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GLIFOS_MARCA, LADO_MARCA } from "@/components/marca/lsm_corpus_glifos";
-import { MEDALLAS, RAREZA_INFO, type Medalla, type Rareza } from "@/lib/progresion";
+import { MANOS_POR_SENA } from "@/lib/nueve_manos";
 
 export interface DatosTarjeta {
   apodo: string;
-  nivel: number;
-  medalla: Medalla | null;
   videos: number;
-  senasDistintas: number;
-  cmDistintas: number;
-  rarezaMax: Rareza | null;
-  senaMasRara?: string;
+  /** señas en las que eres una mano */
+  senas: number;
+  /** de esas, con sus nueve manos */
+  completas: number;
+  atlas: { tuyas: number; total: number };
+  sellos: { tuyos: number; total: number };
 }
 
 const W = 1080;
@@ -98,37 +99,38 @@ export function dibujarTarjeta(canvas: HTMLCanvasElement, d: DatosTarjeta) {
   if (apodo !== d.apodo) apodo += "…";
   c.fillText(apodo, 80, 130);
 
-  // nivel y medalla
-  const nivelTxt = `Nivel ${d.nivel}`;
-  c.font = `600 40px ${FUENTE}`;
-  const wNivel = c.measureText(nivelTxt).width + 60;
-  redondeado(c, 80, 260, wNivel, 72, 36);
-  c.fillStyle = COLORES.ink;
-  c.fill();
-  c.fillStyle = COLORES.paper;
-  c.fillText(nivelTxt, 110, 276);
-  if (d.medalla) {
-    const m = `Medalla de ${d.medalla.nombre.toLowerCase()}`;
-    const wM = c.measureText(m).width + 60;
-    redondeado(c, 80 + wNivel + 16, 260, wM, 72, 36);
-    c.fillStyle = COLORES.gray50;
+  // el círculo de nueve manos, completo, a la derecha del texto
+  const colores = [COLORES.accent, COLORES.magenta, COLORES.gold, COLORES.green, COLORES.coral];
+  const cx = 80 + 70;
+  const cy = 300 + 70;
+  c.strokeStyle = COLORES.ink;
+  c.lineWidth = 5;
+  c.beginPath();
+  c.arc(cx, cy, 56, 0, Math.PI * 2);
+  c.stroke();
+  for (let i = 0; i < MANOS_POR_SENA; i++) {
+    const a = (-90 + (360 / MANOS_POR_SENA) * i) * (Math.PI / 180);
+    c.beginPath();
+    c.arc(cx + 56 * Math.cos(a), cy + 56 * Math.sin(a), 13, 0, Math.PI * 2);
+    c.fillStyle = colores[i % colores.length];
     c.fill();
-    c.strokeStyle = COLORES.gray200;
-    c.lineWidth = 3;
-    c.stroke();
-    c.fillStyle = COLORES.ink;
-    c.fillText(m, 80 + wNivel + 46, 276);
   }
+  c.fillStyle = COLORES.ink;
+  c.font = `700 44px ${FUENTE}`;
+  c.fillText("Una de las nueve manos", 80 + 170, 318);
+  c.fillStyle = COLORES.gray500;
+  c.font = `400 30px ${FUENTE}`;
+  c.fillText(`${d.videos} ${d.videos === 1 ? "video" : "videos"} en el corpus de la LSM`, 80 + 170, 378);
 
   // cifras
   const cifras: [string, string][] = [
-    [String(d.videos), "videos en el corpus"],
-    [String(d.senasDistintas), "señas distintas"],
-    [String(d.cmDistintas), "configuraciones de mano"],
-    [d.rarezaMax ? RAREZA_INFO[d.rarezaMax].nombre : "—", d.senaMasRara ? `mi seña más rara · ${d.senaMasRara}` : "mi seña más rara"],
+    [String(d.senas), d.senas === 1 ? "seña con mi mano" : "señas con mi mano"],
+    [String(d.completas), d.completas === 1 ? "círculo completo" : "círculos completos"],
+    [`${d.atlas.tuyas}/${d.atlas.total}`, "atlas de la mano"],
+    [`${d.sellos.tuyos}/${d.sellos.total}`, "sellos de ruta"],
   ];
-  const top = 400;
-  const alto = 190;
+  const top = 480;
+  const alto = 180;
   const ancho = (W - 160 - 24) / 2;
   cifras.forEach(([n, etiqueta], i) => {
     const x = 80 + (i % 2) * (ancho + 24);
@@ -137,24 +139,22 @@ export function dibujarTarjeta(canvas: HTMLCanvasElement, d: DatosTarjeta) {
     c.fillStyle = COLORES.gray50;
     c.fill();
     c.fillStyle = COLORES.ink;
-    c.font = `700 84px ${FUENTE}`;
-    c.fillText(n, x + 36, y + 30);
+    c.font = `700 80px ${FUENTE}`;
+    c.fillText(n, x + 36, y + 28);
     c.fillStyle = COLORES.gray500;
     c.font = `500 30px ${FUENTE}`;
-    let et = etiqueta;
-    while (c.measureText(et).width > ancho - 72 && et.length > 4) et = et.slice(0, -1);
-    c.fillText(et, x + 36, y + 130);
+    c.fillText(etiqueta, x + 36, y + 124);
   });
 
   // mensaje
   c.fillStyle = COLORES.ink;
   c.font = `700 56px ${FUENTE}`;
-  c.fillText("Estoy construyendo", 80, 900);
-  c.fillText("el corpus de la LSM.", 80, 968);
+  c.fillText("Cada seña busca nueve manos.", 80, 940);
+  c.fillText("Yo soy una.", 80, 1008);
   c.fillStyle = COLORES.gray500;
   c.font = `400 34px ${FUENTE}`;
-  c.fillText("Señas grabadas por la comunidad sorda, seña por seña,", 80, 1060);
-  c.fillText("para investigar, enseñar y jugar.", 80, 1104);
+  c.fillText("El corpus de la LSM, seña por seña, con la comunidad sorda:", 80, 1090);
+  c.fillText("para investigar, enseñar y jugar.", 80, 1134);
 
   // pie
   c.fillStyle = COLORES.gray200;
@@ -212,7 +212,7 @@ export default function TarjetaSenante({ datos }: { datos: DatosTarjeta }) {
         await navigator.share({
           files: [archivo],
           title: "Mi tarjeta de señante",
-          text: "Estoy construyendo el corpus de la LSM en SignaLab.",
+          text: "Cada seña de la LSM busca nueve manos. Yo soy una, en SignaLab.",
         });
       } else await descargar();
     } catch {
@@ -227,7 +227,7 @@ export default function TarjetaSenante({ datos }: { datos: DatosTarjeta }) {
         className="w-full rounded-2xl border border-gray-200 shadow-raised"
         style={{ aspectRatio: `${W} / ${H}` }}
         role="img"
-        aria-label={`Tarjeta de señante de ${datos.apodo}: nivel ${datos.nivel}, ${datos.videos} videos, ${datos.senasDistintas} señas distintas`}
+        aria-label={`Tarjeta de señante de ${datos.apodo}: mano de ${datos.senas} señas, ${datos.completas} círculos completos, atlas ${datos.atlas.tuyas} de ${datos.atlas.total}, ${datos.sellos.tuyos} sellos de ruta`}
       />
       <div className="flex flex-wrap gap-2">
         <button
@@ -247,10 +247,7 @@ export default function TarjetaSenante({ datos }: { datos: DatosTarjeta }) {
           </button>
         )}
       </div>
-      <p className="text-xs text-gray-500">
-        Lleva tu apodo, nunca tu nombre. Las medallas:{" "}
-        {MEDALLAS.map((m) => `${m.nombre} al ${m.nivel}`).join(", ")}.
-      </p>
+      <p className="text-xs text-gray-500">Lleva tu apodo, nunca tu nombre.</p>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 /**
  * ChipSesion — la esquina derecha del encabezado: «Entrar» si no hay
- * sesión; con sesión, el apodo y el nivel (enlace a la tarjeta de señante)
+ * sesión; con sesión, el apodo (enlace a la tarjeta de señante)
  * o «Elige tu apodo» si todavía falta.
  */
 
@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchMe, type MeResponse } from "@/lib/api-client";
 import { pasoPendiente, rutaUnirse } from "@/lib/camino";
-import { MEDALLAS } from "@/lib/progresion";
+import CirculoManos from "@/components/manos/CirculoManos";
 
 /** Quien cambia algo del perfil (apodo, acuerdo) lo avisa con este evento. */
 export const EVENTO_ME = "signalab:me";
@@ -70,23 +70,14 @@ export default function ChipSesion() {
     );
   }
 
-  const medalla = MEDALLAS.find((m) => m.id === me.medalla);
   return (
     <Link
       href="/tarjeta"
       className="flex items-center gap-2 rounded-full border border-gray-200 py-1 pl-1 pr-3 text-sm transition-colors hover:border-ink"
       title="Tu tarjeta de señante"
     >
-      <span
-        className={`flex h-7 w-7 items-center justify-center rounded-full font-display text-xs font-bold ${
-          medalla ? medalla.clase : "bg-gray-100 text-gray-700"
-        }`}
-        aria-hidden
-      >
-        {me.nivel ?? 0}
-      </span>
+      <CirculoManos manos={9} size={26} />
       <span className="max-w-[9rem] truncate font-semibold text-ink">{me.apodo}</span>
-      <span className="hidden text-gray-500 sm:inline">Nivel {me.nivel ?? 0}</span>
     </Link>
   );
 }

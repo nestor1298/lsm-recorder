@@ -32,7 +32,7 @@ export async function POST(
     return Response.json({ error: "No encontrado" }, { status: 404 });
   }
   // Solo la llamada que la pasa de activa a retirada descuenta: retirar dos
-  // veces (o con doble clic) no resta dos veces del nivel ni del tablero.
+  // veces (o con doble clic) no resta dos veces del total ni del círculo de la seña.
   const cambio = await retirarSiActiva(user.userId, parsed.sessionId, parsed.itemId);
   if (cambio) {
     await descontarVideo(user.userId, { ...antes, withdrawn: true });

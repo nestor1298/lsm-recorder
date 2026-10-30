@@ -13,11 +13,11 @@ import Intro40, { INTRO_SEGUNDOS } from "./Intro40";
 
 const HECHOS = [
   {
-    titulo: "Gratis",
-    texto: "un juego: niveles, cofres de señas, medallas y el tablero de la semana",
+    titulo: "Juntos",
+    texto: "cada seña busca nueve manos; tú puedes ser una, y nadie compite",
   },
   {
-    titulo: "Tuyo",
+    titulo: "Tuyo y gratis",
     texto: "tú decides quién ve cada video y lo retiras cuando quieras",
   },
   {
@@ -38,24 +38,25 @@ export default function Portada() {
           Construye el corpus.
         </h1>
         <p className="mt-5 max-w-xl text-lg text-gray-600">
-          Graba señas cortas con tu cámara y ayuda a documentar la Lengua de
-          Señas Mexicana. Sube de nivel, abre cofres de señas, sube en el
-          tablero de la semana. <strong className="text-ink">Gratis</strong>, y
-          hecho con la comunidad sorda.
+          Cada seña de la Lengua de Señas Mexicana busca nueve manos: nueve
+          personas distintas que la hagan frente a su cámara. Graba las tuyas,
+          cierra círculos y llena tu atlas de la mano.{" "}
+          <strong className="text-ink">Gratis</strong>, y hecho con la comunidad
+          sorda.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             href="/unirse"
             className="rounded-full bg-ink px-7 py-3 font-semibold text-paper transition-colors hover:bg-gray-800"
           >
-            Empezar a señar
+            Dar mi mano
           </Link>
           <button
             type="button"
             onClick={() => setIntro(true)}
             className="rounded-full border-[1.5px] border-gray-300 px-7 py-3 font-semibold text-ink transition-colors hover:border-ink"
           >
-            Ver la intro de {INTRO_SEGUNDOS} segundos
+            Ver la historia ({INTRO_SEGUNDOS} s)
           </button>
         </div>
         <p className="mt-4 text-sm text-gray-500">

@@ -87,8 +87,8 @@ export default function PasoAcuerdo({
           Cómo participas
         </h1>
         <p className="mt-2 text-gray-600">
-          Gratis y sin pago: a cambio hay niveles, cofres y medallas. Lo que
-          sí decides aquí es quién puede ver tus videos.
+          Gratis y sin pago: lo que hay es el juego de las nueve manos. Lo
+          que sí decides aquí es quién puede ver tus videos.
         </p>
       </div>
 

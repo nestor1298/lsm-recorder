@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PasoApodo — el nombre con el que apareces en el tablero. Nunca el real.
+ * PasoApodo — el nombre con el que apareces en la comunidad. Nunca el real.
  */
 
 import { useState } from "react";
@@ -48,8 +48,8 @@ export default function PasoApodo({
           Elige tu apodo
         </h1>
         <p className="mt-2 text-gray-600">
-          Es tu nombre en el tablero de la semana y en tu tarjeta de señante.
-          Nunca tu nombre real.
+          Es tu nombre en los círculos de las señas que grabes y en tu tarjeta
+          de señante. Nunca tu nombre real.
         </p>
       </div>
       <form onSubmit={guardar} className="space-y-5">

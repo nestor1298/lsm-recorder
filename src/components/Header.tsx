@@ -9,7 +9,7 @@ import ChipSesion from "@/components/ChipSesion";
  * El encabezado sigue el camino: Señar (las listas y el estudio) es la
  * acción principal; Aprender y Anotar son lo que sale del corpus; Mis
  * grabaciones es donde cada persona manda sobre sus videos. A la derecha,
- * la sesión (apodo y nivel) o Entrar.
+ * la sesión (apodo) o Entrar. La comunidad de las nueve manos va junto a Señar.
  */
 const NAV_ITEMS = [
   { href: "/", label: "Inicio", activa: (p: string) => p === "/" },
@@ -18,6 +18,11 @@ const NAV_ITEMS = [
     label: "Señar",
     activa: (p: string) =>
       p.startsWith("/listas") || p.startsWith("/estudio") || p.startsWith("/record"),
+  },
+  {
+    href: "/comunidad",
+    label: "Comunidad",
+    activa: (p: string) => p.startsWith("/comunidad"),
   },
   { href: "/learn", label: "Aprender", activa: (p: string) => p.startsWith("/learn") },
   {

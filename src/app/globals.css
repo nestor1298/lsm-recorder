@@ -184,7 +184,7 @@ body {
   animation: diapositiva 420ms ease-out both;
 }
 
-/* Aviso breve en el estudio (nivel, subida) */
+/* Aviso breve en el estudio (tu mano en el círculo) */
 @keyframes sube-aviso {
   from {
     opacity: 0;
@@ -199,23 +199,86 @@ body {
   animation: sube-aviso 240ms ease-out both;
 }
 
-/* El cofre: una sacudida corta y se abre */
-@keyframes cofre-abre {
+/* Un momento del juego (círculo cerrado, grupo, sello): crece y se asienta */
+@keyframes momento-entra {
   0% {
-    transform: scale(0.7) rotate(0deg);
+    transform: scale(0.85);
     opacity: 0;
   }
-  40% {
-    transform: scale(1.06) rotate(-3deg);
-    opacity: 1;
-  }
   60% {
-    transform: scale(0.98) rotate(2deg);
+    transform: scale(1.02);
+    opacity: 1;
   }
   100% {
     transform: none;
   }
 }
-.cofre-abre {
-  animation: cofre-abre 600ms ease-out both;
+.momento-entra {
+  animation: momento-entra 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Las nueve manos: cada punto llega a su lugar (retraso con --i) */
+@keyframes mano-llega {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.mano-llega {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mano-llega 360ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* El círculo se cierra: el trazo se dibuja completo */
+@keyframes circulo-cierra {
+  from {
+    stroke-dashoffset: var(--largo, 240);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.circulo-cierra {
+  animation: circulo-cierra 900ms ease-in-out both;
+  animation-delay: var(--retraso, 700ms);
+}
+
+/* Tu mano late hasta que llega */
+@keyframes mano-late {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+.mano-late {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mano-late 1.4s ease-in-out infinite;
+}
+
+/* El sello de ruta: cae y se imprime */
+@keyframes sello-cae {
+  0% {
+    transform: scale(1.6) rotate(-18deg);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(0.94) rotate(-8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-8deg);
+  }
+}
+.sello-cae {
+  animation: sello-cae 520ms cubic-bezier(0.3, 1.2, 0.5, 1) both;
 }

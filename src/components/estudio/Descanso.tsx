@@ -1,25 +1,30 @@
 "use client";
 
 /**
- * Descanso — la pausa del estudio (tecla B): cómo vas, el tablero de la
- * semana y volver. También sirve de salida limpia a las listas.
+ * Descanso — la pausa del estudio (tecla B): cómo vas, a qué señas de la
+ * comunidad les falta poco, y volver. También sirve de salida limpia a las
+ * listas.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { faltanParaCofre, MEDALLAS, siguienteMedalla } from "@/lib/progresion";
-import TablaSemana from "@/components/tablero/TablaSemana";
+import { fetchComunidad, type ComunidadResponse } from "@/lib/api-client";
+import { describirItem } from "@/lib/corpus";
+import CirculoManos from "@/components/manos/CirculoManos";
 import { useFocoInicial } from "@/hooks/useFocoInicial";
 
 export default function Descanso({
-  nivel,
+  senas,
   videosSesion,
   onSeguir,
 }: {
-  nivel: number;
+  /** señas en las que ya eres una mano */
+  senas: number;
   videosSesion: number;
   onSeguir: () => void;
 }) {
+  const [comunidad, setComunidad] = useState<ComunidadResponse | null>(null);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" || e.key.toLowerCase() === "b") {
@@ -32,9 +37,20 @@ export default function Descanso({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onSeguir]);
 
+  useEffect(() => {
+    let activo = true;
+    fetchComunidad()
+      .then((c) => {
+        if (activo) setComunidad(c);
+      })
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
+
   const foco = useFocoInicial<HTMLButtonElement>();
-  const medalla = MEDALLAS.filter((m) => nivel >= m.nivel).at(-1) ?? null;
-  const siguiente = siguienteMedalla(nivel);
+  const casi = comunidad?.casi.slice(0, 4) ?? [];
   return (
     <div className="velo fixed inset-0 z-40 flex items-center justify-center bg-ink/70 p-4">
       <div
@@ -49,28 +65,44 @@ export default function Descanso({
         </h2>
         <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
           <div className="rounded-xl bg-gray-50 p-3">
-            <dt className="text-xs text-gray-500">Nivel</dt>
-            <dd className="font-display text-2xl font-bold text-ink">{nivel}</dd>
-          </div>
-          <div className="rounded-xl bg-gray-50 p-3">
-            <dt className="text-xs text-gray-500">Hoy en esta lista</dt>
+            <dt className="text-xs text-gray-500">Videos en esta lista</dt>
             <dd className="font-display text-2xl font-bold text-ink">{videosSesion}</dd>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <dt className="text-xs text-gray-500">Para el cofre</dt>
-            <dd className="font-display text-2xl font-bold text-ink">{faltanParaCofre(nivel)}</dd>
+            <dt className="text-xs text-gray-500">Señas con tu mano</dt>
+            <dd className="font-display text-2xl font-bold text-ink">{senas}</dd>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-3">
+            <dt className="text-xs text-gray-500">Manos esta semana</dt>
+            <dd className="font-display text-2xl font-bold text-ink">
+              {comunidad ? comunidad.deLaSemana.manos : "·"}
+            </dd>
           </div>
         </dl>
-        <p className="mt-3 text-sm text-gray-600">
-          {medalla ? `Medalla de ${medalla.nombre.toLowerCase()}. ` : ""}
-          {siguiente
-            ? `${siguiente.nombre} al nivel ${siguiente.nivel}: faltan ${siguiente.nivel - nivel} videos.`
-            : "Tienes todas las medallas."}
-        </p>
-        <div className="mt-5 rounded-xl border border-gray-200 p-4">
-          <p className="overline-label mb-2 text-gray-500">Tablero de la semana</p>
-          <TablaSemana compacta />
-        </div>
+
+        {casi.length > 0 && (
+          <div className="mt-5 rounded-xl border border-gray-200 p-4">
+            <p className="overline-label mb-3 text-gray-500">Les falta poco</p>
+            <ul className="space-y-2">
+              {casi.map((s) => (
+                <li key={`${s.corpus}:${s.itemId}`} className="flex items-center gap-3 text-sm">
+                  <CirculoManos manos={s.manos} esperando size={32} />
+                  <span className="font-semibold text-ink">{describirItem(s.corpus, s.itemId).titulo}</span>
+                  <span className="text-gray-500">
+                    {s.faltan === 1 ? "a una mano" : `faltan ${s.faltan}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/comunidad"
+              className="mt-3 inline-block text-sm font-semibold text-accent-deep underline-offset-4 hover:underline"
+            >
+              Ver la comunidad
+            </Link>
+          </div>
+        )}
+
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           <button
             ref={foco}

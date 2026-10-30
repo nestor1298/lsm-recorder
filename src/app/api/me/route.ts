@@ -4,7 +4,6 @@ import {
   getParticipant,
   listParticipantRecordings,
 } from "@/lib/aws/repo";
-import { medallaDe, nivelDe } from "@/lib/progresion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +25,6 @@ export async function GET(req: Request) {
     typeof participant?.videos_total === "number"
       ? Math.max(0, participant.videos_total)
       : (await listParticipantRecordings(user.userId)).filter((r) => !r.withdrawn).length;
-  const nivel = nivelDe(videos);
 
   return Response.json({
     userId: user.userId,
@@ -38,7 +36,8 @@ export async function GET(req: Request) {
     apodo: participant?.apodo ?? null,
     agreementVersion: participant?.consent_agreement_version ?? null,
     videos,
-    nivel,
-    medalla: medallaDe(nivel)?.id ?? null,
+    // Para marcar tu estado en el mapa de la comunidad
+    estado:
+      typeof participant?.metadata?.region_vive === "string" ? participant.metadata.region_vive : null,
   });
 }

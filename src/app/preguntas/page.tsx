@@ -31,10 +31,32 @@ const PREGUNTAS: { q: string; a: React.ReactNode }[] = [
     q: "¿Es gratis?",
     a: (
       <>
-        Sí. No hay pago ni datos bancarios. Lo que hay es un juego: cada video
-        sube un nivel, un cofre de señas cada 10 videos, medallas en los
-        niveles 30, 50, 70 y 100, tu tarjeta de señante y el tablero de la
-        semana.
+        Sí. No hay pago ni datos bancarios. Lo que hay es un juego entre
+        todas las personas: cada seña busca nueve manos, y tú puedes ser una.
+      </>
+    ),
+  },
+  {
+    q: "¿Qué son las nueve manos?",
+    a: (
+      <>
+        Una seña no queda documentada con una sola persona: cada quien la hace
+        con sus manos, su cara, su región y su historia. Por eso cada una de
+        las 222 señas busca nueve personas distintas. Al guardar una seña ves
+        qué mano eres («la mano 4 de 9»); la novena cierra el círculo y la seña
+        queda completa, con los apodos de sus nueve manos. No hay tabla de
+        posiciones: en <Link href="/comunidad" className="font-semibold text-ink underline-offset-4 hover:underline">la comunidad</Link>{" "}
+        ves a qué señas les falta poco y de qué estados llegan las manos.
+      </>
+    ),
+  },
+  {
+    q: "¿Qué gano yo?",
+    a: (
+      <>
+        Tu atlas de la mano, que se llena con las 101 configuraciones del LSM
+        Corpus; un sello por cada ruta de SignaPlay que grabes completa; y tu
+        tarjeta de señante para compartir, con tu apodo y nunca con tu nombre.
       </>
     ),
   },
@@ -109,8 +131,8 @@ const PREGUNTAS: { q: string; a: React.ReactNode }[] = [
     q: "Cambié de teléfono o de computadora.",
     a: (
       <>
-        Entra con el mismo correo: te mandamos un código y todo regresa (nivel,
-        señas, apodo). Sin contraseñas.
+        Entra con el mismo correo: te mandamos un código y todo regresa (tus
+        señas, tu atlas, tu apodo). Sin contraseñas.
       </>
     ),
   },

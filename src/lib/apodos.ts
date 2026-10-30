@@ -1,5 +1,6 @@
 /**
- * apodos.ts — el nombre con el que una persona aparece en el tablero.
+ * apodos.ts — el nombre con el que una persona aparece en la comunidad
+ * (los círculos de nueve manos de cada seña).
  *
  * Nunca es su nombre real: otras personas solo ven el apodo. Se valida
  * igual en el cliente y en el servidor; `normalizarApodo` da la forma que
@@ -12,7 +13,7 @@ export const APODO_MAX = 20;
 /**
  * Letras latinas (con acentos y ñ), dígitos 0-9, espacio, guion y guion
  * bajo. Solo alfabeto latino: con cirílico o griego dos apodos idénticos a
- * la vista («Colibrí» con una «о» cirílica) podrían convivir en el tablero.
+ * la vista («Colibrí» con una «о» cirílica) podrían convivir en un mismo círculo.
  */
 export const APODO_RE = /^[\p{Script=Latin}0-9][\p{Script=Latin}0-9 _-]{2,19}$/u;
 

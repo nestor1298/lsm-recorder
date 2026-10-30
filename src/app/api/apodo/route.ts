@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Reclama el apodo con el que la persona aparece en el tablero. 409 si ya
+ * Reclama el apodo con el que la persona aparece en la comunidad. 409 si ya
  * lo tiene alguien más. Nunca se guarda el nombre real aquí.
  */
 export async function POST(req: Request) {
