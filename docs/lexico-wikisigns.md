@@ -118,7 +118,14 @@ misma `aggregate()`. Encima agregan, para videos de diccionario:
 4. **Desempate de CM por el pulgar**: el puntaje de dedos deja empatadas
    CM como S/A/BOLÍGRAFO; gana la que explica la flexión y oposición
    del pulgar, luego la más frecuente.
-5. **Lateralidad**, **movimiento de cabeza** y **CM/OR de la mano no
+5. **Ubicación fina con la malla de la cara**: además de las anclas del
+   cuerpo, la cara aporta sien, oreja, cejas, ojo, rabillo, puente y
+   punta de nariz, pómulo, mejilla, labios, comisura y mentón, cada una
+   del lado correcto (ipsi/contra). Se mide desde el centroide y las
+   yemas. A más de 0.3 anchos de hombro de toda ancla, la UB es `EN`
+   (espacio neutro, como en `ub_anatomia.ts`). Límite: con una sola
+   cámara, una mano frente a la cara puede leerse «cerca» de ella.
+6. **Lateralidad**, **movimiento de cabeza** y **CM/OR de la mano no
    dominante** (el analizador solo daba la relación bimanual).
 
 Además se corrigió un error en `buildAnchors` (`phon_features.ts`): las

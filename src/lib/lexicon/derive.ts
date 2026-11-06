@@ -375,6 +375,138 @@ export function breakCmTie(
 
 // ── Rasgos nuevos (no están en el analizador del navegador) ─────
 
+// ── Ubicación fina con la malla de la cara ──────────────────────
+
+type XY = { x: number; y: number };
+
+/**
+ * Anclas UB en píxeles para un cuadro: la cara sale de los facemarks
+ * (lado ipsi/contra correcto, sien, oreja, mejilla, ojo, cejas, nariz,
+ * labios, mentón) y el cuerpo de la pose, como en buildAnchors (hombro
+ * contra, brazo base solo si su mano está en cuadro).
+ * // VALIDAR-LSM: posición de sien y oreja extrapoladas desde los ojos.
+ */
+export function fineAnchors(
+  f: RawFrame,
+  fmIndex: number[],
+  W: number,
+  H: number,
+  dominant: "RIGHT" | "LEFT",
+  baseVisible: boolean,
+): { code: string; pt: XY }[] | null {
+  if (!f.facemarks || !f.pose) return null;
+  const fm = (i: number): XY | null => {
+    const k = fmIndex.indexOf(i);
+    return k < 0 ? null : { x: f.facemarks![k][0] * W, y: f.facemarks![k][1] * H };
+  };
+  const ps = (i: number): XY => ({ x: f.pose![i][0] * W, y: f.pose![i][1] * H });
+  const meanOf = (ids: number[]): XY | null => {
+    const pts = ids.map(fm).filter((p): p is XY => Boolean(p));
+    return pts.length ? { x: pts.reduce((a, p) => a + p.x, 0) / pts.length, y: pts.reduce((a, p) => a + p.y, 0) / pts.length } : null;
+  };
+  const lerpXY = (a: XY, b: XY, t: number): XY => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  // MediaPipe: 33/133/50/205/234/61 son del lado derecho de la persona
+  const R = { out: 33, inn: 133, brow: [70, 63, 105, 66, 107], eye: [33, 160, 158, 133, 153, 144], po: 50, ge: 205, jaw: 234, lip: 61 };
+  const L = { out: 263, inn: 362, brow: [300, 293, 334, 296, 336], eye: [263, 387, 385, 362, 380, 373], po: 280, ge: 425, jaw: 454, lip: 291 };
+  const [ip, ct] = dominant === "RIGHT" ? [R, L] : [L, R];
+  const bridge = fm(168);
+  const top = fm(10);
+  const ipOut = fm(ip.out);
+  const ipIn = fm(ip.inn);
+  const ctOut = fm(ct.out);
+  if (!bridge || !top || !ipOut || !ipIn || !ctOut) return null;
+  const iod = Math.hypot(ipOut.x - ctOut.x, ipOut.y - ctOut.y) || 1;
+  const outward = { x: (ipOut.x - ipIn.x) / (Math.hypot(ipOut.x - ipIn.x, ipOut.y - ipIn.y) || 1), y: 0 };
+  const up = { x: (top.x - bridge.x) / (Math.hypot(top.x - bridge.x, top.y - bridge.y) || 1), y: (top.y - bridge.y) / (Math.hypot(top.x - bridge.x, top.y - bridge.y) || 1) };
+  const add = (a: XY, d: XY, k: number): XY => ({ x: a.x + d.x * k, y: a.y + d.y * k });
+  const jaw = fm(ip.jaw);
+  const face: [string, XY | null][] = [
+    ["Ca", add(top, up, 0.6 * iod)],
+    ["Fr", lerpXY(bridge, top, 0.6)],
+    ["Ci", meanOf(ip.brow)],
+    ["Su", meanOf(ct.brow)],
+    ["Cin", bridge],
+    ["Oc", meanOf(ip.eye)],
+    ["RapOc", ipOut],
+    ["Te", add(add(ipOut, outward, 0.5 * iod), up, 0.25 * iod)],
+    // 234/454: borde de la cara a la altura del trago
+    ["Au", jaw ? add(jaw, outward, 0.2 * iod) : null],
+    ["Sep", fm(6)],
+    ["Na", fm(1)],
+    ["Po", fm(ip.po)],
+    ["Ge", fm(ip.ge)],
+    ["Lab", fm(0)],
+    ["Os", meanOf([13, 14])],
+    ["La", fm(17)],
+    ["IpsiOs", fm(ip.lip)],
+    ["Me", fm(152)],
+  ];
+  // cuerpo (pose): mismo criterio que buildAnchors
+  const shMid = lerpXY(ps(11), ps(12), 0.5);
+  const hipMid = lerpXY(ps(23), ps(24), 0.5);
+  const mouth = meanOf([13, 14]) ?? lerpXY(ps(9), ps(10), 0.5);
+  const [ipsiSh, contraSh] = dominant === "RIGHT" ? [12, 11] : [11, 12];
+  const [baseElbow, baseWrist] = dominant === "RIGHT" ? [13, 15] : [14, 16];
+  const pe = lerpXY(shMid, hipMid, 0.3);
+  const body: [string, XY | null][] = [
+    ["Co", lerpXY(shMid, mouth, 0.45)],
+    ["Um", ps(contraSh)],
+    ["Pe", pe],
+    ["IpsiPe", lerpXY(pe, lerpXY(ps(ipsiSh), ps(dominant === "RIGHT" ? 24 : 23), 0.3), 0.5)],
+    ["XPe", lerpXY(pe, lerpXY(ps(contraSh), ps(dominant === "RIGHT" ? 23 : 24), 0.3), 0.5)],
+    ["Ve", lerpXY(shMid, hipMid, 0.7)],
+  ];
+  if (baseVisible) {
+    body.push(["Cut", ps(baseElbow)], ["Abr", lerpXY(ps(baseElbow), ps(baseWrist), 0.5)], ["Car", ps(baseWrist)]);
+  }
+  return [...face, ...body].filter((a): a is [string, XY] => Boolean(a[1])).map(([code, pt]) => ({ code, pt }));
+}
+
+/**
+ * UB fina en un tramo de cuadros: el ancla más cercana a cualquier punto
+ * de contacto de la mano (centroide, yemas de pulgar, índice, medio y
+ * meñique), moda entre cuadros y contacto por la mediana de distancia.
+ * A más de 0.30 anchos de hombro de cualquier ancla, la mano está en el
+ * espacio neutro (EN).
+ * // VALIDAR-LSM: umbrales de contacto (0.10 / 0.30 anchos de hombro).
+ */
+export function fineLocation(
+  frames: RawFrame[],
+  hands: (Pt[] | undefined)[],
+  others: (Pt[] | undefined)[],
+  fmIndex: number[],
+  W: number,
+  H: number,
+  dominant: "RIGHT" | "LEFT",
+): { code: string; contact: "TOUCHING" | "NEAR" | "DISTANT" } | null {
+  const obs: { code: string; d: number }[] = [];
+  frames.forEach((f, i) => {
+    const h = hands[i];
+    if (!h || !f.pose) return;
+    const anchors = fineAnchors(f, fmIndex, W, H, dominant, Boolean(others[i]));
+    if (!anchors) return;
+    const sw = Math.abs(f.pose[11][0] - f.pose[12][0]) * W;
+    if (sw < 1) return;
+    const c = centroid(h);
+    const pts = [{ x: c.x * W, y: c.y * H }, ...[4, 8, 12, 20].map((k) => ({ x: h[k].x * W, y: h[k].y * H }))];
+    let best = { code: "", d: Infinity };
+    for (const a of anchors) {
+      for (const p of pts) {
+        const d = Math.hypot(p.x - a.pt.x, p.y - a.pt.y) / sw;
+        if (d < best.d) best = { code: a.code, d };
+      }
+    }
+    // lejos de todo: espacio neutro (código EN de ub_anatomia.ts)
+    if (best.code) obs.push(best.d >= 0.3 ? { code: "EN", d: best.d } : best);
+  });
+  if (obs.length < 2) return null;
+  const counts = new Map<string, number>();
+  for (const o of obs) counts.set(o.code, (counts.get(o.code) ?? 0) + 1);
+  const code = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const d = median(obs.filter((o) => o.code === code).map((o) => o.d));
+  return { code, contact: d < 0.1 ? "TOUCHING" : d < 0.3 ? "NEAR" : "DISTANT" };
+}
+
 /** Lateralidad en el núcleo: centroide vs línea media de los hombros. // VALIDAR-LSM */
 export function observeLaterality(
   frames: RawFrame[],
@@ -524,10 +656,11 @@ export function canonicalHand(cm: CMEntry, side: "dominant" | "nondominant"): Ha
 export function ubAnchor(code: string): UBAnchorRef {
   const loc = UB_LOCATIONS.find((l) => l.code === code);
   const a = UB_BONE_MAP[code];
+  const en = code === "EN";
   return {
     code,
-    name: loc?.name ?? null,
-    region: loc?.region ?? null,
+    name: loc?.name ?? (en ? "Espacio neutro" : null),
+    region: loc?.region ?? (en ? "NEUTRAL_SPACE" : null),
     bone: a?.boneName ?? null,
     offset_m: a ? a.offset : null,
   };
@@ -934,6 +1067,38 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
       start_ms: s.start_ms + t0,
       end_ms: s.end_ms + t0,
     }));
+
+    // UB fina con la malla de la cara: núcleo para M, extremos para D
+    const ubOf = (code: string) => UB_LOCATIONS.find((l) => l.code === code);
+    const withIdx = phon.map((p, i) => i).filter((i) => phon[i].hand);
+    const cThird = Math.floor(withIdx.length / 3);
+    const coreI = withIdx.slice(cThird, Math.max(cThird + 1, withIdx.length - cThird));
+    const span = (ids: number[]) =>
+      fineLocation(ids.map((i) => winFrames[i]), ids.map((i) => domSeq[i]), ids.map((i) => ndSeq[i]), fmIndex, W, H, dominant_hand);
+    const fine = {
+      core: span(coreI.length >= 3 ? coreI : withIdx),
+      start: span(withIdx.slice(0, 3)),
+      end: span(withIdx.slice(-3)),
+    };
+    annotation.segments = annotation.segments.map((s) => {
+      const f = s.type === "M" || annotation.segments.length === 1 ? fine.core : s.phase === "PREPARATION" ? fine.start : fine.end;
+      if (!f) return s;
+      const loc = ubOf(f.code);
+      return {
+        ...s,
+        location_code: f.code,
+        location: loc?.name ?? (f.code === "EN" ? "Espacio neutro" : f.code),
+        body_region: loc?.region ?? (f.code === "EN" ? "NEUTRAL_SPACE" : s.body_region),
+        ...(s.type === "M" || annotation.segments.length === 1 ? { contact: f.contact } : {}),
+        provenance: { ...s.provenance, location_code: "auto", ...(s.type === "M" ? { contact: "auto" } : {}) },
+      };
+    });
+    // un D igual al núcleo no es una detención distinta: fuera
+    const coreCode = fine.core?.code;
+    if (coreCode && annotation.segments.length > 1) {
+      annotation.segments = annotation.segments.filter((s) => s.type === "M" || s.location_code !== coreCode);
+      annotation.segments = annotation.segments.map((s, i) => ({ ...s, id: `${id}-s${i + 1}` }));
+    }
 
     // Lateralidad y cabeza (núcleo M)
     const wThird = Math.floor(winFrames.length / 3);
