@@ -46,3 +46,9 @@ infra/cdk.context.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Wikisigns crawl cache and downloaded videos (regenerable, not committed)
+/data/wikisigns-lsm/_cache/
+/data/wikisigns-lsm/_videos/
+/data/wikisigns-lsm/_frames/
+/.venv-lexicon/
+__pycache__/
