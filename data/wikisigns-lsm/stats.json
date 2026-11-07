@@ -1,0 +1,175 @@
+{
+ "generated_at": "2026-11-07T06:51:30.652Z",
+ "pages": 2484,
+ "entries": 2144,
+ "with_phonology": 1753,
+ "lsm": 1986,
+ "two_handed": 856,
+ "mean_confidence": 0.751,
+ "flags": {
+  "dactilologia": 1,
+  "cm_empate": 454,
+  "otra_lengua": 158,
+  "sin_video": 388,
+  "cm_dudosa": 139,
+  "pocos_cuadros": 10,
+  "sin_mano": 3
+ },
+ "by_kind": {
+  "lexical": 2033,
+  "phrase": 110,
+  "fingerspelling": 1
+ },
+ "by_structure": {
+  "M": 1457,
+  "—": 391,
+  "DM": 145,
+  "MD": 92,
+  "DMD": 59
+ },
+ "top_cm": [
+  [
+   "—",
+   391
+  ],
+  [
+   "9",
+   181
+  ],
+  [
+   "3",
+   173
+  ],
+  [
+   "7",
+   140
+  ],
+  [
+   "56",
+   105
+  ],
+  [
+   "66",
+   98
+  ],
+  [
+   "17",
+   80
+  ],
+  [
+   "10",
+   71
+  ],
+  [
+   "22",
+   64
+  ],
+  [
+   "99",
+   58
+  ],
+  [
+   "1",
+   50
+  ],
+  [
+   "61",
+   49
+  ],
+  [
+   "44",
+   43
+  ],
+  [
+   "63",
+   42
+  ],
+  [
+   "64",
+   40
+  ]
+ ],
+ "top_ub": [
+  [
+   "EN",
+   520
+  ],
+  [
+   "—",
+   391
+  ],
+  [
+   "IpsiPe",
+   249
+  ],
+  [
+   "Au",
+   168
+  ],
+  [
+   "Co",
+   133
+  ],
+  [
+   "Ve",
+   89
+  ],
+  [
+   "Pe",
+   89
+  ],
+  [
+   "Te",
+   85
+  ],
+  [
+   "Me",
+   84
+  ],
+  [
+   "IpsiOs",
+   65
+  ],
+  [
+   "XPe",
+   46
+  ],
+  [
+   "Um",
+   36
+  ],
+  [
+   "Ca",
+   32
+  ],
+  [
+   "La",
+   32
+  ],
+  [
+   "Car",
+   29
+  ]
+ ],
+ "rnm_head": {
+  "NONE": 1564,
+  "TILT_DOWN": 220,
+  "NOD": 129,
+  "SHAKE": 125,
+  "TILT_RIGHT": 59,
+  "TILT_LEFT": 36,
+  "TILT_BACK": 11
+ },
+ "rnm_eyebrows": {
+  "NEUTRAL": 1934,
+  "FURROWED": 169,
+  "RAISED": 41
+ },
+ "rnm_mouth": {
+  "NEUTRAL": 1760,
+  "STRETCHED": 196,
+  "ROUNDED": 173,
+  "OPEN": 15
+ },
+ "tracks_mb": 77.8
+}
