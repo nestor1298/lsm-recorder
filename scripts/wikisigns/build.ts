@@ -71,6 +71,24 @@ for (const group of byGloss.values()) {
   });
 }
 
+// Wikisigns a veces repite la letra (dos videos de «Convertirse (B)»):
+// se numeran dentro de la letra, CONVERTIRSE(B.1), CONVERTIRSE(B.2).
+const byLettered = new Map<string, LexiconEntry[]>();
+for (const e of entries.values()) {
+  if (!e.variant) continue;
+  byLettered.set(e.gloss, [...(byLettered.get(e.gloss) ?? []), e]);
+}
+for (const group of byLettered.values()) {
+  if (group.length < 2) continue;
+  group.sort((a, b) => (a.source.file_id ?? Infinity) - (b.source.file_id ?? Infinity) || a.id.localeCompare(b.id));
+  group.forEach((e, i) => {
+    const base = e.gloss.slice(0, e.gloss.length - `(${e.variant})`.length);
+    e.variant = `${e.variant}.${i + 1}`;
+    e.gloss = `${base}(${e.variant})`;
+    e.annotation.gloss = e.gloss;
+  });
+}
+
 const sorted = [...entries.values()].sort(
   (a, b) => a.gloss.localeCompare(b.gloss, "es") || a.id.localeCompare(b.id),
 );
@@ -130,8 +148,9 @@ const stats = {
   flags,
   by_kind: tally((e) => e.kind),
   by_structure: tally((e) => e.phonology?.structure),
-  top_cm: Object.fromEntries(Object.entries(tally((e) => e.phonology?.cm?.id)).slice(0, 15)),
-  top_ub: Object.fromEntries(Object.entries(tally((e) => e.phonology?.ub?.code)).slice(0, 15)),
+  // pares [código, n]: con claves numéricas un objeto se reordena solo
+  top_cm: Object.entries(tally((e) => e.phonology?.cm?.id)).sort((a, b) => b[1] - a[1]).slice(0, 15),
+  top_ub: Object.entries(tally((e) => e.phonology?.ub?.code)).sort((a, b) => b[1] - a[1]).slice(0, 15),
   rnm_head: tally((e) => e.face.rnm.head),
   rnm_eyebrows: tally((e) => e.face.rnm.eyebrows),
   rnm_mouth: tally((e) => e.face.rnm.mouth),
