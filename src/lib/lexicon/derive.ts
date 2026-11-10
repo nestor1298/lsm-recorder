@@ -462,13 +462,53 @@ export function fineAnchors(
   return [...face, ...body].filter((a): a is [string, XY] => Boolean(a[1])).map(([code, pt]) => ({ code, pt }));
 }
 
+/** Contorno de la cara (mandíbula + frente), en píxeles, o null si faltan puntos */
+export function faceOutline(f: RawFrame, fmIndex: number[], W: number, H: number): XY[] | null {
+  if (!f.facemarks) return null;
+  const ring = [234, 172, 136, 150, 152, 379, 365, 397, 454, 338, 10, 109];
+  const pts: XY[] = [];
+  for (const i of ring) {
+    const k = fmIndex.indexOf(i);
+    if (k < 0) return null;
+    pts.push({ x: f.facemarks[k][0] * W, y: f.facemarks[k][1] * H });
+  }
+  return pts;
+}
+
+function insidePolygon(p: XY, poly: XY[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i];
+    const b = poly[j];
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+/** Anclas por fuera del contorno de la cara (a los lados y arriba) */
+const OUTSIDE_FACE = new Set(["Au", "Te", "Ca"]);
+/** Anclas sobre la cara (el mentón queda justo en el contorno) */
+const ON_FACE = new Set(["Fr", "Ci", "Su", "Cin", "Oc", "RapOc", "Sep", "Na", "Po", "Ge", "Lab", "Os", "La", "IpsiOs", "Me"]);
+/**
+ * Las anclas del borde cuentan como «cerca» a 4/5 de la distancia de las
+ * demás: una mano que llega de lado pasa junto a la oreja, y en 2D no se
+ * ve si va por delante.
+ */
+const OUTSIDE_FACE_WEIGHT = 1.25;
+
 /**
  * UB fina en un tramo de cuadros: el ancla más cercana a cualquier punto
  * de contacto de la mano (centroide, yemas de pulgar, índice, medio y
  * meñique), moda entre cuadros y contacto por la mediana de distancia.
  * A más de 0.30 anchos de hombro de cualquier ancla, la mano está en el
  * espacio neutro (EN).
- * // VALIDAR-LSM: umbrales de contacto (0.10 / 0.30 anchos de hombro).
+ *
+ * Mano sobre la cara: si alguna yema cae dentro del contorno de la cara,
+ * solo cuentan esas yemas y las anclas de adentro (boca, mejilla, ojo,
+ * frente…), no la oreja ni la sien, que están en el borde. Oreja y sien
+ * se separan por altura: arriba de la línea de los ojos es sien.
+ * // VALIDAR-LSM: umbrales de contacto (0.10 / 0.30 anchos de hombro) y
+ * el peso de las anclas del borde.
  */
 export function fineLocation(
   frames: RawFrame[],
@@ -488,16 +528,39 @@ export function fineLocation(
     const sw = Math.abs(f.pose[11][0] - f.pose[12][0]) * W;
     if (sw < 1) return;
     const c = centroid(h);
-    const pts = [{ x: c.x * W, y: c.y * H }, ...[4, 8, 12, 20].map((k) => ({ x: h[k].x * W, y: h[k].y * H }))];
-    let best = { code: "", d: Infinity };
-    for (const a of anchors) {
+    const tips = [4, 8, 12, 20].map((k) => ({ x: h[k].x * W, y: h[k].y * H }));
+    let pts = [{ x: c.x * W, y: c.y * H }, ...tips];
+    let cands = anchors;
+    const oval = faceOutline(f, fmIndex, W, H);
+    const onFace = oval ? tips.filter((p) => insidePolygon(p, oval)) : [];
+    if (onFace.length) {
+      pts = onFace;
+      cands = anchors.filter((a) => ON_FACE.has(a.code));
+    }
+    // oreja o sien según la altura de las yemas (su mediana, para que el
+    // pulgar suelto no decida): arriba de los ojos es sien, entre ojos y
+    // boca es oreja, más abajo ninguna de las dos
+    const eyeY = anchors.find((a) => a.code === "RapOc")?.pt.y;
+    const mouthY = anchors.find((a) => a.code === "IpsiOs")?.pt.y;
+    const ys = tips.map((p) => p.y).sort((a, b) => a - b);
+    const tipY = (ys[1] + ys[2]) / 2;
+    const lateral = (code: string): string | null => {
+      if ((code !== "Au" && code !== "Te") || eyeY === undefined || mouthY === undefined) return code;
+      return tipY < eyeY ? "Te" : tipY <= mouthY ? "Au" : null;
+    };
+    let best = { code: "", d: Infinity, score: Infinity };
+    for (const a of cands) {
       for (const p of pts) {
+        const code = lateral(a.code);
+        if (!code) continue;
         const d = Math.hypot(p.x - a.pt.x, p.y - a.pt.y) / sw;
-        if (d < best.d) best = { code: a.code, d };
+        const score = OUTSIDE_FACE.has(a.code) ? d * OUTSIDE_FACE_WEIGHT : d;
+        if (score < best.score) best = { code, d, score };
       }
     }
+    if (!best.code) return;
     // lejos de todo: espacio neutro (código EN de ub_anatomia.ts)
-    if (best.code) obs.push(best.d >= 0.3 ? { code: "EN", d: best.d } : best);
+    obs.push(best.score >= 0.3 ? { code: "EN", d: best.d } : { code: best.code, d: best.d });
   });
   if (obs.length < 2) return null;
   const counts = new Map<string, number>();
