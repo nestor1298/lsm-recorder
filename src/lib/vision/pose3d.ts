@@ -30,11 +30,15 @@ export interface Pose3DFrame {
   /** 21 puntos por mano, ya injertados en la muñeca de la pose */
   left?: P3[];
   right?: P3[];
+  /** Facemarks (subconjunto de la malla de la cara) en el mismo marco */
+  face?: P3[];
 }
 
 export interface Pose3DTrack {
   frames: Pose3DFrame[];
   durationMs: number;
+  /** Trazos de la cara: índices dentro de `face` unidos en orden */
+  faceLines?: number[][];
 }
 
 const sub = (a: P3, b: P3): P3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -128,12 +132,13 @@ export function frameAt(
     pose: lerpPts(a.pose, b.pose, t) ?? a.pose,
     left: lerpPts(a.left, b.left, t),
     right: lerpPts(a.right, b.right, t),
+    face: lerpPts(a.face, b.face, t),
   };
 }
 
 /** Centro y radio aproximados de un cuadro, para encuadrar la cámara. */
 export function frameBounds(fr: Pose3DFrame): { center: P3; radius: number } {
-  const all = [...fr.pose, ...(fr.left ?? []), ...(fr.right ?? [])];
+  const all = [...fr.pose, ...(fr.left ?? []), ...(fr.right ?? []), ...(fr.face ?? [])];
   if (all.length === 0) return { center: { x: 0, y: 0, z: 0 }, radius: 1 };
   const lo = { ...all[0] };
   const hi = { ...all[0] };

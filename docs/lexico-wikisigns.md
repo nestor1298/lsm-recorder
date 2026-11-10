@@ -143,6 +143,35 @@ Además se corrigió un error en `buildAnchors` (`phon_features.ts`): las
 anclas del brazo base (Cut, Abr, Car, Palma) usaban el brazo que seña.
 Afecta también a «Sugerir» en `/anotar`.
 
+## Navegador (`/lexico`)
+
+- **`/lexico`**: buscar en español (sin acentos ni signos; primero las
+  glosas que empiezan con el texto, luego las que lo contienen y al final
+  los sinónimos) y filtrar por lengua, una o dos manos, lugar y «solo con
+  video». Página estática: el servidor lee `lexicon.jsonl` al construir y
+  manda filas ligeras (`src/lib/lexicon/catalog.ts`, `browse.ts`).
+- **`/lexico/sena?id=wsl-…`**: la ficha de una seña.
+  - El esqueleto 3D medido en bucle, con pausa y cámara lenta
+    (`track3d.ts`, `EsqueletoMP3D` con `encuadre="todo"`): pose, manos
+    injertadas en las muñecas y los 66 facemarks de la cara con sus
+    trazos (cejas, ojos, nariz, labios, mandíbula). Las piernas se recogen
+    en la cadera.
+  - Los facemarks vienen en coordenadas de imagen; se pasan a metros con
+    la escala del cuadro (ancho de hombros en metros / en píxeles) y se
+    anclan en la nariz de la pose. Es una aproximación: la pose y la malla
+    de la cara son modelos distintos.
+  - Al lado, CM, UB, OR y MV; abajo, dos manos, RNM con los blendshapes
+    medidos, los ángulos de dedos y brazo y los huesos del rig.
+  - Lexsi no aparece por ahora: el avatar todavía no ejecuta bien estas
+    señas. `to_construction.ts` (léxico → matriz de `/learn`) queda listo
+    para cuando mejore.
+- **Archivos estáticos**: `scripts/wikisigns/publish-tracks.mjs` corre
+  antes de `dev` y `build` y escribe `public/lexico/e/<id>.json` (la
+  ficha) y `public/lexico/tracks/<id>.json.gz` (la pista). No se
+  versionan. Generar 2,144 páginas en el build sumaba ~180 MB al paquete
+  del servidor de Amplify; como archivos estáticos el servidor queda en
+  ~8 MB.
+
 ## Lo que falta validar
 
 Buscar `VALIDAR-LSM` en `src/lib/lexicon/derive.ts`: umbrales de reposo,

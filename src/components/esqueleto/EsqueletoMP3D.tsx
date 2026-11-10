@@ -84,9 +84,11 @@ function Points({
 function Rig({
   track,
   timeMs,
+  encuadre,
 }: {
   track: Pose3DTrack;
   timeMs: number;
+  encuadre: "inicio" | "todo";
 }) {
   const { camera, invalidate } = useThree();
   const colors = useMemo(
@@ -94,23 +96,36 @@ function Rig({
       accent: cssColor("--color-accent", "#2B5BF7"),
       green: cssColor("--color-green", "#00A878"),
       ink: cssColor("--color-ink", "#0B0B0C"),
+      face: cssColor("--color-magenta", "#C2187A"),
     }),
     [],
   );
   const fr = useMemo(() => frameAt(track, timeMs), [track, timeMs]);
 
-  // Encuadre inicial a partir del primer cuadro con datos
-  const bounds = useMemo(
-    () => (track.frames[0] ? frameBounds(track.frames[0]) : null),
-    [track],
-  );
+  // Encuadre inicial: el primer cuadro con datos, o todos los cuadros
+  // juntos ("todo") para que la mano no se salga al subir
+  const bounds = useMemo(() => {
+    if (!track.frames[0]) return null;
+    if (encuadre === "inicio") return frameBounds(track.frames[0]);
+    const b = frameBounds({
+      tMs: 0,
+      pose: track.frames.flatMap((f) => f.pose),
+      left: track.frames.flatMap((f) => f.left ?? []),
+      right: track.frames.flatMap((f) => f.right ?? []),
+      face: track.frames.flatMap((f) => f.face ?? []),
+    });
+    // la cámara mira desde un poco arriba: se sube el centro para que la
+    // cabeza no roce el borde
+    return { ...b, center: { ...b.center, y: b.center.y + b.radius * 0.15 } };
+  }, [track, encuadre]);
   useEffect(() => {
     if (!bounds) return;
-    const d = bounds.radius * 3.2;
+    // con toda la pista el contorno ya es amplio: un poco más de margen
+    const d = bounds.radius * (encuadre === "todo" ? 4 : 3.2);
     camera.position.set(bounds.center.x, bounds.center.y + d * 0.15, d);
     camera.lookAt(bounds.center.x, bounds.center.y, bounds.center.z);
     invalidate();
-  }, [bounds, camera, invalidate]);
+  }, [bounds, camera, invalidate, encuadre]);
 
   if (!fr) return null;
   const poseR = 0.008;
@@ -127,9 +142,9 @@ function Rig({
         }
         enablePan={false}
       />
-      {/* Pose */}
+      {/* Pose (con malla de cara, sin los trazos de cara de la pose) */}
       {POSE_CONNECTIONS.map(([i, j]) =>
-        fr.pose[i] && fr.pose[j] ? (
+        fr.pose[i] && fr.pose[j] && !(fr.face && (i < 11 || j < 11)) ? (
           <Wire
             key={`p-${i}-${j}`}
             a={fr.pose[i]}
@@ -140,6 +155,19 @@ function Rig({
         ) : null,
       )}
       <Points pts={fr.pose.slice(11)} color={colors.accent} r={poseR} />
+      {/* Cara: facemarks y sus trazos (cejas, ojos, nariz, labios, mandíbula) */}
+      {fr.face && (
+        <group>
+          {(track.faceLines ?? []).flatMap((tr, k) =>
+            tr.slice(1).map((j, n) => {
+              const a = fr.face![tr[n]];
+              const b = fr.face![j];
+              return a && b ? <Wire key={`f-${k}-${n}`} a={a} b={b} color={colors.face} r={handR * 0.35} /> : null;
+            }),
+          )}
+          <Points pts={fr.face} color={colors.face} r={handR * 0.6} />
+        </group>
+      )}
       {/* Manos */}
       {(["left", "right"] as const).map((side) => {
         const h = fr[side];
@@ -170,12 +198,15 @@ export interface EsqueletoMP3DProps {
   track: Pose3DTrack | null;
   timeMs: number;
   className?: string;
+  /** Encuadre de la cámara: primer cuadro (por defecto) o toda la pista */
+  encuadre?: "inicio" | "todo";
 }
 
 export default function EsqueletoMP3D({
   track,
   timeMs,
   className = "",
+  encuadre = "inicio",
 }: EsqueletoMP3DProps) {
   const [webgl, setWebgl] = useState(true);
   useEffect(() => {
@@ -203,7 +234,7 @@ export default function EsqueletoMP3D({
             camera={{ fov: 40, near: 0.01, far: 20 }}
             gl={{ antialias: true }}
           >
-            <Rig track={track} timeMs={timeMs} />
+            <Rig track={track} timeMs={timeMs} encuadre={encuadre} />
           </Canvas>
         )}
       </div>
