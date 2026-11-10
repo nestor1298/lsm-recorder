@@ -155,7 +155,7 @@ Afecta también a «Sugerir» en `/anotar`.
     reproducción de `/learn` (`to_construction.ts`). Un M suelto se
     completa con una detención antes y otra después; las repeticiones van
     de ida y vuelta, hasta tres.
-  - Al lado, el video original y el esqueleto 3D medido (`track3d.ts`,
+  - Al lado, el esqueleto 3D medido (`track3d.ts`,
     `EsqueletoMP3D` con `encuadre="todo"`; las piernas se recogen en la
     cadera).
   - Abajo, CM, UB, OR, MV, dos manos, RNM con los blendshapes medidos, los
@@ -168,7 +168,7 @@ Afecta también a «Sugerir» en `/anotar`.
   ~8 MB.
 - **Límite**: casi todas las señas son un solo M en un lugar, así que
   Lexsi apenas se desplaza en las de trayecto recto. El movimiento real
-  se ve en el video y en el esqueleto.
+  se ve en el esqueleto.
 
 ## Lo que falta validar
 

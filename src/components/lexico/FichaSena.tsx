@@ -5,8 +5,8 @@
  *
  *  - Lexsi ejecuta la descripción fonológica (la matriz D → M → D que
  *    reproduce /learn), en bucle.
- *  - Al lado, lo que se midió: el video original de Wikisigns y el
- *    esqueleto 3D de la persona que seña, reconstruido de la pista.
+ *  - Al lado, lo que se midió: el esqueleto 3D de la persona que seña,
+ *    reconstruido de la pista.
  *  - Abajo, los parámetros (CM, UB, OR, MV, dos manos, RNM), los ángulos
  *    medidos y los huesos que mueve Lexsi.
  */
@@ -187,7 +187,6 @@ export default function FichaSena({ entry, trackUrl }: { entry: LexiconEntry; tr
   const quieto = useMenosMovimiento();
   const [eleccion, setPausado] = useState<boolean | null>(null);
   const pausado = eleccion ?? quieto;
-  const [vista, setVista] = useState<"video" | "esqueleto">("video");
 
   const sign = useMemo(
     () =>
@@ -214,8 +213,6 @@ export default function FichaSena({ entry, trackUrl }: { entry: LexiconEntry; tr
     .filter(([, v]) => v >= 0.15)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6);
-  const yt = entry.source.youtube_id;
-  const inicio = entry.video.window_ms ? Math.floor(entry.video.window_ms[0] / 1000) : 0;
 
   return (
     <div className="space-y-6">
@@ -305,44 +302,12 @@ export default function FichaSena({ entry, trackUrl }: { entry: LexiconEntry; tr
             <p className="mt-2 whitespace-pre-line font-mono text-xs text-gray-500">{entry.notation}</p>
           </section>
 
-          <section className="space-y-2 lg:col-span-2" aria-label="Lo que se midió">
-            <div role="tablist" className="flex gap-1.5">
-              {(
-                [
-                  ["video", "Video original"],
-                  ["esqueleto", "Esqueleto 3D"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  role="tab"
-                  type="button"
-                  aria-selected={vista === id}
-                  onClick={() => setVista(id)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${vista === id ? "bg-ink text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {vista === "video" ? (
-              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
-                <iframe
-                  className="aspect-video w-full"
-                  src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0&start=${inicio}`}
-                  title={`Video de ${entry.gloss} en Wikisigns`}
-                  allow="encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  loading="lazy"
-                />
-              </div>
-            ) : trackUrl ? (
+          <section className="space-y-2 lg:col-span-2" aria-label="Esqueleto 3D medido">
+            <p className="text-sm font-semibold text-ink">Esqueleto 3D medido</p>
+            {trackUrl ? (
               <Esqueleto url={trackUrl} dominant={entry.skeleton.dominant_hand} />
             ) : (
               <p className="p-6 text-center text-sm text-gray-500">Esta seña no tiene pista.</p>
-            )}
-            {vista === "video" && (
-              <p className="text-xs text-gray-500">La persona que seña en Wikisigns. Lexsi la refleja como un espejo.</p>
             )}
           </section>
         </div>
