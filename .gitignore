@@ -52,3 +52,6 @@ next-env.d.ts
 /data/wikisigns-lsm/_frames/
 /.venv-lexicon/
 __pycache__/
+
+# léxico publicado para /lexico (scripts/wikisigns/publish-tracks.mjs)
+/public/lexico/

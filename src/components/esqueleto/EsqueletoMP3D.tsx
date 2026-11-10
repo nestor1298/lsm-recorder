@@ -84,9 +84,11 @@ function Points({
 function Rig({
   track,
   timeMs,
+  encuadre,
 }: {
   track: Pose3DTrack;
   timeMs: number;
+  encuadre: "inicio" | "todo";
 }) {
   const { camera, invalidate } = useThree();
   const colors = useMemo(
@@ -99,11 +101,18 @@ function Rig({
   );
   const fr = useMemo(() => frameAt(track, timeMs), [track, timeMs]);
 
-  // Encuadre inicial a partir del primer cuadro con datos
-  const bounds = useMemo(
-    () => (track.frames[0] ? frameBounds(track.frames[0]) : null),
-    [track],
-  );
+  // Encuadre inicial: el primer cuadro con datos, o todos los cuadros
+  // juntos ("todo") para que la mano no se salga al subir
+  const bounds = useMemo(() => {
+    if (!track.frames[0]) return null;
+    if (encuadre === "inicio") return frameBounds(track.frames[0]);
+    return frameBounds({
+      tMs: 0,
+      pose: track.frames.flatMap((f) => f.pose),
+      left: track.frames.flatMap((f) => f.left ?? []),
+      right: track.frames.flatMap((f) => f.right ?? []),
+    });
+  }, [track, encuadre]);
   useEffect(() => {
     if (!bounds) return;
     const d = bounds.radius * 3.2;
@@ -170,12 +179,15 @@ export interface EsqueletoMP3DProps {
   track: Pose3DTrack | null;
   timeMs: number;
   className?: string;
+  /** Encuadre de la cámara: primer cuadro (por defecto) o toda la pista */
+  encuadre?: "inicio" | "todo";
 }
 
 export default function EsqueletoMP3D({
   track,
   timeMs,
   className = "",
+  encuadre = "inicio",
 }: EsqueletoMP3DProps) {
   const [webgl, setWebgl] = useState(true);
   useEffect(() => {
@@ -203,7 +215,7 @@ export default function EsqueletoMP3D({
             camera={{ fov: 40, near: 0.01, far: 20 }}
             gl={{ antialias: true }}
           >
-            <Rig track={track} timeMs={timeMs} />
+            <Rig track={track} timeMs={timeMs} encuadre={encuadre} />
           </Canvas>
         )}
       </div>

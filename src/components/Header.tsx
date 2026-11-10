@@ -25,6 +25,7 @@ const NAV_ITEMS = [
     activa: (p: string) => p.startsWith("/comunidad"),
   },
   { href: "/learn", label: "Aprender", activa: (p: string) => p.startsWith("/learn") },
+  { href: "/lexico", label: "Léxico", activa: (p: string) => p.startsWith("/lexico") },
   {
     href: "/annotate",
     label: "Anotar",
