@@ -208,9 +208,11 @@ function buildAnchors(pose: Pt[], dominantSide: "left" | "right"): Anchor[] {
   const mouth = mid(pose[9], pose[10]);
   const shoulderMid = mid(pose[11], pose[12]);
   const hipMid = mid(pose[23], pose[24]);
-  // Lado NO dominante: la mano base (para Palma/Car/antebrazo)
-  const baseElbow = dominantSide === "right" ? pose[13] : pose[14];
-  const baseWrist = dominantSide === "right" ? pose[15] : pose[16];
+  // Lado NO dominante: la mano base (para Palma/Car/antebrazo). Video sin
+  // espejo: la mano del lado izquierdo de la imagen es la derecha de la
+  // persona, así que su brazo base es el izquierdo (pose 13/15).
+  const baseElbow = dominantSide === "left" ? pose[13] : pose[14];
+  const baseWrist = dominantSide === "left" ? pose[15] : pose[16];
 
   const up = sub(eyeMid, mouth); // vector hacia arriba de la cara
   const fr = { x: eyeMid.x + up.x * 1.1, y: eyeMid.y + up.y * 1.1, z: eyeMid.z };
