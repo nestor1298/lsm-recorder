@@ -107,3 +107,35 @@ describe("trackToPose3D: piernas", () => {
     expect(t.frames[0].pose[16]).not.toEqual(t.frames[0].pose[24]);
   });
 });
+
+import { faceLinesFor, faceToWorld } from "./track3d";
+
+describe("facemarks en 3D", () => {
+  // nariz (1) en el centro; un punto 64 px a la derecha y 36 px abajo
+  const fmi = [1, 33, 263];
+  const fm = [
+    [0.5, 0.5, 0],
+    [0.6, 0.6, 0.1],
+    [0.4, 0.5, 0],
+  ];
+  const pose = Array.from({ length: 33 }, () => [0.5, 0.5, 0]);
+  pose[11] = [0.6, 0.7, 0];
+  pose[12] = [0.4, 0.7, 0]; // hombros: 128 px en una imagen de 640
+  const pw = Array.from({ length: 33 }, () => [0, 0, 0]);
+  pw[0] = [0.01, -0.6, -0.3]; // nariz de la pose
+  pw[11] = [0.16, -0.4, 0];
+  pw[12] = [-0.16, -0.4, 0]; // 0.32 m → 0.0025 m/px
+  it("ancla la nariz y escala con los hombros", () => {
+    const f = faceToWorld(fm, pose, pw, fmi, 640, 360)!;
+    expect(f[0]).toEqual({ x: 0.01, y: -0.6, z: -0.3 });
+    expect(f[1].x).toBeCloseTo(0.01 + 64 * 0.0025);
+    expect(f[1].y).toBeCloseTo(-0.6 + 36 * 0.0025);
+    expect(f[1].z).toBeCloseTo(-0.3 + 64 * 0.0025);
+  });
+  it("sin nariz no hay cara", () => {
+    expect(faceToWorld(fm, pose, pw, [2, 33, 263], 640, 360)).toBeNull();
+  });
+  it("los trazos usan índices del arreglo y omiten los incompletos", () => {
+    expect(faceLinesFor([98, 1, 327])).toEqual([[0, 1, 2]]);
+  });
+});

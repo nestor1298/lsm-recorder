@@ -3,20 +3,20 @@
 /**
  * FichaSena — una seña del léxico de Wikisigns.
  *
- *  - Lexsi ejecuta la descripción fonológica (la matriz D → M → D que
- *    reproduce /learn), en bucle.
- *  - Al lado, lo que se midió: el esqueleto 3D de la persona que seña,
- *    reconstruido de la pista.
- *  - Abajo, los parámetros (CM, UB, OR, MV, dos manos, RNM), los ángulos
- *    medidos y los huesos que mueve Lexsi.
+ *  - El esqueleto 3D medido de la persona que seña (pose, manos y
+ *    facemarks de la cara), en bucle, con pausa y cámara lenta.
+ *  - Al lado y abajo, los parámetros (CM, UB, OR, MV, dos manos, RNM),
+ *    los ángulos medidos y los huesos del rig.
+ *
+ * Lexsi (to_construction.ts) queda fuera por ahora: el avatar todavía no
+ * ejecuta bien las señas del léxico.
  */
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CM_INVENTORY } from "@/lib/data";
 import { MiniHand } from "@/components/learn/MiniHand";
-import type { FaceState } from "@/components/learn/RNMControls";
 import {
   CONTACT_ES,
   CONTOUR_ES,
@@ -30,9 +30,6 @@ import {
   RELATION_ES,
   REPETITION_ES,
 } from "@/lib/anotar_labels";
-import { computeTotalDuration, getPlaybackFrame, DEFAULT_PLAYBACK_CONFIG } from "@/lib/sign_playback";
-import { poseDeSegmento } from "@/lib/learn_viewer";
-import { lexiconToConstruction } from "@/lib/lexicon/to_construction";
 import { fetchLexiconTrack, trackToPose3D } from "@/lib/lexicon/track3d";
 import type { Pose3DTrack } from "@/lib/vision/pose3d";
 import type { HandObserved, LexiconEntry } from "@/lib/lexicon/types";
@@ -42,13 +39,8 @@ const Cargando = () => (
     <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
   </div>
 );
-const Hand3DViewer = dynamic(() => import("@/components/Hand3D/Hand3DViewer"), { ssr: false, loading: Cargando });
 const EsqueletoMP3D = dynamic(() => import("@/components/esqueleto/EsqueletoMP3D"), { ssr: false, loading: Cargando });
 
-const RITMO_LENTO = {
-  holdDuration: DEFAULT_PLAYBACK_CONFIG.holdDuration * 2,
-  movementDuration: DEFAULT_PLAYBACK_CONFIG.movementDuration * 2,
-};
 /** Pausa entre vueltas del bucle */
 const PAUSA_MS = 500;
 
@@ -78,21 +70,27 @@ function useMenosMovimiento(): boolean {
   );
 }
 
-/** Reloj en bucle: ms transcurridos dentro de una vuelta de `total` ms */
-function useBucle(activo: boolean, total: number): number {
+/**
+ * Reloj en bucle: ms dentro de una vuelta de `total` ms, a `velocidad`
+ * (0.5 = cámara lenta). Al pausar se queda donde iba y sigue de ahí.
+ */
+function useBucle(activo: boolean, total: number, velocidad = 1): number {
   const [t, setT] = useState(0);
+  const tRef = useRef(0);
   useEffect(() => {
     if (!activo || total <= 0) return;
     let raf = 0;
-    const inicio = performance.now();
+    const ciclo = total + PAUSA_MS;
+    const inicio = performance.now() - tRef.current / velocidad;
     const tick = (ahora: number) => {
-      const fase = (ahora - inicio) % (total + PAUSA_MS);
+      const fase = ((ahora - inicio) * velocidad) % ciclo;
+      tRef.current = fase;
       setT(Math.min(fase, total));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [activo, total]);
+  }, [activo, total, velocidad]);
   return t;
 }
 
@@ -173,38 +171,41 @@ function Esqueleto({ url, dominant }: { url: string; dominant: "RIGHT" | "LEFT" 
       });
     return () => ctrl.abort();
   }, [url, dominant]);
+  // con movimiento reducido arranca en pausa; el botón decide después
   const quieto = useMenosMovimiento();
-  const t = useBucle(Boolean(track) && !quieto, track?.durationMs ?? 0);
+  const [eleccion, setPausado] = useState<boolean | null>(null);
+  const pausado = eleccion ?? quieto;
+  const [lento, setLento] = useState(false);
+  const total = track?.durationMs ?? 0;
+  const t = useBucle(Boolean(track) && !pausado, total, lento ? 0.5 : 1);
   if (error) return <p className="p-6 text-center text-sm text-gray-500">No se pudo cargar la pista.</p>;
-  return <EsqueletoMP3D track={track} timeMs={quieto ? (track?.durationMs ?? 0) / 2 : t} encuadre="todo" />;
+  return (
+    <div className="relative">
+      <EsqueletoMP3D track={track} timeMs={quieto && eleccion === null ? total / 2 : t} encuadre="todo" />
+      <div className="absolute right-3 top-3 flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => setPausado(!pausado)}
+          className="rounded-full bg-paper/90 px-3 py-1 text-xs font-medium text-ink shadow-sm backdrop-blur hover:bg-paper"
+        >
+          {pausado ? "Reproducir" : "Pausa"}
+        </button>
+        <button
+          type="button"
+          aria-pressed={lento}
+          onClick={() => setLento((v) => !v)}
+          className={`rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur ${lento ? "bg-ink text-white" : "bg-paper/90 text-ink hover:bg-paper"}`}
+        >
+          Lento
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function FichaSena({ entry, trackUrl }: { entry: LexiconEntry; trackUrl: string | null }) {
   const p = entry.phonology;
   const conFonologia = p !== null;
-  const [lento, setLento] = useState(false);
-  // con movimiento reducido arranca en pausa; el botón decide después
-  const quieto = useMenosMovimiento();
-  const [eleccion, setPausado] = useState<boolean | null>(null);
-  const pausado = eleccion ?? quieto;
-
-  const sign = useMemo(
-    () =>
-      lexiconToConstruction(entry.annotation, {
-        eyebrows: entry.face.rnm.eyebrows,
-        mouth: entry.face.rnm.mouth,
-        head: entry.face.rnm.head,
-      }),
-    [entry],
-  );
-  const ritmo = lento ? RITMO_LENTO : DEFAULT_PLAYBACK_CONFIG;
-  const total = computeTotalDuration(sign, ritmo);
-  const t = useBucle(conFonologia && !pausado, total);
-  const pose = useMemo(() => {
-    const frame = getPlaybackFrame(sign, Math.min(t, total - 1), ritmo);
-    return frame ? poseDeSegmento(sign, frame.segmentIndex, frame.ubInterpolation ?? 0) : poseDeSegmento(sign, 0);
-  }, [sign, t, total, ritmo]);
-
   const cm = p?.cm ? cmPorId.get(p.cm.id) : undefined;
   const ndCm = p?.bimanual.nondominant_cm ? cmPorId.get(p.bimanual.nondominant_cm.id) : undefined;
   const obs = entry.skeleton.observed;
@@ -258,112 +259,71 @@ export default function FichaSena({ entry, trackUrl }: { entry: LexiconEntry; tr
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-5">
-          <section className="lg:col-span-3" aria-label="Lexsi ejecuta la descripción">
-            <div className="relative h-[420px] overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 sm:h-[520px]">
-              <Hand3DViewer
-                forceAvatar
-                sinMarco
-                encuadre="torso"
-                autoRotate={false}
-                cm={pose.cm}
-                orientation={pose.orientation}
-                ubLocation={pose.ubLocation ? { code: pose.ubLocation.code, region: pose.ubLocation.region, name: pose.ubLocation.name, x: pose.ubLocation.x, y: pose.ubLocation.y } : null}
-                rnm={pose.rnm as FaceState}
-                movementInterp={pose.movementInterp}
-                handMode={pose.handMode}
-                selectedUBCode={pose.ubLocation?.code ?? null}
-                isBuildMode
-                height="100%"
-                className="h-full w-full"
-              />
-              <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-                <p className="rounded-full bg-paper/85 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur">
-                  Lexsi ejecuta la descripción
-                </p>
-                <div className="pointer-events-auto flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setPausado(!pausado)}
-                    className="rounded-full bg-paper/90 px-3 py-1 text-xs font-medium text-ink shadow-sm backdrop-blur hover:bg-paper"
-                  >
-                    {pausado ? "Reproducir" : "Pausa"}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={lento}
-                    onClick={() => setLento((v) => !v)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium shadow-sm backdrop-blur ${lento ? "bg-ink text-white" : "bg-paper/90 text-ink hover:bg-paper"}`}
-                  >
-                    Lento
-                  </button>
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 whitespace-pre-line font-mono text-xs text-gray-500">{entry.notation}</p>
-          </section>
-
-          <section className="space-y-2 lg:col-span-2" aria-label="Esqueleto 3D medido">
-            <p className="text-sm font-semibold text-ink">Esqueleto 3D medido</p>
+          <section className="space-y-2 lg:col-span-3" aria-label="Esqueleto 3D medido">
             {trackUrl ? (
               <Esqueleto url={trackUrl} dominant={entry.skeleton.dominant_hand} />
             ) : (
-              <p className="p-6 text-center text-sm text-gray-500">Esta seña no tiene pista.</p>
+              <p className="rounded-2xl border border-gray-200 p-6 text-center text-sm text-gray-500">
+                Esta seña no tiene pista.
+              </p>
             )}
+            <p className="whitespace-pre-line font-mono text-xs text-gray-500">{entry.notation}</p>
           </section>
+          <div className="grid content-start gap-4 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-1">
+            <Tarjeta sigla="CM" titulo="Forma de la mano">
+              {p.cm && cm ? (
+                <div className="flex items-start gap-3">
+                  <MiniHand cm={cm} size={56} />
+                  <div>
+                    <p className="font-semibold text-ink">
+                      #{p.cm.id} {p.cm.alpha_code ? `· ${p.cm.alpha_code}` : ""}
+                    </p>
+                    <p className="font-mono text-xs text-gray-500">{p.cm.notation}</p>
+                    <p className="text-xs text-gray-500">como en «{p.cm.example_sign}»</p>
+                    {p.cm.candidates.length > 1 && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Parecidas: {p.cm.candidates.slice(1, 4).map((c) => `#${c.cm_id}`).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                "—"
+              )}
+            </Tarjeta>
+
+            <Tarjeta sigla="UB" titulo="Lugar">
+              <dl>
+                <Dato k="Dónde" v={p.ub ? (p.ub.code === "EN" ? "Espacio neutro" : (p.ub.name ?? p.ub.code)) : "—"} />
+                <Dato k="Contacto" v={es(CONTACT_ES, p.ub?.contact)} />
+                <Dato k="Lado" v={es(LATERALITY_ES, p.ub?.laterality)} />
+              </dl>
+            </Tarjeta>
+
+            <Tarjeta sigla="OR" titulo="Orientación">
+              <dl>
+                <Dato k="Palma hacia" v={es(PALM_ES, p.or.palm)} />
+                <Dato k="Dedos hacia" v={es(FINGER_ES, p.or.fingers)} />
+              </dl>
+            </Tarjeta>
+
+            <Tarjeta sigla="MV" titulo="Movimiento">
+              <dl>
+                <Dato k="Estructura" v={p.structure} />
+                <Dato k="Trayecto" v={es(CONTOUR_ES, p.mov?.contour)} />
+                <Dato k="Plano" v={es(PLANE_ES, p.mov?.plane)} />
+                <Dato
+                  k="Repetición"
+                  v={p.mov?.repetition ? `${p.mov.repetition.count} × ${es(REPETITION_ES, p.mov.repetition.type)}` : "no"}
+                />
+              </dl>
+            </Tarjeta>
+          </div>
         </div>
       )}
 
       {conFonologia && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Tarjeta sigla="CM" titulo="Forma de la mano">
-            {p.cm && cm ? (
-              <div className="flex items-start gap-3">
-                <MiniHand cm={cm} size={56} />
-                <div>
-                  <p className="font-semibold text-ink">
-                    #{p.cm.id} {p.cm.alpha_code ? `· ${p.cm.alpha_code}` : ""}
-                  </p>
-                  <p className="font-mono text-xs text-gray-500">{p.cm.notation}</p>
-                  <p className="text-xs text-gray-500">como en «{p.cm.example_sign}»</p>
-                  {p.cm.candidates.length > 1 && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Parecidas: {p.cm.candidates.slice(1, 4).map((c) => `#${c.cm_id}`).join(", ")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              "—"
-            )}
-          </Tarjeta>
-
-          <Tarjeta sigla="UB" titulo="Lugar">
-            <dl>
-              <Dato k="Dónde" v={p.ub ? (p.ub.code === "EN" ? "Espacio neutro" : (p.ub.name ?? p.ub.code)) : "—"} />
-              <Dato k="Contacto" v={es(CONTACT_ES, p.ub?.contact)} />
-              <Dato k="Lado" v={es(LATERALITY_ES, p.ub?.laterality)} />
-            </dl>
-          </Tarjeta>
-
-          <Tarjeta sigla="OR" titulo="Orientación">
-            <dl>
-              <Dato k="Palma hacia" v={es(PALM_ES, p.or.palm)} />
-              <Dato k="Dedos hacia" v={es(FINGER_ES, p.or.fingers)} />
-            </dl>
-          </Tarjeta>
-
-          <Tarjeta sigla="MV" titulo="Movimiento">
-            <dl>
-              <Dato k="Estructura" v={p.structure} />
-              <Dato k="Trayecto" v={es(CONTOUR_ES, p.mov?.contour)} />
-              <Dato k="Plano" v={es(PLANE_ES, p.mov?.plane)} />
-              <Dato
-                k="Repetición"
-                v={p.mov?.repetition ? `${p.mov.repetition.count} × ${es(REPETITION_ES, p.mov.repetition.type)}` : "no"}
-              />
-            </dl>
-          </Tarjeta>
-
+        <div className="grid gap-4 sm:grid-cols-2">
           <Tarjeta titulo="Dos manos">
             {p.bimanual.two_handed ? (
               <div className="flex items-start gap-3">
