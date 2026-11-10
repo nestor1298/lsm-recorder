@@ -123,8 +123,19 @@ misma `aggregate()`. Encima agregan, para videos de diccionario:
    punta de nariz, pómulo, mejilla, labios, comisura y mentón, cada una
    del lado correcto (ipsi/contra). Se mide desde el centroide y las
    yemas. A más de 0.3 anchos de hombro de toda ancla, la UB es `EN`
-   (espacio neutro, como en `ub_anatomia.ts`). Límite: con una sola
-   cámara, una mano frente a la cara puede leerse «cerca» de ella.
+   (espacio neutro, como en `ub_anatomia.ts`).
+   - **Mano sobre la cara**: si una yema cae dentro del contorno de la
+     cara (mandíbula + frente), solo cuentan las yemas de adentro y las
+     anclas de la cara; la oreja y la sien, que están en el borde, no
+     compiten. Antes, cualquier mano que llegaba de lado caía en la oreja.
+   - **Oreja o sien** se decide por la altura de las yemas (la mediana,
+     para que un pulgar suelto no decida): arriba de los ojos es sien,
+     entre ojos y boca es oreja, más abajo ninguna.
+   - Las anclas del borde (oreja, sien, coronilla) cuentan como «cerca» a
+     4/5 de la distancia de las demás.
+
+   Límite: con una sola cámara no se ve si la mano toca la cara o va por
+   delante (MANOS, PADRASTRO); esas señas quedan en un punto de la cara.
 6. **Lateralidad**, **movimiento de cabeza** y **CM/OR de la mano no
    dominante** (el analizador solo daba la relación bimanual).
 

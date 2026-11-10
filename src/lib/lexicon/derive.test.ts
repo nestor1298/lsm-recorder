@@ -153,13 +153,15 @@ describe("refineZigzag", () => {
 
 describe("fineLocation", () => {
   // cara mínima: los facemarks que usan las anclas, en coordenadas de imagen
-  const fmIndex = [168, 10, 33, 133, 263, 362, 1, 6, 13, 14, 0, 17, 152, 61, 291, 50, 280, 205, 425, 234, 454];
   const at: Record<number, [number, number]> = {
     168: [0.5, 0.3], 10: [0.5, 0.2], 33: [0.46, 0.31], 133: [0.48, 0.31], 263: [0.54, 0.31], 362: [0.52, 0.31],
     1: [0.5, 0.36], 6: [0.5, 0.33], 13: [0.5, 0.4], 14: [0.5, 0.41], 0: [0.5, 0.39], 17: [0.5, 0.42], 152: [0.5, 0.46],
     61: [0.48, 0.4], 291: [0.52, 0.4], 50: [0.46, 0.36], 280: [0.54, 0.36], 205: [0.465, 0.39], 425: [0.535, 0.39],
-    234: [0.44, 0.34], 454: [0.56, 0.34],
+    // contorno: mandíbula de oreja a oreja y frente
+    234: [0.44, 0.34], 172: [0.45, 0.4], 136: [0.46, 0.43], 150: [0.48, 0.45], 379: [0.52, 0.45], 365: [0.54, 0.43],
+    397: [0.55, 0.4], 454: [0.56, 0.34], 338: [0.53, 0.21], 109: [0.47, 0.21],
   };
+  const fmIndex = Object.keys(at).map(Number);
   const frame: RawFrame = {
     t: 0, hands: [], hands_world: [], pose: pose(),
     facemarks: fmIndex.map((i) => [at[i][0], at[i][1], 0] as V3),
@@ -173,5 +175,22 @@ describe("fineLocation", () => {
   it("lejos de todo es espacio neutro", () => {
     const h = toPts(hand(0.15, 0.2));
     expect(fineLocation([frame, frame], [h, h], [undefined, undefined], fmIndex, 640, 360, "RIGHT")?.code).toBe("EN");
+  });
+  const loc = (h: ReturnType<typeof toPts>) =>
+    fineLocation([frame, frame], [h, h], [undefined, undefined], fmIndex, 640, 360, "RIGHT");
+  it("una yema sobre la mejilla gana aunque otra quede junto a la oreja", () => {
+    const h = toPts(hand(0.43, 0.38));
+    h[8] = { x: 0.47, y: 0.375, z: 0 }; // dentro de la cara, entre pómulo y mejilla
+    h[20] = { x: 0.424, y: 0.34, z: 0 }; // justo en el ancla de la oreja
+    expect(["Po", "Ge"]).toContain(loc(h)?.code);
+  });
+  it("de lado: yemas arriba de los ojos es sien, entre ojos y boca es oreja", () => {
+    expect(loc(toPts(hand(0.405, 0.3)))?.code).toBe("Te");
+    expect(loc(toPts(hand(0.405, 0.38)))?.code).toBe("Au");
+  });
+  it("el mentón cuenta aunque esté en el contorno de la cara", () => {
+    const h = toPts(hand(0.5, 0.5));
+    h[8] = { x: 0.5, y: 0.455, z: 0 };
+    expect(loc(h)).toEqual({ code: "Me", contact: "TOUCHING" });
   });
 });
