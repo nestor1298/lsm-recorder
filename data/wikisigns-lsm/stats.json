@@ -1,17 +1,17 @@
 {
- "generated_at": "2026-11-10T02:52:09.683Z",
+ "generated_at": "2026-11-11T19:40:53.870Z",
  "pages": 2484,
  "entries": 2144,
  "with_phonology": 1753,
  "lsm": 1986,
- "two_handed": 856,
- "mean_confidence": 0.751,
+ "two_handed": 981,
+ "mean_confidence": 0.761,
  "flags": {
+  "cm_empate": 446,
   "dactilologia": 1,
-  "cm_empate": 454,
   "otra_lengua": 158,
   "sin_video": 388,
-  "cm_dudosa": 139,
+  "cm_dudosa": 106,
   "pocos_cuadros": 10,
   "sin_mano": 3
  },
@@ -21,11 +21,11 @@
   "fingerspelling": 1
  },
  "by_structure": {
-  "M": 1456,
+  "M": 1609,
   "—": 391,
-  "DM": 146,
-  "MD": 91,
-  "DMD": 60
+  "DM": 69,
+  "MD": 50,
+  "DMD": 25
  },
  "top_cm": [
   [
@@ -33,66 +33,66 @@
    391
   ],
   [
-   "9",
-   181
+   "3",
+   184
   ],
   [
-   "3",
-   173
+   "9",
+   178
   ],
   [
    "7",
-   140
-  ],
-  [
-   "56",
-   105
+   148
   ],
   [
    "66",
-   98
+   101
+  ],
+  [
+   "56",
+   99
   ],
   [
    "17",
-   80
+   75
   ],
   [
    "10",
-   71
+   68
   ],
   [
    "22",
-   64
-  ],
-  [
-   "99",
    58
   ],
   [
    "1",
-   50
+   54
+  ],
+  [
+   "99",
+   54
   ],
   [
    "61",
    49
   ],
   [
-   "44",
-   43
-  ],
-  [
-   "63",
-   42
-  ],
-  [
    "64",
-   40
+   47
+  ],
+  [
+   "44",
+   44
+  ],
+  [
+   "39",
+   43
   ]
  ],
  "top_ub": [
   [
    "EN",
-   572
+   623
   ],
   [
    "—",
@@ -100,76 +100,76 @@
   ],
   [
    "IpsiPe",
-   251
+   238
   ],
   [
    "Co",
-   108
+   110
   ],
   [
    "IpsiOs",
-   98
-  ],
-  [
-   "Pe",
-   90
-  ],
-  [
-   "Ve",
-   89
+   102
   ],
   [
    "Me",
    77
   ],
   [
-   "Te",
+   "Ve",
+   76
+  ],
+  [
+   "Pe",
    72
   ],
   [
-   "Po",
-   59
+   "Te",
+   68
   ],
   [
-   "Au",
+   "Po",
    50
   ],
   [
-   "XPe",
-   46
-  ],
-  [
-   "La",
-   41
-  ],
-  [
-   "Um",
-   36
+   "Au",
+   49
   ],
   [
    "Car",
-   29
+   45
+  ],
+  [
+   "XPe",
+   38
+  ],
+  [
+   "La",
+   37
+  ],
+  [
+   "Um",
+   34
   ]
  ],
  "rnm_head": {
-  "NONE": 1564,
-  "TILT_DOWN": 220,
-  "NOD": 129,
-  "SHAKE": 125,
-  "TILT_RIGHT": 59,
-  "TILT_LEFT": 36,
-  "TILT_BACK": 11
+  "NONE": 1584,
+  "TILT_DOWN": 235,
+  "SHAKE": 128,
+  "NOD": 93,
+  "TILT_RIGHT": 58,
+  "TILT_LEFT": 34,
+  "TILT_BACK": 12
  },
  "rnm_eyebrows": {
-  "NEUTRAL": 1934,
-  "FURROWED": 169,
-  "RAISED": 41
+  "NEUTRAL": 1927,
+  "FURROWED": 174,
+  "RAISED": 43
  },
  "rnm_mouth": {
-  "NEUTRAL": 1760,
-  "STRETCHED": 196,
-  "ROUNDED": 173,
-  "OPEN": 15
+  "NEUTRAL": 1765,
+  "STRETCHED": 187,
+  "ROUNDED": 178,
+  "OPEN": 14
  },
- "tracks_mb": 77.8
+ "tracks_mb": 78.5
 }
