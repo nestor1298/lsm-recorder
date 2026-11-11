@@ -63,6 +63,9 @@ export interface RawFrame {
   t: number;
   hands: V3[][];
   hands_world: V3[][];
+  /** De dónde salió cada mano: "det" (detector), "crop" (recorte guiado
+   *  por la pose, extract.py) o "interp" (hueco rellenado, cleanHands) */
+  hand_src?: string[];
   pose?: [number, number, number, number][];
   pose_world?: V3[];
   facemarks?: V3[];
@@ -197,6 +200,107 @@ const centroid = (h: Pt[]) => ({
 });
 
 /** Igual que analyze_video.ts: el lado de imagen con más camino recorrido. */
+// ── Limpieza de manos contra la pose ────────────────────────────
+
+/** Una mano «es» de una muñeca a menos de esto (anchos de hombro); más
+ *  lejos de las dos muñecas es un falso positivo (p. ej. en la cara) */
+const HAND_WRIST_MAX = 0.5;
+/** Huecos de hasta este número de cuadros (a 12 fps ≈ 170 ms) se rellenan */
+const GAP_MAX = 2;
+
+export interface HandCleanStats {
+  dropped: number;
+  interpolated: number;
+  crop: number;
+}
+
+/**
+ * Limpia las manos de cada cuadro con la pose como referencia:
+ *  1. asigna cada mano a la muñeca de la pose más cercana (15 o 16);
+ *  2. descarta las que quedan lejos de las dos muñecas y las sobrantes
+ *     (a lo más una mano por muñeca);
+ *  3. rellena huecos de 1–2 cuadros de una muñeca interpolando entre la
+ *     mano de antes y la de después (imagen y mundo), con hand_src
+ *     "interp".
+ * Los cuadros sin pose se dejan como vienen (máximo dos manos).
+ * // VALIDAR-LSM: HAND_WRIST_MAX y GAP_MAX.
+ */
+export function cleanHands(frames: RawFrame[], W: number, H: number): { frames: RawFrame[]; stats: HandCleanStats } {
+  const stats: HandCleanStats = { dropped: 0, interpolated: 0, crop: 0 };
+  type Slot = { img: V3[]; world: V3[]; src: string } | undefined;
+  const slots: Record<15 | 16, Slot[]> = { 15: [], 16: [] };
+  const sinPose: (RawFrame | null)[] = [];
+  frames.forEach((f, fi) => {
+    const src = f.hand_src ?? f.hands.map(() => "det");
+    const p = f.pose;
+    const sw = p ? Math.abs(p[11][0] - p[12][0]) * W : 0;
+    if (!p || sw < 5) {
+      sinPose[fi] = f;
+      slots[15][fi] = undefined;
+      slots[16][fi] = undefined;
+      return;
+    }
+    sinPose[fi] = null;
+    const pairs: { h: number; w: 15 | 16; d: number }[] = [];
+    f.hands.forEach((hd, h) => {
+      for (const w of [15, 16] as const) {
+        pairs.push({ h, w, d: Math.hypot((hd[0][0] - p[w][0]) * W, (hd[0][1] - p[w][1]) * H) / sw });
+      }
+    });
+    pairs.sort((a, b) => a.d - b.d);
+    const usedH = new Set<number>();
+    const got: Record<15 | 16, Slot> = { 15: undefined, 16: undefined };
+    for (const { h, w, d } of pairs) {
+      if (d > HAND_WRIST_MAX || usedH.has(h) || got[w]) continue;
+      usedH.add(h);
+      got[w] = { img: f.hands[h], world: f.hands_world[h] ?? [], src: src[h] ?? "det" };
+    }
+    stats.dropped += f.hands.length - usedH.size;
+    slots[15][fi] = got[15];
+    slots[16][fi] = got[16];
+  });
+
+  // huecos cortos: misma muñeca con mano antes y después
+  const lerp = (a: V3[], b: V3[], t: number): V3[] =>
+    a.length === b.length ? a.map((v, k) => [0, 1, 2].map((j) => v[j] + (b[k][j] - v[j]) * t) as V3) : [];
+  for (const w of [15, 16] as const) {
+    const s = slots[w];
+    let i = 0;
+    while (i < frames.length) {
+      if (s[i] || i === 0 || !s[i - 1] || sinPose[i]) {
+        i++;
+        continue;
+      }
+      let j = i;
+      while (j < frames.length && !s[j] && !sinPose[j] && j - i < GAP_MAX + 1) j++;
+      const a = s[i - 1]!;
+      const b = j < frames.length ? s[j] : undefined;
+      if (b && j - i <= GAP_MAX) {
+        const t0 = frames[i - 1].t;
+        const span = frames[j].t - t0 || 1;
+        for (let k = i; k < j; k++) {
+          const t = (frames[k].t - t0) / span;
+          s[k] = { img: lerp(a.img, b.img, t), world: lerp(a.world, b.world, t), src: "interp" };
+          stats.interpolated++;
+        }
+      }
+      i = Math.max(j, i + 1);
+    }
+  }
+
+  const out = frames.map((f, fi) => {
+    if (sinPose[fi]) {
+      const keep = f.hands.length > 2 ? 2 : f.hands.length;
+      stats.dropped += f.hands.length - keep;
+      return { ...f, hands: f.hands.slice(0, keep), hands_world: f.hands_world.slice(0, keep), hand_src: (f.hand_src ?? []).slice(0, keep) };
+    }
+    const hs = [slots[15][fi], slots[16][fi]].filter((x): x is NonNullable<Slot> => Boolean(x));
+    return { ...f, hands: hs.map((x) => x.img), hands_world: hs.map((x) => x.world), hand_src: hs.map((x) => x.src) };
+  });
+  for (const f of out) stats.crop += (f.hand_src ?? []).filter((x) => x === "crop").length;
+  return { frames: out, stats };
+}
+
 export function dominantImageSide(frames: RawFrame[]): "left" | "right" {
   const path = { left: 0, right: 0 };
   const last: Record<"left" | "right", { x: number; y: number } | null> = { left: null, right: null };
@@ -268,6 +372,11 @@ export function signingWindow(frames: RawFrame[], side: "left" | "right" = domin
 }
 
 /** Promedio con los vecinos inmediatos (solo cuadros contiguos con la mano). */
+/** smooth() para arreglos [x, y, z] (pistas) */
+function smoothV3(seq: (V3[] | undefined)[]): (V3[] | undefined)[] {
+  return smooth(seq.map((h) => h?.map(toPt))).map((h) => h?.map((p) => [p.x, p.y, p.z] as V3));
+}
+
 function smooth(seq: (Pt[] | undefined)[]): (Pt[] | undefined)[] {
   return seq.map((h, i) => {
     if (!h) return h;
@@ -960,6 +1069,17 @@ const q3 = (v: number[]) => v.map(r3);
 
 export function buildTrack(id: string, ff: FramesFile, side: "left" | "right", win: [number, number] | null) {
   const frames = ff.frames ?? [];
+  // manos de cada lado, suavizadas con sus vecinos (quita el temblor)
+  const picks = frames.map((f) => pickHands(f, side));
+  const seq = (get: (f: RawFrame, i: number) => V3[] | undefined) =>
+    smoothV3(frames.map((f, i) => {
+      const v = get(f, i);
+      return v && v.length ? v : undefined;
+    }));
+  const domImg = seq((f, i) => (picks[i].dom !== undefined ? f.hands[picks[i].dom!] : undefined));
+  const domWorld = seq((f, i) => (picks[i].dom !== undefined ? f.hands_world[picks[i].dom!] : undefined));
+  const ndImg = seq((f, i) => (picks[i].other !== undefined ? f.hands[picks[i].other!] : undefined));
+  const ndWorld = seq((f, i) => (picks[i].other !== undefined ? f.hands_world[picks[i].other!] : undefined));
   return {
     schema: "lsm-lex-track/1.0",
     id,
@@ -976,16 +1096,18 @@ export function buildTrack(id: string, ff: FramesFile, side: "left" | "right", w
     blendshape_order: BLENDSHAPE_ORDER,
     facemark_groups: ff.facemark_groups,
     facemark_index: ff.facemark_index,
-    frames: frames.map((f) => {
-      const { dom, other } = pickHands(f, side);
+    frames: frames.map((f, i) => {
+      const { dom, other } = picks[i];
       return {
         t: f.t,
         pose: f.pose?.map((p) => q3(p)),
         pose_world: f.pose_world?.map((p) => q3(p)),
-        dom: dom !== undefined ? f.hands[dom].map((p) => q3(p)) : undefined,
-        dom_world: dom !== undefined && f.hands_world[dom] ? f.hands_world[dom].map((p) => q3(p)) : undefined,
-        nd: other !== undefined ? f.hands[other].map((p) => q3(p)) : undefined,
-        nd_world: other !== undefined && f.hands_world[other] ? f.hands_world[other].map((p) => q3(p)) : undefined,
+        dom: domImg[i]?.map((p) => q3(p)),
+        dom_world: domWorld[i]?.map((p) => q3(p)),
+        dom_src: dom !== undefined ? (f.hand_src?.[dom] ?? "det") : undefined,
+        nd: ndImg[i]?.map((p) => q3(p)),
+        nd_world: ndWorld[i]?.map((p) => q3(p)),
+        nd_src: other !== undefined ? (f.hand_src?.[other] ?? "det") : undefined,
         bs: f.blendshapes ? BLENDSHAPE_ORDER.map((k) => r3(f.blendshapes![k] ?? 0)) : undefined,
         fm: f.facemarks?.map((p) => q3(p)),
         head: f.head,
@@ -1018,9 +1140,10 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
   if (!meta.variety.is_lsm) flags.push("otra_lengua");
   if (meta.kind === "fingerspelling") flags.push("dactilologia");
 
-  const frames = ff?.frames ?? [];
   const W = ff?.video?.width ?? 640;
   const H = ff?.video?.height ?? 360;
+  const cleaned = cleanHands(ff?.frames ?? [], W, H);
+  const frames = cleaned.frames;
   const fmIndex = ff?.facemark_index ?? [];
   const side = dominantImageSide(frames);
   const dominant_hand: "RIGHT" | "LEFT" = side === "left" ? "RIGHT" : "LEFT";
@@ -1344,6 +1467,7 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
       fps: ff?.video?.fps ?? 0,
       sampled_frames: frames.length,
       frames_with_hand: frames.filter((f) => f.hands.length > 0).length,
+      hand_recovery: cleaned.stats,
       window_ms: win ? [t0, t1] : null,
     },
     annotation,
@@ -1362,5 +1486,5 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
     qa: { confidence, flags, status: "auto" },
   };
 
-  return { entry, track: entry.tracks ? buildTrack(id, ff!, side, win) : null };
+  return { entry, track: entry.tracks ? buildTrack(id, { ...ff!, frames }, side, win) : null };
 }

@@ -63,6 +63,9 @@ export interface VideoInfo {
   frames_with_hand: number;
   /** Ventana de la seña (sin reposo inicial/final), ms del video */
   window_ms: [number, number] | null;
+  /** Manos recuperadas con el recorte guiado por la pose, interpoladas en
+   *  huecos cortos y descartadas por quedar lejos de las muñecas */
+  hand_recovery?: { crop: number; interpolated: number; dropped: number };
 }
 
 /** Rotación de un hueso sobre su pose de enlace, como la aplica AvatarModel */
