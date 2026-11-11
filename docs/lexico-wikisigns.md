@@ -76,7 +76,10 @@ Por cuadro (≈12 fps): `pose` y `pose_world` (33 puntos MediaPipe),
 `dom`/`dom_world` y `nd`/`nd_world` (21 puntos por mano, ya asignados a
 dominante/no dominante), `bs` (52 blendshapes en `blendshape_order`),
 `fm` (facemarks en `facemark_index`) y `head` (pitch, yaw, roll).
-`window_index` marca la ventana de la seña.
+`dom_src`/`nd_src` dicen de dónde salió cada mano: `det` (detector),
+`crop` (recorte guiado por la pose) o `interp` (hueco rellenado). Las
+manos de la pista van suavizadas con sus vecinos. `window_index` marca la
+ventana de la seña.
 
 ### Banderas
 
@@ -103,6 +106,36 @@ npm run lexicon:build                          # lexicon.jsonl, index, tracks
 Los tres primeros pasos se reanudan donde se quedaron. El entorno de
 Python: `python3.12 -m venv .venv-lexicon && .venv-lexicon/bin/pip
 install mediapipe opencv-python-headless numpy`.
+
+### Recuperación de manos
+
+Auditoría del primer corte (contra las muñecas de la pose, que casi nunca
+se pierden): en el 14 % de los cuadros con una muñeca levantada no había
+mano, y en el 27 % de los cuadros con las dos muñecas arriba faltaba al
+menos una. Causas, en orden: manos chicas (≈40 px a 360p; el detector de
+palmas reduce el cuadro entero a 192 px), desenfoque por movimiento,
+manos que se tocan o se cruzan y algún falso positivo en la cara.
+
+Arreglos (esquema de cuadros 2):
+
+1. **Recorte guiado por la pose** (`extract.py`): si la pose ve una
+   muñeca levantada sin mano cerca, se recorta alrededor de ella (lado
+   0.9 anchos de hombro, centrado 0.6 antebrazos adelante), se amplía a
+   256 px y se busca otra vez. En 30 videos difíciles bajó la pérdida de
+   24 % a 15 % y subió los cuadros con las dos manos de 62 % a 78 %. Bajar
+   los videos en 1080p, sin recorte, casi no cambiaba nada (24 % → 24 %).
+2. **Limpieza contra la pose** (`cleanHands` en `derive.ts`): cada mano
+   se asigna a la muñeca más cercana, se descartan las que quedan a más
+   de 0.5 anchos de hombro de las dos (falsos positivos) y las sobrantes,
+   y se rellenan huecos de 1–2 cuadros interpolando entre la mano de antes
+   y la de después (el 42 % de los cuadros perdidos eran huecos así).
+3. **Pistas suavizadas** con los cuadros vecinos.
+
+`video.hand_recovery` cuenta, por entrada, manos recuperadas por recorte,
+interpoladas y descartadas. Siguen fallando sobre todo las manos cruzadas
+por varios cuadros; si hace falta, el siguiente paso es probar un modelo
+de cuerpo completo entrenado con manos que interactúan (RTMW/DWPose) en
+la misma muestra antes de adoptarlo.
 
 ### Diferencias con el analizador del navegador
 

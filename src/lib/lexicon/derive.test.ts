@@ -3,6 +3,7 @@ import { CM_INVENTORY } from "@/lib/data";
 import { observeLocation, type Pt } from "@/lib/vision/phon/phon_features";
 import {
   breakCmTie,
+  cleanHands,
   buildEntry,
   canonicalHand,
   fineLocation,
@@ -192,5 +193,45 @@ describe("fineLocation", () => {
     const h = toPts(hand(0.5, 0.5));
     h[8] = { x: 0.5, y: 0.455, z: 0 };
     expect(loc(h)).toEqual({ code: "Me", contact: "TOUCHING" });
+  });
+});
+
+describe("cleanHands", () => {
+  // pose con hombros a 0.35/0.65 (0.3 × 640 = 192 px) y muñecas en (0.4, 0.5) y (0.6, 0.5)
+  const poseCon = (): [number, number, number, number][] => {
+    const p = pose();
+    p[15] = [0.6, 0.5, 0, 1];
+    p[16] = [0.4, 0.5, 0, 1];
+    return p;
+  };
+  const manoEn = (x: number, y: number): V3[] => Array.from({ length: 21 }, () => [x, y, 0] as V3);
+  const cuadro = (t: number, hands: V3[][], src?: string[]): RawFrame => ({
+    t, hands, hands_world: hands.map(() => manoEn(0, 0)), pose: poseCon(), ...(src ? { hand_src: src } : {}),
+  });
+  it("descarta la «mano» lejos de las dos muñecas (p. ej. en la cara)", () => {
+    const { frames, stats } = cleanHands([cuadro(0, [manoEn(0.4, 0.5), manoEn(0.5, 0.15)])], 640, 360);
+    expect(frames[0].hands).toHaveLength(1);
+    expect(stats.dropped).toBe(1);
+  });
+  it("a lo más una mano por muñeca", () => {
+    const { frames } = cleanHands([cuadro(0, [manoEn(0.4, 0.5), manoEn(0.41, 0.5), manoEn(0.6, 0.5)])], 640, 360);
+    expect(frames[0].hands).toHaveLength(2);
+  });
+  it("rellena huecos de 1–2 cuadros interpolando, y no los largos", () => {
+    const a = manoEn(0.4, 0.5);
+    const b = manoEn(0.4, 0.6);
+    const seq = [cuadro(0, [a]), cuadro(100, []), cuadro(200, [b])];
+    const { frames, stats } = cleanHands(seq, 640, 360);
+    expect(frames[1].hands).toHaveLength(1);
+    expect(frames[1].hand_src).toEqual(["interp"]);
+    expect(frames[1].hands[0][0][1]).toBeCloseTo(0.55);
+    expect(stats.interpolated).toBe(1);
+    const largo = [cuadro(0, [a]), cuadro(100, []), cuadro(200, []), cuadro(300, []), cuadro(400, [b])];
+    expect(cleanHands(largo, 640, 360).frames.slice(1, 4).every((f) => f.hands.length === 0)).toBe(true);
+  });
+  it("conserva el origen del recorte", () => {
+    const { frames, stats } = cleanHands([cuadro(0, [manoEn(0.6, 0.5)], ["crop"])], 640, 360);
+    expect(frames[0].hand_src).toEqual(["crop"]);
+    expect(stats.crop).toBe(1);
   });
 });
