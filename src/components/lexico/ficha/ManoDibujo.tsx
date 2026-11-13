@@ -56,14 +56,20 @@ export default function ManoDibujo({
   );
 }
 
-/** Lado (en metros) que cubre la mano más abierta de la lista, con margen */
+/**
+ * Lado (en metros) del dibujo: el alcance típico de la mano (mediana de
+ * los cuadros) con margen. Igual para toda la seña, así los dibujos se
+ * comparan; una mano más abierta que lo típico se sale un poco del círculo.
+ */
 export function escalaManos(dibujos: (XY[] | null)[]): number {
-  let m = 0;
+  const alcances: number[] = [];
   for (const d of dibujos) {
     if (!d) continue;
     const cx = PALMA.reduce((s, i) => s + d[i].x, 0) / PALMA.length;
     const cy = PALMA.reduce((s, i) => s + d[i].y, 0) / PALMA.length;
-    for (const p of d) m = Math.max(m, Math.abs(p.x - cx), Math.abs(p.y - cy));
+    alcances.push(Math.max(...d.map((p) => Math.max(Math.abs(p.x - cx), Math.abs(p.y - cy)))));
   }
-  return Math.max(0.05, m * 2);
+  if (!alcances.length) return 0.2;
+  alcances.sort((a, b) => a - b);
+  return Math.max(0.05, alcances[alcances.length >> 1] * 2.5);
 }
