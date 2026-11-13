@@ -225,18 +225,39 @@ Afecta también a «Sugerir» en `/anotar`.
   los sinónimos) y filtrar por lengua, una o dos manos, lugar y «solo con
   video». Página estática: el servidor lee `lexicon.jsonl` al construir y
   manda filas ligeras (`src/lib/lexicon/catalog.ts`, `browse.ts`).
-- **`/lexico/sena?id=wsl-…`**: la ficha de una seña.
-  - El esqueleto 3D medido en bucle, con pausa y cámara lenta
-    (`track3d.ts`, `EsqueletoMP3D` con `encuadre="todo"`): pose, manos
-    injertadas en las muñecas y los 66 facemarks de la cara con sus
-    trazos (cejas, ojos, nariz, labios, mandíbula). Las piernas se recogen
-    en la cadera.
+- **`/lexico/sena?id=wsl-…`**: la ficha de una seña, de lo general a lo
+  fino (`FichaSena.tsx` y `src/components/lexico/ficha/`):
+  1. **La glosa** y cuatro datos: mano (diestra/zurda), una o dos manos,
+     duración y confianza.
+  2. **La fórmula**: seis casillas con pictograma (CM con su mano, UB sobre
+     una silueta, OR con dedos en tinta y palma en azul, MV con el contorno
+     girado a la dirección medida, dos manos, y la cara medida para la RNM).
+  3. **La seña en movimiento**: el esqueleto 3D (azul = dominante, verde =
+     la otra, magenta = cara) junto al **trazo** de las palmas sobre la
+     silueta medida de la persona (un punto por cuadro: más juntos, más
+     lento; flechas de sentido; lo recorrido en tinta llena).
+  4. **La partitura**: estructura D/M/D, la mano dibujada en siete momentos,
+     una banda por dedo (delgada = estirado, gruesa = cerrado; rayada si la
+     mano solo se vio en 2D), separación, cabeza (giro y cabeceo) y los tres
+     gestos de la cara que más cambian. Se recorre arrastrando o con las
+     flechas.
+  5. **Datos medidos** (plegados): ángulos de dedos y brazo, notación y
+     huesos de Lexsi.
+
+  Todo comparte un reloj (`reloj.ts`) con pausa y velocidades 1×, ½× y ¼×
+  en una barra flotante. Las series salen de la pista en el navegador
+  (`src/lib/lexicon/ficha.ts`): flexión por dedo (ángulos entre huesos; en
+  el nudillo contra el eje de la palma, sin la apertura lateral),
+  separación índice–meñique, centro de la palma en anchos de hombro y la
+  silueta y la cara con la mediana de la ventana.
+  - El esqueleto 3D (`track3d.ts`, `EsqueletoMP3D` con `encuadre="todo"`):
+    pose, manos injertadas en las muñecas y los 66 facemarks con sus
+    trazos. Las piernas se recogen en la cadera; en huecos de hasta tres
+    cuadros la cara se sostiene del cuadro vecino.
   - Los facemarks vienen en coordenadas de imagen; se pasan a metros con
     la escala del cuadro (ancho de hombros en metros / en píxeles) y se
     anclan en la nariz de la pose. Es una aproximación: la pose y la malla
     de la cara son modelos distintos.
-  - Al lado, CM, UB, OR y MV; abajo, dos manos, RNM con los blendshapes
-    medidos, los ángulos de dedos y brazo y los huesos del rig.
   - Lexsi no aparece por ahora: el avatar todavía no ejecuta bien estas
     señas. `to_construction.ts` (léxico → matriz de `/learn`) queda listo
     para cuando mejore.

@@ -85,10 +85,12 @@ function Rig({
   track,
   timeMs,
   encuadre,
+  dominante,
 }: {
   track: Pose3DTrack;
   timeMs: number;
   encuadre: "inicio" | "todo";
+  dominante?: "left" | "right";
 }) {
   const { camera, invalidate } = useThree();
   const colors = useMemo(
@@ -172,7 +174,14 @@ function Rig({
       {(["left", "right"] as const).map((side) => {
         const h = fr[side];
         if (!h) return null;
-        const c = side === "right" ? colors.green : colors.accent;
+        // con mano dominante conocida: dominante en azul, la otra en verde
+        const c = dominante
+          ? side === dominante
+            ? colors.accent
+            : colors.green
+          : side === "right"
+            ? colors.green
+            : colors.accent;
         return (
           <group key={side}>
             {HAND_CONNECTIONS.map(([i, j]) =>
@@ -200,6 +209,10 @@ export interface EsqueletoMP3DProps {
   className?: string;
   /** Encuadre de la cámara: primer cuadro (por defecto) o toda la pista */
   encuadre?: "inicio" | "todo";
+  /** Lado (de la persona) de la mano dominante: se pinta en azul y la otra en verde */
+  dominante?: "left" | "right";
+  /** Sin borde, sin nota al pie y a la altura del contenedor (para incrustarlo) */
+  desnudo?: boolean;
 }
 
 export default function EsqueletoMP3D({
@@ -207,6 +220,8 @@ export default function EsqueletoMP3D({
   timeMs,
   className = "",
   encuadre = "inicio",
+  dominante,
+  desnudo = false,
 }: EsqueletoMP3DProps) {
   const [webgl, setWebgl] = useState(true);
   useEffect(() => {
@@ -216,9 +231,15 @@ export default function EsqueletoMP3D({
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-gray-200 bg-paper ${className}`}
+      className={
+        desnudo
+          ? `h-full w-full ${className}`
+          : `overflow-hidden rounded-2xl border border-gray-200 bg-paper ${className}`
+      }
     >
-      <div className="relative aspect-square w-full">
+      <div
+        className={desnudo ? "relative h-full w-full" : "relative aspect-square w-full"}
+      >
         {!track || track.frames.length === 0 ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
             Sube y analiza un video para reconstruir aquí el esqueleto en 3D.
@@ -234,14 +255,21 @@ export default function EsqueletoMP3D({
             camera={{ fov: 40, near: 0.01, far: 20 }}
             gl={{ antialias: true }}
           >
-            <Rig track={track} timeMs={timeMs} encuadre={encuadre} />
+            <Rig
+              track={track}
+              timeMs={timeMs}
+              encuadre={encuadre}
+              dominante={dominante}
+            />
           </Canvas>
         )}
       </div>
-      <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
-        Esqueleto reconstruido del video (MediaPipe 3D). Arrastra para girar,
-        rueda para acercar.
-      </p>
+      {!desnudo && (
+        <p className="border-t border-gray-100 px-3 py-2 text-xs text-gray-500">
+          Esqueleto reconstruido del video (MediaPipe 3D). Arrastra para girar,
+          rueda para acercar.
+        </p>
+      )}
     </div>
   );
 }

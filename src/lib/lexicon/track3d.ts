@@ -120,6 +120,17 @@ export function trackToPose3D(track: LexiconTrack, dominant: "RIGHT" | "LEFT"): 
     }
     return fr;
   });
+  // huecos cortos de la cara: se sostiene la del cuadro con cara más cercano
+  for (let i = 0; i < frames.length; i++) {
+    if (frames[i].face) continue;
+    for (let k = 1; k <= 3; k++) {
+      const vecino = frames[i - k]?.face ?? frames[i + k]?.face;
+      if (vecino) {
+        frames[i] = { ...frames[i], face: vecino };
+        break;
+      }
+    }
+  }
   return {
     frames,
     durationMs: frames.at(-1)?.tMs ?? 0,
