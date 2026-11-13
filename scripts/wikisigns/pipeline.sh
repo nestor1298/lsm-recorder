@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Corre todo el léxico de punta a punta y se reanuda donde se quedó:
-# índice (crawl.py, ~7 h por el Crawl-delay) → videos → cuadros → build.
+# índice (crawl.py, ~7 h por el Crawl-delay) → videos → cuadros → manos RTMW → build.
 # Mientras el índice avanza, baja y extrae lo nuevo cada 2 minutos.
 #
 # Uso: nohup scripts/wikisigns/pipeline.sh > data/wikisigns-lsm/_cache/pipeline.log 2>&1 &
@@ -17,6 +17,7 @@ fi
 pass() {
   python3 -I scripts/wikisigns/fetch_videos.py >> $DATA/_cache/fetch.log 2>&1
   $PY -I scripts/wikisigns/extract.py 2>&1 | grep -vE "^(W0000|I0000|INFO|WARNING)" >> $DATA/_cache/extract.log
+  $PY -I scripts/wikisigns/rtmw_hands.py 2>&1 | grep -vE "^(W0000|I0000|INFO|WARNING)|onnxruntime" >> $DATA/_cache/rtmw.log
 }
 
 while pgrep -f "wikisigns/crawl.py" > /dev/null; do

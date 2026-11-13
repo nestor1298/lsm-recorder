@@ -89,6 +89,7 @@ ventana de la seña.
 | `sin_mano` | No se detectó la mano en ningún cuadro útil |
 | `cm_dudosa` | La mejor CM explica mal la mano (puntaje < 0.75) |
 | `cm_empate` | Varias CM empatan aun después del desempate por pulgar |
+| `cm_2d` | La dominante solo se vio en 2D (RTMW): la CM y la OR salen de puntos sin profundidad |
 | `pocos_cuadros` | Menos de 6 cuadros con mano |
 | `sin_ub` | No se pudo ubicar la mano en el cuerpo |
 | `otra_lengua` | Wikisigns la marca como de otra lengua |
@@ -100,12 +101,13 @@ ventana de la seña.
 python3 -I scripts/wikisigns/crawl.py          # índice (Crawl-delay 10 s: ~7 h)
 python3 -I scripts/wikisigns/fetch_videos.py   # videos 360p sin audio (yt-dlp)
 .venv-lexicon/bin/python -I scripts/wikisigns/extract.py   # cuadros MediaPipe
+.venv-lexicon/bin/python -I scripts/wikisigns/rtmw_hands.py # segunda pasada de manos (RTMW)
 npm run lexicon:build                          # lexicon.jsonl, index, tracks
 ```
 
 Los tres primeros pasos se reanudan donde se quedaron. El entorno de
 Python: `python3.12 -m venv .venv-lexicon && .venv-lexicon/bin/pip
-install mediapipe opencv-python-headless numpy`.
+install mediapipe opencv-python-headless numpy rtmlib onnxruntime`.
 
 ### Recuperación de manos
 
@@ -132,10 +134,50 @@ Arreglos (esquema de cuadros 2):
 3. **Pistas suavizadas** con los cuadros vecinos.
 
 `video.hand_recovery` cuenta, por entrada, manos recuperadas por recorte,
-interpoladas y descartadas. Siguen fallando sobre todo las manos cruzadas
-por varios cuadros; si hace falta, el siguiente paso es probar un modelo
-de cuerpo completo entrenado con manos que interactúan (RTMW/DWPose) en
-la misma muestra antes de adoptarlo.
+interpoladas y descartadas, y las que puso RTMW (`rtmw3d`, `rtmw2d`).
+
+#### Segunda pasada con RTMW (`rtmw_hands.py`)
+
+MediaPipe busca cada mano por separado: la pierde cuando se desenfoca,
+se encima con la otra o se pone de canto, y con los brazos cruzados su
+pose cambia las muñecas de lado. RTMW (OpenMMLab, cuerpo completo de 133
+puntos, `rtmw-dw-x-l` 384×288, ONNX en CPU) ve el torso entero y sabe de
+qué brazo cuelga cada mano. En los 30 videos más difíciles encontró el
+98 % de las manos esperadas (MediaPipe: 53 %); donde los dos discrepaban
+sobre el lado de una mano, RTMW tenía razón.
+
+Solo pasan por RTMW los cuadros que lo necesitan (6 856 de 81 335, el
+8.4 %; ~25 min en CPU): una muñeca levantada sin mano, o las dos
+muñecas arriba juntas o cruzadas. En cada uno:
+
+1. RTMW corre sobre una caja de torso y brazos tomada de la pose.
+2. Cada mano de MediaPipe que coincide con una de RTMW recibe su lado
+   en `hand_side`; `cleanHands` lo respeta antes que la muñeca más
+   cercana (462 manos estaban del lado contrario).
+3. Cada mano de RTMW sin pareja se agrega: primero se busca otra vez con
+   MediaPipe en un recorte alrededor de ella (`rtmw3d`, 1 647 manos, con
+   forma 3D); si no, entran los puntos 2D de RTMW (`rtmw`, 4 364 manos,
+   z = 0 y una mano plana a escala de hombros para el esqueleto).
+
+Las manos 2D cuentan para lugar, movimiento y dos manos, pero **no votan
+la CM ni la OR** (vistas sin profundidad parecen planas). Si la
+dominante solo se vio en 2D, la CM sale de ahí con la bandera `cm_2d`.
+
+**Mano dominante por brazo.** `dominantImageSide` medía el camino de las
+manos por mitad de la imagen; con la persona fuera del centro, las dos
+manos caían en la misma mitad y un tercio del léxico salía zurdo. Ahora
+se mide por brazo (la muñeca de cada mano) y la izquierda solo gana si
+recorre 1.5 veces lo de la derecha (en las simétricas quedaba al azar):
+zurdas 587 → 39, revisadas a ojo. `pickHands` también usa la muñeca: con
+los brazos cruzados manda el hombro, y una mano sola del brazo base ya no
+se toma por la dominante.
+
+Efecto en el léxico (1 753 señas con fonología): dos manos 981 → 1 065;
+cambió la CM en 582 (319 por la mano dominante corregida, 246 por las
+manos de RTMW), la UB en 559 y la palma en 604. En una muestra de las
+señas que pasaron a dos manos, 6 de 8 lo son; las otras dos tienen la
+mano base en reposo a la altura de la cintura, que RTMW cuenta. Siguen
+sin resolverse el reposo bajo y la forma de manos muy borrosas.
 
 ### Diferencias con el analizador del navegador
 
