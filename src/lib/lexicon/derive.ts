@@ -64,8 +64,15 @@ export interface RawFrame {
   hands: V3[][];
   hands_world: V3[][];
   /** De dónde salió cada mano: "det" (detector), "crop" (recorte guiado
-   *  por la pose, extract.py) o "interp" (hueco rellenado, cleanHands) */
+   *  por la pose, extract.py), "rtmw3d" (MediaPipe en un recorte donde
+   *  RTMW vio la mano), "rtmw" (puntos 2D de RTMW, z = 0) o "interp" /
+   *  "interp2d" (hueco rellenado, cleanHands; 2D si un extremo lo era) */
   hand_src?: string[];
+  /** Lado del señante según RTMW ("l" izquierda, "r" derecha; rtmw_hands.py):
+   *  manda sobre la muñeca de la pose más cercana */
+  hand_side?: ("l" | "r" | null)[];
+  /** Muñeca de la pose (15 o 16) de cada mano; lo pone cleanHands */
+  hand_wrist?: (15 | 16)[];
   pose?: [number, number, number, number][];
   pose_world?: V3[];
   facemarks?: V3[];
@@ -199,7 +206,6 @@ const centroid = (h: Pt[]) => ({
   y: h.reduce((s, p) => s + p.y, 0) / h.length,
 });
 
-/** Igual que analyze_video.ts: el lado de imagen con más camino recorrido. */
 // ── Limpieza de manos contra la pose ────────────────────────────
 
 /** Una mano «es» de una muñeca a menos de esto (anchos de hombro); más
@@ -212,11 +218,18 @@ export interface HandCleanStats {
   dropped: number;
   interpolated: number;
   crop: number;
+  /** manos que puso RTMW: con forma 3D (recorte) y solo 2D */
+  rtmw3d: number;
+  rtmw2d: number;
 }
+
+/** Manos sin profundidad (solo 2D): sirven para lugar y movimiento, no para la CM ni la OR */
+export const isFlatHand = (src?: string) => src === "rtmw" || src === "interp2d";
 
 /**
  * Limpia las manos de cada cuadro con la pose como referencia:
- *  1. asigna cada mano a la muñeca de la pose más cercana (15 o 16);
+ *  1. asigna cada mano a su muñeca (15 o 16): la del lado que dijo RTMW
+ *     (hand_side) o, si no hay, la de la pose más cercana;
  *  2. descarta las que quedan lejos de las dos muñecas y las sobrantes
  *     (a lo más una mano por muñeca);
  *  3. rellena huecos de 1–2 cuadros de una muñeca interpolando entre la
@@ -226,7 +239,7 @@ export interface HandCleanStats {
  * // VALIDAR-LSM: HAND_WRIST_MAX y GAP_MAX.
  */
 export function cleanHands(frames: RawFrame[], W: number, H: number): { frames: RawFrame[]; stats: HandCleanStats } {
-  const stats: HandCleanStats = { dropped: 0, interpolated: 0, crop: 0 };
+  const stats: HandCleanStats = { dropped: 0, interpolated: 0, crop: 0, rtmw3d: 0, rtmw2d: 0 };
   type Slot = { img: V3[]; world: V3[]; src: string } | undefined;
   const slots: Record<15 | 16, Slot[]> = { 15: [], 16: [] };
   const sinPose: (RawFrame | null)[] = [];
@@ -243,6 +256,12 @@ export function cleanHands(frames: RawFrame[], W: number, H: number): { frames: 
     sinPose[fi] = null;
     const pairs: { h: number; w: 15 | 16; d: number }[] = [];
     f.hands.forEach((hd, h) => {
+      const hint = f.hand_side?.[h];
+      if (hint) {
+        // RTMW ve el brazo entero: su lado gana aunque la muñeca de la pose esté lejos
+        pairs.push({ h, w: hint === "l" ? 15 : 16, d: -1 });
+        return;
+      }
       for (const w of [15, 16] as const) {
         pairs.push({ h, w, d: Math.hypot((hd[0][0] - p[w][0]) * W, (hd[0][1] - p[w][1]) * H) / sw });
       }
@@ -280,7 +299,8 @@ export function cleanHands(frames: RawFrame[], W: number, H: number): { frames: 
         const span = frames[j].t - t0 || 1;
         for (let k = i; k < j; k++) {
           const t = (frames[k].t - t0) / span;
-          s[k] = { img: lerp(a.img, b.img, t), world: lerp(a.world, b.world, t), src: "interp" };
+          const flat = isFlatHand(a.src) || isFlatHand(b.src);
+          s[k] = { img: lerp(a.img, b.img, t), world: lerp(a.world, b.world, t), src: flat ? "interp2d" : "interp" };
           stats.interpolated++;
         }
       }
@@ -294,14 +314,60 @@ export function cleanHands(frames: RawFrame[], W: number, H: number): { frames: 
       stats.dropped += f.hands.length - keep;
       return { ...f, hands: f.hands.slice(0, keep), hands_world: f.hands_world.slice(0, keep), hand_src: (f.hand_src ?? []).slice(0, keep) };
     }
-    const hs = [slots[15][fi], slots[16][fi]].filter((x): x is NonNullable<Slot> => Boolean(x));
-    return { ...f, hands: hs.map((x) => x.img), hands_world: hs.map((x) => x.world), hand_src: hs.map((x) => x.src) };
+    const ws = ([15, 16] as const).filter((w) => slots[w][fi]);
+    const hs = ws.map((w) => slots[w][fi]!);
+    return {
+      ...f,
+      hands: hs.map((x) => x.img),
+      hands_world: hs.map((x) => x.world),
+      hand_src: hs.map((x) => x.src),
+      hand_side: undefined,
+      hand_wrist: [...ws],
+    };
   });
-  for (const f of out) stats.crop += (f.hand_src ?? []).filter((x) => x === "crop").length;
+  for (const f of out) {
+    for (const x of f.hand_src ?? []) {
+      if (x === "crop") stats.crop++;
+      else if (x === "rtmw3d") stats.rtmw3d++;
+      else if (x === "rtmw") stats.rtmw2d++;
+    }
+  }
   return { frames: out, stats };
 }
 
+/** La izquierda es dominante solo si su mano recorre al menos esto × lo de la derecha.
+ *  // VALIDAR-LSM: margen para señas simétricas. */
+const LEFT_HANDED_MARGIN = 1.5;
+
+/**
+ * Lado de la imagen de la mano dominante: la que más camino recorre.
+ * Con las manos ya asignadas a sus muñecas (cleanHands) se mide por brazo
+ * y se devuelve el lado de la imagen de su hombro; si no, por mitad de la
+ * imagen (falla si la persona no está centrada).
+ */
 export function dominantImageSide(frames: RawFrame[]): "left" | "right" {
+  const arm = { 15: 0, 16: 0 };
+  const lastW: Record<15 | 16, { x: number; y: number } | null> = { 15: null, 16: null };
+  let w15Right = 0;
+  let w15Left = 0;
+  for (const fr of frames) {
+    if (!fr.hand_wrist || !fr.pose) continue;
+    if (fr.pose[11][0] > fr.pose[12][0]) w15Right++;
+    else w15Left++;
+    fr.hands.forEach((hd, k) => {
+      const w = fr.hand_wrist![k];
+      if (w !== 15 && w !== 16) return;
+      const c = centroid(hd.map(toPt));
+      const prev = lastW[w];
+      if (prev) arm[w] += Math.hypot(c.x - prev.x, c.y - prev.y);
+      lastW[w] = c;
+    });
+  }
+  if (arm[15] + arm[16] > 0) {
+    // en las simétricas los dos brazos recorren casi lo mismo: queda la derecha (16)
+    const domW = arm[15] > LEFT_HANDED_MARGIN * arm[16] ? 15 : 16;
+    return (domW === 15) === w15Right >= w15Left ? "right" : "left";
+  }
   const path = { left: 0, right: 0 };
   const last: Record<"left" | "right", { x: number; y: number } | null> = { left: null, right: null };
   for (const fr of frames) {
@@ -316,10 +382,26 @@ export function dominantImageSide(frames: RawFrame[]): "left" | "right" {
   return path.right >= path.left ? "right" : "left";
 }
 
-/** Índice de la mano dominante (y de la otra) en un cuadro, como el analizador. */
+/**
+ * Índice de la mano dominante (y de la otra) en un cuadro, como el
+ * analizador. Con dos manos ya asignadas a sus muñecas (cleanHands), la
+ * dominante es la del brazo cuyo hombro está del lado `side` de la imagen:
+ * los hombros no se cruzan aunque las manos sí.
+ */
 export function pickHands(fr: RawFrame, side: "left" | "right"): { dom?: number; other?: number } {
   if (fr.hands.length === 0) return {};
-  if (fr.hands.length === 1) return { dom: 0 };
+  const hw = fr.hand_wrist;
+  const p = fr.pose;
+  // muñeca 15 = brazo del hombro 11
+  const domWrist = p ? ((side === "right") === p[11][0] > p[12][0] ? 15 : 16) : undefined;
+  if (fr.hands.length === 1) {
+    // una mano sola del brazo base no es la dominante (p. ej. la que puso RTMW)
+    return hw?.length === 1 && domWrist !== undefined && hw[0] !== domWrist ? { other: 0 } : { dom: 0 };
+  }
+  if (fr.hands.length === 2 && hw?.length === 2 && hw[0] !== hw[1] && domWrist !== undefined) {
+    const dom = hw[0] === domWrist ? 0 : 1;
+    return { dom, other: 1 - dom };
+  }
   let best = 0;
   for (let i = 1; i < fr.hands.length; i++) {
     const cx = centroid(fr.hands[i].map(toPt)).x;
@@ -1212,9 +1294,21 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
       };
     });
     suggestion = aggregate(phon, side);
+    // CM y OR solo con manos que tienen profundidad: una mano 2D de RTMW
+    // (z = 0) se ve plana y votaría formas y palmas falsas. Lugar,
+    // movimiento y dos manos sí usan todas.
+    const flatDom = picks.map((p, i) => p.dom !== undefined && isFlatHand(winFrames[i].hand_src?.[p.dom]));
+    const phon3d = phon.map((p, i) => (flatDom[i] ? { ...p, hand: undefined } : p));
+    const shapeFrames = phon3d.some((p) => p.hand) ? phon3d : phon;
+    if (shapeFrames === phon3d && flatDom.some(Boolean)) {
+      const shape = aggregate(phon3d, side);
+      suggestion = { ...suggestion, cmCandidates: shape.cmCandidates, palm_facing: shape.palm_facing, finger_pointing: shape.finger_pointing };
+    } else if (shapeFrames === phon && flatDom.some(Boolean)) {
+      flags.push("cm_2d");
+    }
 
     // Desempate de CM con el pulgar (mismos cuadros núcleo que aggregate)
-    const withHand = phon.map((p, i) => ({ p, i })).filter((x) => x.p.hand);
+    const withHand = shapeFrames.map((p, i) => ({ p, i })).filter((x) => x.p.hand);
     const third = Math.floor(withHand.length / 3);
     const coreIdx = withHand.slice(third, Math.max(third + 1, withHand.length - third));
     const cmIdx = coreIdx.length >= 3 ? coreIdx : withHand;
@@ -1222,8 +1316,8 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
     const thumbs = cmIdx
       .map((x) => {
         const d = picks[x.i].dom;
-        const w = d !== undefined ? winFrames[x.i].hands_world[d] : undefined;
-        return w ? observeThumb(w.map(toPt)) : null;
+        const w = d !== undefined && !isFlatHand(winFrames[x.i].hand_src?.[d]) ? winFrames[x.i].hands_world[d] : undefined;
+        return w?.length ? observeThumb(w.map(toPt)) : null;
       })
       .filter((t): t is ReturnType<typeof observeThumb> => Boolean(t));
     const tb = breakCmTie(all, thumbs);
@@ -1309,7 +1403,9 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
     });
 
     // Mano no dominante: CM y OR propias (el analizador solo da la relación)
-    const others = phon.filter((p) => p.otherHand).map((p) => p.otherHand!);
+    const others = phon
+      .filter((p, i) => p.otherHand && !isFlatHand(winFrames[i].hand_src?.[picks[i].other ?? -1]))
+      .map((p) => p.otherHand!);
     if (suggestion.nondominant_relation && others.length >= 3) {
       const best = rankCMs(others.map(observeHandShape), 1)[0];
       if (best) ndCm = { id: best.cm_id, score: r3(best.score) };
@@ -1414,8 +1510,9 @@ export function buildEntry({ page, video, frames: ff, generatedAt }: BuildInput)
     const ndSide = dominant_hand === "RIGHT" ? "LEFT" : "RIGHT";
     for (const f of coreFrames) {
       const { dom, other } = pickHands(f, side);
-      if (dom !== undefined && f.hands_world[dom]) domS.push(handJoints(f.hands_world[dom].map(toPt)));
-      if (other !== undefined && f.hands_world[other]) ndS.push(handJoints(f.hands_world[other].map(toPt)));
+      const deep = (k?: number): k is number => k !== undefined && Boolean(f.hands_world[k]?.length) && !isFlatHand(f.hand_src?.[k]);
+      if (deep(dom)) domS.push(handJoints(f.hands_world[dom].map(toPt)));
+      if (deep(other)) ndS.push(handJoints(f.hands_world[other].map(toPt)));
       if (f.pose_world && f.pose) {
         const pw = f.pose_world.map(toPt);
         const vis = f.pose.map((p) => p[3]);

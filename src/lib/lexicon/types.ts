@@ -65,7 +65,9 @@ export interface VideoInfo {
   window_ms: [number, number] | null;
   /** Manos recuperadas con el recorte guiado por la pose, interpoladas en
    *  huecos cortos y descartadas por quedar lejos de las muñecas */
-  hand_recovery?: { crop: number; interpolated: number; dropped: number };
+  /** Manos recuperadas: recorte guiado por la pose, huecos rellenados,
+   *  descartadas, y las que puso RTMW (con forma 3D / solo 2D) */
+  hand_recovery?: { crop: number; interpolated: number; dropped: number; rtmw3d?: number; rtmw2d?: number };
 }
 
 /** Rotación de un hueso sobre su pose de enlace, como la aplica AvatarModel */

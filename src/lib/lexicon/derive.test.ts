@@ -9,6 +9,7 @@ import {
   fineLocation,
   notationOf,
   parseLabel,
+  pickHands,
   refineZigzag,
   signingWindow,
   ubAnchor,
@@ -233,5 +234,38 @@ describe("cleanHands", () => {
     const { frames, stats } = cleanHands([cuadro(0, [manoEn(0.6, 0.5)], ["crop"])], 640, 360);
     expect(frames[0].hand_src).toEqual(["crop"]);
     expect(stats.crop).toBe(1);
+  });
+  it("el lado de RTMW gana a la muñeca más cercana (brazos cruzados)", () => {
+    // la mano junto a la muñeca 16 es, según RTMW, la izquierda (15)
+    const f = { ...cuadro(0, [manoEn(0.41, 0.5), manoEn(0.59, 0.5)], ["det", "rtmw"]), hand_side: ["l", "r"] as ("l" | "r")[] };
+    const { frames, stats } = cleanHands([f], 640, 360);
+    expect(frames[0].hand_wrist).toEqual([15, 16]);
+    expect(frames[0].hands[0][0][0]).toBeCloseTo(0.41);
+    expect(frames[0].hand_side).toBeUndefined();
+    expect(stats.rtmw2d).toBe(1);
+  });
+  it("un hueco junto a una mano 2D se rellena como 2D", () => {
+    const seq = [cuadro(0, [manoEn(0.4, 0.5)], ["rtmw"]), cuadro(100, []), cuadro(200, [manoEn(0.4, 0.6)])];
+    expect(cleanHands(seq, 640, 360).frames[1].hand_src).toEqual(["interp2d"]);
+  });
+});
+
+describe("pickHands", () => {
+  const p = pose();
+  it("sin muñecas asignadas, la dominante es la más hacia su lado de la imagen", () => {
+    const f: RawFrame = { t: 0, hands: [[[0.3, 0.5, 0]], [[0.7, 0.5, 0]]], hands_world: [], pose: p };
+    expect(pickHands(f, "left")).toEqual({ dom: 0, other: 1 });
+  });
+  it("con brazos cruzados manda el hombro, no la posición de la mano", () => {
+    // la mano de la muñeca 16 cruzó al lado derecho de la imagen
+    const w16 = p[12][0] < p[11][0] ? "left" : "right";
+    const f: RawFrame = { t: 0, hands: [[[0.3, 0.5, 0]], [[0.7, 0.5, 0]]], hands_world: [], pose: p, hand_wrist: [15, 16] };
+    expect(pickHands(f, w16)).toEqual({ dom: 1, other: 0 });
+  });
+  it("una mano sola del brazo base no se toma por la dominante", () => {
+    const w16 = p[12][0] < p[11][0] ? "left" : "right";
+    const sola = (w: 15 | 16): RawFrame => ({ t: 0, hands: [[[0.5, 0.5, 0]]], hands_world: [], pose: p, hand_wrist: [w] });
+    expect(pickHands(sola(15), w16)).toEqual({ other: 0 });
+    expect(pickHands(sola(16), w16)).toEqual({ dom: 0 });
   });
 });
