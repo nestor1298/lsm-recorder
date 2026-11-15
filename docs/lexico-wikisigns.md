@@ -225,6 +225,15 @@ Afecta también a «Sugerir» en `/anotar`.
   los sinónimos) y filtrar por lengua, una o dos manos, lugar y «solo con
   video». Página estática: el servidor lee `lexicon.jsonl` al construir y
   manda filas ligeras (`src/lib/lexicon/catalog.ts`, `browse.ts`).
+- **`/lexico/panorama`**: el léxico en conjunto (`PanoramaLexico.tsx`,
+  cálculo puro en `src/lib/lexicon/panorama.ts`). Cifras clave; de la fuente
+  a la seña medida; las doce CM más usadas con su mano y una seña de
+  ejemplo; un mapa del cuerpo con un círculo por lugar (área ∝ señas);
+  orientación, contornos con su pictograma, plano y estructura; una o dos
+  manos; cara y cabeza; histogramas de duración y confianza; banderas y
+  manos recuperadas. Estática: se calcula al construir y llega como HTML.
+  Ojo: la confianza media de aquí es la de las señas medidas; la de
+  `stats.json` promedia también las que no tienen video (con 0).
 - **`/lexico/sena?id=wsl-…`**: la ficha de una seña, de lo general a lo
   fino (`FichaSena.tsx` y `src/components/lexico/ficha/`):
   1. **La glosa** y cuatro datos: mano (diestra/zurda), una o dos manos,
