@@ -138,7 +138,15 @@ export default function NavegadorLexico({ rows }: { rows: LexiconRow[] }) {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Léxico de la LSM</h1>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">Léxico de la LSM</h1>
+          <Link
+            href="/lexico/panorama"
+            className="rounded-full border border-gray-200 px-3 py-1 text-sm font-medium text-ink transition hover:border-ink"
+          >
+            Panorama en cifras →
+          </Link>
+        </div>
         <p className="max-w-3xl text-sm text-gray-600">
           {rows.length.toLocaleString("es-MX")} señas del diccionario de{" "}
           <a href="https://www.wikisigns.org/list/es/lsm" className="underline hover:text-accent-deep" target="_blank" rel="noreferrer">

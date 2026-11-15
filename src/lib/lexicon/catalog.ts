@@ -62,3 +62,14 @@ export function lexiconRows(): LexiconRow[] {
     confidence: e.qa.confidence,
   }));
 }
+
+const STATS = path.join(process.cwd(), "data", "wikisigns-lsm", "stats.json");
+
+/** Páginas de Wikisigns que se recorrieron (stats.json), o null si no está */
+export function paginasFuente(): number | null {
+  try {
+    return (JSON.parse(fs.readFileSync(STATS, "utf8")) as { pages?: number }).pages ?? null;
+  } catch {
+    return null;
+  }
+}
