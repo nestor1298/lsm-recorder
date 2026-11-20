@@ -51,7 +51,13 @@ next-env.d.ts
 /data/wikisigns-lsm/_videos/
 /data/wikisigns-lsm/_frames/
 /.venv-lexicon/
+/.venv-voces/
 __pycache__/
 
 # léxico publicado para /lexico (scripts/wikisigns/publish-tracks.mjs)
 /public/lexico/
+
+# corpus VOCES EN SEÑAS: videos, cuadros y caché locales (derechos reservados)
+/data/voces-en-senas/_videos/
+/data/voces-en-senas/_frames/
+/data/voces-en-senas/_cache/
