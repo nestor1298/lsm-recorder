@@ -16,7 +16,8 @@ cuándo y dónde aparece en cada toma, y su rol.
 
 Salida: data/voces-en-senas/_cache/personas/<id>.json (tomas y pistas) y
 data/voces-en-senas/participantes.json (seudónimos, roles, apariciones).
-Uso: .venv-lexicon/bin/python -I scripts/voces/personas.py
+Uso: .venv-lexicon/bin/python -I scripts/voces/personas.py [--roles]
+     (--roles rehace solo roles y condición desde la caché)
 """
 
 import json
@@ -161,6 +162,141 @@ def agrupar(pistas: list[dict]) -> list[int]:
     return [raiz(g) if g >= 0 else -1 for g in grupo]
 
 
+# ── Roles y condición auditiva ─────────────────────────────────
+
+# Roles que el programa usa para varias personas a la vez (no son de una sola)
+ROLES_COMUNES = {"CONDUCTORA", "CONDUCTOR", "INVITADA", "INVITADO", "INVITADAS", "INVITADOS"}
+# Antes de SORDO/OYENTE, estas palabras dicen que no se habla de la persona
+# («COMUNIDAD SORDA», «TEATRO SORDO», «PERSONA SORDOCIEGA», «PADRES SORDOS»)
+NO_PERSONA = {"COMUNIDAD", "TEATRO", "PERSONA", "PERSONAS", "LOS", "LAS", "LA", "EL", "DE", "CULTURA", "MUNDO",
+              "PADRES", "PADRE", "MADRE", "HIJOS", "HIJO", "HIJA", "FAMILIA", "Y"}
+ROL_MIN_S = 4.0       # un rótulo de persona dura ~7 s; menos es ruido del OCR o texto a medio escribir
+
+
+def texto_de_rol(t: str) -> bool:
+    """¿Puede ser un rol? Los rótulos de tema traen «:», comillas o comas (y a veces
+    un nombre: «EL ARTE QUE HABLA: …», «JUAN PABLO, DEPORTISTA…»)."""
+    if any(c in t for c in ':"“”,;0123456789'):
+        return False
+    palabras = t.split()
+    return 0 < len(palabras) <= 8 and all(len(w.strip(".")) >= 1 and w.strip(".").isalpha() for w in palabras)
+
+
+def generalizar(rol: str | None) -> str | None:
+    """Quita el lugar o la empresa del final («… EN TLAJOMULCO», «… EN JABIL»): con
+    el seudónimo, eso bastaría para reconocer a la persona."""
+    if not rol:
+        return rol
+    ws = rol.split()
+    if len(ws) >= 3 and ws[-2] == "EN":
+        ws = ws[:-2]
+    return " ".join(ws)
+
+
+def condicion_de(rol: str | None) -> str | None:
+    """Condición auditiva solo si el rótulo la dice de la persona misma."""
+    if not rol:
+        return None
+    if "INTÉRPRET" in rol or "INTERPRET" in rol:
+        return "intérprete"
+    ws = rol.split()
+    for k, w in enumerate(ws):
+        previa = ws[k - 1] if k else ""
+        if previa in NO_PERSONA:
+            continue
+        if w.startswith("SORD"):
+            return "sorda"
+        if w.startswith("OYENTE"):
+            return "oyente"
+    return None
+
+
+def poner_roles(eps: list[dict], participantes: dict) -> None:
+    """Rol por episodio: el rótulo en pantalla mientras la persona sale sola en cuadro.
+
+    - el rótulo se escribe letra por letra: un texto cuenta para el más largo que
+      empieza igual;
+    - se descartan textos que no parecen rol (`texto_de_rol`) o que duran poco;
+    - en tomas de dos o abiertas, un rótulo propio (no CONDUCTORA, INVITADO…)
+      cuenta solo para quien no es fija del programa;
+    - un rótulo que sale sobre dos o más personas del episodio es de tema, no de
+      persona (salvo CONDUCTORA, INVITADO…);
+    - se quita el lugar o la empresa del final (`generalizar`);
+    - quien sale en 3 episodios o más lleva su rol más común en todos (las
+      conductoras no cambian de rol aunque un episodio no tenga su rótulo)."""
+    fijas = {pid for pid, q in participantes.items() if len(q["episodios"]) >= 3}
+    for e in eps:
+        vid = e["youtube_id"]
+        sub = os.path.join(CACHE, "subtitulos", vid + ".json")
+        rotulos = json.load(open(sub, encoding="utf-8"))["rotulos"] if os.path.exists(sub) else []
+        textos = [r["rol"] for r in rotulos]
+        completo = {t: max((o for o in textos if o.startswith(t)), key=len) for t in textos}
+        dura = {}
+        for r in rotulos:
+            dura[completo[r["rol"]]] = dura.get(completo[r["rol"]], 0) + r["t1"] - r["t0"]
+        votos = {}            # persona → texto → segundos
+        for r in rotulos:
+            t = completo[r["rol"]]
+            if not texto_de_rol(t) or dura[t] < ROL_MIN_S:
+                continue
+            for p in e["pistas"]:
+                if not p.get("persona"):
+                    continue
+                solapa = min(r["t1"], p["t1"]) - max(r["t0"], p["t0"])
+                # cuando sale sola; en tomas de dos se cuela el rótulo de la otra, así que
+                # ahí solo cuenta para quien no es fija del programa (la invitada)
+                sola = e["tomas"][p["toma"]]["tipo"] == "primer_plano"
+                if solapa > 1.0 and (sola or (t not in ROLES_COMUNES and p["persona"] not in fijas)):
+                    votos.setdefault(p["persona"], {}).setdefault(t, 0)
+                    votos[p["persona"]][t] += solapa
+        quienes = {}
+        for pid, vs in votos.items():
+            for t in vs:
+                quienes.setdefault(t, set()).add(pid)
+        for pid, vs in votos.items():
+            vs = {t: v for t, v in vs.items() if t in ROLES_COMUNES or len(quienes[t]) == 1}
+            if pid in participantes and vid in participantes[pid]["episodios"]:
+                participantes[pid]["episodios"][vid]["rol"] = generalizar(max(vs, key=vs.get)) if vs else None
+    for q in participantes.values():
+        roles = [ep["rol"] for ep in q["episodios"].values() if ep["rol"]]
+        q["rol"] = max(set(roles), key=roles.count) if roles else None
+        if len(q["episodios"]) >= 3 and q["rol"]:
+            for ep in q["episodios"].values():
+                ep["rol"] = q["rol"]
+        q["condicion"] = condicion_de(q["rol"])
+        q["condicion_fuente"] = "rótulo del programa" if q["condicion"] else None
+
+
+def guardar(eps: list[dict], participantes: dict) -> None:
+    for e in eps:
+        for p in e["pistas"]:
+            p.pop("vector", None)       # los vectores no salen de la memoria
+        with open(os.path.join(CACHE, "personas", e["youtube_id"] + ".json"), "w", encoding="utf-8") as f:
+            json.dump(e, f, ensure_ascii=False)
+    out = sorted(participantes.values(), key=lambda q: q["id"])
+    with open(os.path.join(DATA, "participantes.json"), "w", encoding="utf-8") as f:
+        json.dump({"nota": "Seudónimos asignados por parecido de cara, calculado en el equipo; no se guardan rostros, "
+                           "nombres ni vectores. El rol sale de los rótulos del programa.",
+                   "participantes": out}, f, ensure_ascii=False, indent=1)
+    for q in out:
+        print(q["id"], q["seudonimo"], q["rol"], q["condicion"], f"{q['en_pantalla_s'] / 60:.1f} min",
+              f"{len(q['episodios'])} episodios", {k: v["rol"] for k, v in q["episodios"].items()})
+
+
+def solo_roles() -> None:
+    """Rehace roles y condición desde la caché (sin volver a ver las caras)."""
+    eps = []
+    for f in sorted(os.listdir(os.path.join(CACHE, "personas"))):
+        if f.endswith(".json") and "." not in f[:-5]:
+            eps.append(json.load(open(os.path.join(CACHE, "personas", f), encoding="utf-8")))
+    participantes = {q["id"]: q for q in json.load(open(os.path.join(DATA, "participantes.json"), encoding="utf-8"))["participantes"]}
+    for q in participantes.values():
+        for ep in q["episodios"].values():
+            ep["rol"] = None
+    poner_roles(eps, participantes)
+    guardar(eps, participantes)
+
+
 def main() -> None:
     os.makedirs(os.path.join(CACHE, "personas"), exist_ok=True)
     eps_meta = json.load(open(os.path.join(DATA, "episodes.json"), encoding="utf-8"))["episodes"]
@@ -193,23 +329,6 @@ def main() -> None:
             primera[g] = (fecha.get(e["youtube_id"], ""), p["t0"])
     nombre = {g: (f"P{k + 1:02d}", SEUDONIMOS[k % len(SEUDONIMOS)]) for k, g in enumerate(sorted(validos, key=lambda g: primera[g]))}
 
-    # roles: rótulo en pantalla mientras la persona sale sola en cuadro
-    votos = {}
-    for e in eps:
-        sub = os.path.join(CACHE, "subtitulos", e["youtube_id"] + ".json")
-        rotulos = json.load(open(sub, encoding="utf-8"))["rotulos"] if os.path.exists(sub) else []
-        for r in rotulos:
-            for (e2, p), g in zip(todas, grupos):
-                if e2 is not e or g not in nombre:
-                    continue
-                tm = e["tomas"][p["toma"]]
-                solapa = min(r["t1"], p["t1"]) - max(r["t0"], p["t0"])
-                # solo cuando sale sola: en tomas de dos se cuela el rótulo de la otra
-                if solapa > 1.0 and tm["tipo"] == "primer_plano":
-                    clave = (g, e["youtube_id"])
-                    votos.setdefault(clave, {}).setdefault(r["rol"], 0)
-                    votos[clave][r["rol"]] += solapa
-
     participantes = {}
     for (e, p), g in zip(todas, grupos):
         if g not in nombre:
@@ -221,39 +340,12 @@ def main() -> None:
         q["en_pantalla_s"] += p["t1"] - p["t0"]
         ep = q["episodios"].setdefault(e["youtube_id"], {"en_pantalla_s": 0.0, "rol": None})
         ep["en_pantalla_s"] = round(ep["en_pantalla_s"] + p["t1"] - p["t0"], 1)
-    for (g, vid), vs in votos.items():
-        # el rótulo se escribe letra por letra: «ACTOR PROFESIONAL DE TEA…» cuenta
-        # para el texto completo más largo que empieza igual
-        juntos = {}
-        for k, v in vs.items():
-            largo = max((o for o in vs if o.startswith(k)), key=len)
-            juntos[largo] = juntos.get(largo, 0) + v
-        pid = nombre[g][0]
-        participantes[pid]["episodios"][vid]["rol"] = max(juntos, key=juntos.get)
     for q in participantes.values():
         q["en_pantalla_s"] = round(q["en_pantalla_s"], 1)
-        roles = [ep["rol"] for ep in q["episodios"].values() if ep["rol"]]
-        q["rol"] = max(set(roles), key=roles.count) if roles else None
-        # condición auditiva, solo si el rótulo del programa la dice
-        texto = " ".join(roles)
-        q["condicion"] = ("sorda" if "SORD" in texto else "intérprete" if "INTÉRPRET" in texto or "INTERPRET" in texto
-                          else "oyente" if "OYENTE" in texto else None)
-        q["condicion_fuente"] = "rótulo del programa" if q["condicion"] else None
+    poner_roles(eps, participantes)
 
-    for e in eps:
-        for p in e["pistas"]:
-            p.pop("vector", None)       # los vectores no salen de la memoria
-        with open(os.path.join(CACHE, "personas", e["youtube_id"] + ".json"), "w", encoding="utf-8") as f:
-            json.dump(e, f, ensure_ascii=False)
-    out = sorted(participantes.values(), key=lambda q: q["id"])
-    with open(os.path.join(DATA, "participantes.json"), "w", encoding="utf-8") as f:
-        json.dump({"nota": "Seudónimos asignados por parecido de cara, calculado en el equipo; no se guardan rostros, "
-                           "nombres ni vectores. El rol sale de los rótulos del programa.",
-                   "participantes": out}, f, ensure_ascii=False, indent=1)
-    for q in out:
-        print(q["id"], q["seudonimo"], q["rol"], f"{q['en_pantalla_s'] / 60:.1f} min", f"{len(q['episodios'])} episodios",
-              {k: v["rol"] for k, v in q["episodios"].items()})
+    guardar(eps, participantes)
 
 
 if __name__ == "__main__":
-    main()
+    solo_roles() if "--roles" in sys.argv else main()

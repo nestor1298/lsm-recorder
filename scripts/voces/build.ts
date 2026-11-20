@@ -34,6 +34,7 @@ import {
   type OracionOCR,
   type Tarjeta,
 } from "@/lib/corpus/voces";
+import { anonimizarTarjetas, sinLogo, vocabularioComun } from "@/lib/corpus/anonimizar";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 const DATA = path.join(ROOT, "data", "voces-en-senas");
@@ -94,6 +95,13 @@ const ids = fs
   .filter((f) => f.endsWith(".json"))
   .map((f) => f.slice(0, -5));
 
+// palabras que los subtítulos usan en minúscula: lo demás con mayúscula a
+// media oración puede ser un nombre y se tapa (anonimizar.ts)
+const comun = vocabularioComun(
+  ids.flatMap((vid) => leer<{ oraciones: OracionOCR[] }>(path.join(CACHE, "subtitulos", vid + ".json")).oraciones.map((o) => o.texto)),
+);
+let nombresTapados = 0;
+
 // acumulados por persona para caracterizarla
 interface Acum {
   ladoVotos: Record<string, number>;
@@ -128,6 +136,16 @@ for (const vid of ids) {
   const fr = leer<FramesVoces>(path.join(FRAMES, vid + ".json"));
   const sub = leer<{ tarjetas: Tarjeta[]; oraciones: OracionOCR[] }>(path.join(CACHE, "subtitulos", vid + ".json"));
   const per = leer<{ tomas: Toma[]; pistas: Pista[] }>(path.join(CACHE, "personas", vid + ".json"));
+  // sin logo y sin nombres, mirando cada oración entera (un nombre puede quedar
+  // partido entre dos tarjetas)
+  let k = 0;
+  for (const o of sub.oraciones) {
+    const cs = sub.tarjetas.slice(k, k + o.tarjetas);
+    k += o.tarjetas;
+    const limpias = anonimizarTarjetas(cs.map((c) => sinLogo(c.texto)), comun);
+    cs.forEach((c, j) => (c.texto = limpias[j]));
+    o.texto = limpias.join(" ").replace(/\s+/g, " ").trim();
+  }
   const W = fr.video.width;
   const H = fr.video.height;
   const series = seriesPorPersona(fr, (c) => (c.pista !== null && per.pistas[c.pista] ? per.pistas[c.pista].persona : c.persona));
@@ -142,10 +160,12 @@ for (const vid of ids) {
   enunciados.forEach((u, n) => {
     stats.enunciados++;
     const persona = u.persona ? porId.get(u.persona) : undefined;
+    const texto = u.texto;
+    nombresTapados += (texto.match(/\[NOMBRE\]/g) ?? []).length;
     const reg: Record<string, unknown> = {
       id: `VES-${vid}-${String(n + 1).padStart(4, "0")}`,
       episodio: vid,
-      oracion: { texto: u.texto, t0: r2(u.t0), t1: r2(u.t1) },
+      oracion: { texto, t0: r2(u.t0), t1: r2(u.t1) },
       senante: persona ? { id: persona.id, seudonimo: persona.seudonimo, rol: persona.episodios[vid]?.rol ?? persona.rol } : null,
       sena: u.sena ? { t0: r2(u.sena.t0), t1: r2(u.sena.t1), desfase_s: desfase } : null,
       senas: [],
@@ -157,7 +177,7 @@ for (const vid of ids) {
       const ventana = serie.filter((f) => f.t / 1000 >= u.sena!.t0 && f.t / 1000 <= u.sena!.t1);
       const side = lado.get(u.persona) ?? "left";
       const tramos = segmentar(ventana, side, W, H);
-      const raices = raicesDe(u.texto);
+      const raices = raicesDe(texto.replace(/\[NOMBRE\]/g, " "));
       const a = acum.get(u.persona) ?? nuevo();
       acum.set(u.persona, a);
       a.enunciados++;
@@ -170,7 +190,7 @@ for (const vid of ids) {
       reg.toma_primer_plano = r2(pp / Math.max(0.01, u.sena.t1 - u.sena.t0));
       const senas = tramos.map((tr, i) => {
         const frames: RawFrame[] = ventana.slice(Math.max(0, tr.i0 - 1), tr.i1 + 2);
-        const fon = fonologia(frames, side);
+        const fon = fonologia(frames, side, W / H);
         const cands = candidatos(fon, lexico, raices);
         const glosa = glosaDe(cands);
         stats.senas++;
@@ -276,6 +296,6 @@ fs.writeFileSync(path.join(SALIDA, "corpus.jsonl"), lineas.join("\n") + "\n");
 fs.writeFileSync(path.join(SALIDA, "participantes.json"), JSON.stringify(part, null, 1) + "\n");
 fs.writeFileSync(
   path.join(SALIDA, "stats.json"),
-  JSON.stringify({ generado: new Date().toISOString(), schema: "lsm-corpus/1.0", lexico_senas: lexico.length, ...stats }, null, 1) + "\n",
+  JSON.stringify({ generado: new Date().toISOString(), schema: "lsm-corpus/1.0", lexico_senas: lexico.length, ...stats, nombres_tapados: nombresTapados }, null, 1) + "\n",
 );
 console.log(JSON.stringify(stats, null, 1));

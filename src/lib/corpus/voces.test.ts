@@ -6,12 +6,15 @@ import {
   candidatos,
   descriptor,
   estimarDesfase,
+  fonologia,
   glosaDe,
   juntarRepetidas,
   mediaEn,
   raicesDe,
   segmentar,
+  seriesPorPersona,
   type Actividad,
+  type FramesVoces,
   type FonologiaSena,
   type LexRef,
 } from "./voces";
@@ -46,6 +49,23 @@ describe("actividad", () => {
   it("una mano bajo la cadera está en reposo", () => {
     const s = serie(10, 0.05).map((f) => ({ ...f, hands: [mano(0.4, 0.9)] }));
     expect(Math.max(...actividad(s, W, H).a)).toBe(0);
+  });
+});
+
+describe("seriesPorPersona", () => {
+  it("un solo cuerpo por persona y cuadro (sin tiempos repetidos ni NaN)", () => {
+    const cuerpo = (x: number, manos: number) => ({
+      pista: 0, persona: "P01", pose: pose(), pose_world: [], hand_wrist: manos ? [16] : [], hand_src: manos ? ["crop"] : [],
+      hands: manos ? [mano(x, 0.5)] : [], hands_world: manos ? [mano(0, 0)] : [],
+    });
+    const fr: FramesVoces = {
+      youtube_id: "x", video: { width: W, height: H, fps: 30 },
+      frames: Array.from({ length: 12 }, (_, i) => ({ t: i * 83, toma: 0, gente: [cuerpo(0.4 + 0.02 * i, 1), cuerpo(0.5, 0)] })),
+    };
+    const s = seriesPorPersona(fr, (c) => c.persona).get("P01")!;
+    expect(s).toHaveLength(12);
+    expect(s.every((f) => f.hands.length === 1)).toBe(true);
+    expect(actividad(s, W, H).a.every(Number.isFinite)).toBe(true);
   });
 });
 
@@ -105,5 +125,28 @@ describe("transliteración", () => {
   });
   it("las repeticiones se juntan con +", () => {
     expect(juntarRepetidas(["PROFESOR", "PROFESOR", "[CM3·EN·arc]", "[CM3·EN·arc]", "SÍ"])).toEqual(["PROFESOR+", "[CM3·EN·arc]", "[CM3·EN·arc]", "SÍ"]);
+  });
+});
+
+describe("fonologia: la otra mano", () => {
+  // mano con forma (no un punto): dedos abiertos hacia arriba
+  const manoAbierta = (x: number, y: number): V3[] =>
+    Array.from({ length: 21 }, (_, k) => [x + ((k % 5) - 2) * 0.006, y - Math.floor(k / 5) * 0.012, 0] as V3);
+  const sena = (yOtra: number, xOtra = 0.62): RawFrame[] =>
+    Array.from({ length: 10 }, (_, i) => ({
+      t: i * 83,
+      hands: [manoAbierta(xOtra, yOtra), manoAbierta(0.38 + 0.01 * i, 0.5)],
+      hands_world: [manoAbierta(0, 0), manoAbierta(0, 0)],
+      hand_src: ["crop", "crop"],
+      hand_wrist: [15, 16],
+      pose: pose(),
+    }));
+  it("en el regazo o el vientre no cuenta; frente al pecho o de base sí", () => {
+    // hombros en y = 0.4, ancho 0.2 (= 0.356 en y): regazo a 1.2 anchos, pecho a 0.3
+    const regazo = fonologia(sena(0.4 + 1.2 * 0.356), "left");
+    expect(regazo.dos_manos).toBe(false);
+    expect(fonologia(sena(0.4 + 0.6 * 0.356), "left").dos_manos).toBe(false); // frente al vientre
+    expect(fonologia(sena(0.5), "left").dos_manos).toBe(true); // frente al pecho
+    expect(fonologia(sena(0.4 + 0.5 * 0.356, 0.425), "left").dos_manos).toBe(true); // baja, pero de base
   });
 });

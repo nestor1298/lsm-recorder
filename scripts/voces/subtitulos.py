@@ -12,6 +12,7 @@ nombre se descarta y nunca se guarda.
 
 Salida: data/voces-en-senas/_cache/subtitulos/<id>.json
 Uso: .venv-voces/bin/python -I scripts/voces/subtitulos.py [--force] [ids...]
+     --temas: solo quita de la caché los rótulos de tema (sin rehacer el OCR)
 """
 
 import json
@@ -116,7 +117,9 @@ def leer(img):
     # rótulo: arriba el nombre (se tira) y abajo lo que hace la persona
     # («CONDUCTORA», «INVITADO», «ACTOR DE TEATRO»…)
     rol = None
-    if len(rotulo) >= 2:
+    if any("HABLANDO" in r[1] for r in rotulo):
+        rol = None                # «ESTAMOS HABLANDO DE… / tema»: rótulo de tema, no de persona
+    elif len(rotulo) >= 2:
         rol = min(rotulo)[1]
     elif rotulo and rotulo[0][1] in ROLES:
         rol = rotulo[0][1]
@@ -194,12 +197,37 @@ def procesar(vid: str) -> dict:
             "tarjetas": tarjetas, "oraciones": ors, "rotulos": rotulos}
 
 
+def quitar_temas(vid: str) -> int:
+    """Quita de la caché los rótulos de tema («ESTAMOS HABLANDO DE… / tema»), que
+    traen a veces nombres de personas. Relee solo un cuadro por rótulo."""
+    dst = os.path.join(OUT, vid + ".json")
+    d = json.load(open(dst, encoding="utf-8"))
+    cap = cv2.VideoCapture(os.path.join(VIDEOS, vid + ".mp4"))
+    quedan = []
+    for r in d["rotulos"]:
+        cap.set(cv2.CAP_PROP_POS_MSEC, (r["t0"] + r["t1"]) / 2 * 1000)
+        ok, img = cap.read()
+        if ok and any("HABLANDO" in t.upper() and y + bh < 0.2 for t, _, (x, y, bw, bh) in ocr(img)):
+            continue
+        quedan.append(r)
+    cap.release()
+    n = len(d["rotulos"]) - len(quedan)
+    d["rotulos"] = quedan
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+    return n
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     args = sys.argv[1:]
     force = "--force" in args
     ids = [a for a in args if not a.startswith("--")] or sorted(
         f[:-4] for f in os.listdir(VIDEOS) if f.endswith(".mp4") and "." not in f[:-4])
+    if "--temas" in args:
+        for vid in ids:
+            print(vid, "rótulos de tema quitados:", quitar_temas(vid), flush=True)
+        return
     for vid in ids:
         dst = os.path.join(OUT, vid + ".json")
         if os.path.exists(dst) and not force:

@@ -88,10 +88,19 @@ export function seriesPorPersona(
   personaDe: (c: CuerpoVoces) => string | null,
 ): Map<string, RawFrame[]> {
   const crudo = new Map<string, RawFrame[]>();
+  const hombros = (g: CuerpoVoces) => Math.hypot(g.pose[11][0] - g.pose[12][0], g.pose[11][1] - g.pose[12][1]);
   for (const c of fr.frames) {
+    // una persona, un cuerpo por cuadro: a veces la pose ve dos cuerpos en la
+    // misma cara (un reflejo, un monitor); se queda el de más manos y más grande
+    const porPersona = new Map<string, CuerpoVoces>();
     for (const g of c.gente) {
       const p = personaDe(g);
       if (!p) continue;
+      const otro = porPersona.get(p);
+      if (!otro || g.hands.length > otro.hands.length || (g.hands.length === otro.hands.length && hombros(g) > hombros(otro)))
+        porPersona.set(p, g);
+    }
+    for (const [p, g] of porPersona) {
       const f: RawFrame = {
         t: c.t,
         hands: g.hands,
@@ -151,7 +160,7 @@ export function actividad(serie: RawFrame[], W: number, H: number): Actividad {
   const t = serie.map((f) => f.t);
   const cruda = serie.map((f, i) => {
     const prev = serie[i - 1];
-    if (!prev || f.t - prev.t > HUECO_MS || !f.pose) return 0;
+    if (!prev || f.t <= prev.t || f.t - prev.t > HUECO_MS || !f.pose) return 0;
     const sw = anchoHombros(f, W, H);
     if (sw < 5) return 0;
     const cadera = ((f.pose[23][1] + f.pose[24][1]) / 2) * H;
@@ -198,6 +207,7 @@ export const SENA_MIN = 0.45;
  */
 export function estimarDesfase(oraciones: { t0: number; t1: number }[], acts: Actividad[]): number {
   let mejor = { L: 0, total: -1 };
+  let enCero = 0;
   for (let L = -3; L <= 3.001; L += 0.25) {
     let total = 0;
     for (const o of oraciones) {
@@ -206,10 +216,16 @@ export function estimarDesfase(oraciones: { t0: number; t1: number }[], acts: Ac
         return m.media * m.cobertura;
       }));
     }
+    if (Math.abs(L) < 1e-6) enCero = total;
     if (total > mejor.total + 1e-9) mejor = { L: Math.round(L * 100) / 100, total };
   }
-  return mejor.L;
+  // en una plática casi siempre alguien seña y la curva sale casi plana: solo se
+  // corre el subtítulo si eso junta claramente más señado que dejarlo donde está
+  return mejor.total >= enCero * DESFASE_GANANCIA ? mejor.L : 0;
 }
+
+/** Cuánto más señado (×) debe juntar un desfase que el 0 para aplicarlo */
+export const DESFASE_GANANCIA = 1.05;
 
 export interface Enunciado {
   t0: number;
@@ -336,7 +352,13 @@ export interface FonologiaSena {
  * La fonología de una seña con aggregate() del léxico. La CM y la OR solo
  * con manos que tienen profundidad, como en el léxico.
  */
-export function fonologia(frames: RawFrame[], side: "left" | "right"): FonologiaSena {
+/** Hasta cuántos anchos de hombro bajo los hombros la otra mano está «arriba» */
+export const OTRA_MANO_ALTO = 0.45;
+/** A menos de esto (anchos de hombro) de la dominante, la otra mano hace de base */
+export const OTRA_MANO_CERCA = 0.3;
+
+/** `aspecto`: ancho / alto del video (los puntos vienen normalizados a cada eje) */
+export function fonologia(frames: RawFrame[], side: "left" | "right", aspecto = 16 / 9): FonologiaSena {
   const picks = frames.map((f) => pickHands(f, side));
   const phon: PhonFrame[] = frames.map((f, i) => ({
     timestampMs: f.t,
@@ -360,23 +382,29 @@ export function fonologia(frames: RawFrame[], side: "left" | "right"): Fonologia
     if (z) contorno = z.contour;
     else if (traj.length < 10) contorno = null;
   }
-  // la otra mano cuenta si participa: se mueve o sube al espacio de señado.
-  // Sentados, la mano en reposo sobre el regazo queda arriba de la cadera.
+  // la otra mano cuenta si participa: sube al espacio de señado o sirve de base
+  // pegada a la dominante. Sentados, la mano que descansa queda frente al
+  // vientre o en el regazo (≥ 0.45 anchos de hombro bajo los hombros); la que
+  // seña, más arriba. El recorrido no sirve: el temblor del detector lo infla.
+  // (Umbrales vistos a ojo en primeros planos; ver docs/corpus-voces-en-senas.md.)
   let participa = false;
   if (s.nondominant_relation) {
-    const nd = phon.map((p) => (p.otherHand && p.pose ? { h: p.otherHand, pose: p.pose } : null)).filter(Boolean) as { h: Pt[]; pose: Pt[] }[];
+    const nd = phon
+      .map((p) => (p.otherHand && p.hand && p.pose ? { h: p.otherHand, d: p.hand, pose: p.pose } : null))
+      .filter(Boolean) as { h: Pt[]; d: Pt[]; pose: Pt[] }[];
     if (nd.length >= 2) {
-      const c = nd.map(({ h }) => ({ x: h.reduce((a, q) => a + q.x, 0) / h.length, y: h.reduce((a, q) => a + q.y, 0) / h.length }));
-      const sw = Math.abs(nd[0].pose[11].x - nd[0].pose[12].x) || 1;
-      let camino = 0;
-      for (let i = 1; i < c.length; i++) camino += Math.hypot(c[i].x - c[i - 1].x, c[i].y - c[i - 1].y);
-      // «cintura»: a 55 % del camino de los hombros a la cadera
-      const alto = nd.filter(({ pose }, i) => {
-        const hombro = (pose[11].y + pose[12].y) / 2;
-        const cadera = (pose[23].y + pose[24].y) / 2;
-        return c[i].y < hombro + 0.55 * (cadera - hombro);
-      }).length;
-      participa = camino / sw > 0.3 || alto / nd.length > 0.5;
+      const centro = (h: Pt[]) => ({ x: h.reduce((a, q) => a + q.x, 0) / h.length, y: h.reduce((a, q) => a + q.y, 0) / h.length });
+      const hombros = (pose: Pt[]) => Math.hypot(pose[11].x - pose[12].x, (pose[11].y - pose[12].y) / aspecto);
+      const alto =
+        nd.filter(({ h, pose }) => (centro(h).y - (pose[11].y + pose[12].y) / 2) / aspecto < OTRA_MANO_ALTO * hombros(pose)).length /
+        nd.length;
+      const cerca =
+        nd.filter(({ h, d, pose }) => {
+          const a = centro(h);
+          const k = centro(d);
+          return Math.hypot(k.x - a.x, (k.y - a.y) / aspecto) < OTRA_MANO_CERCA * hombros(pose);
+        }).length / nd.length;
+      participa = alto > 0.5 || cerca > 0.5;
     }
   }
   const plana = frames.filter((f, i) => picks[i].dom !== undefined && isFlatHand(f.hand_src?.[picks[i].dom!])).length;
@@ -414,7 +442,9 @@ export function normaliza(s: string): string {
 export const raiz = (w: string) => normaliza(w).slice(0, Math.max(4, Math.min(6, normaliza(w).length - 2)));
 
 const PALABRAS_VACIAS = new Set(
-  "a al con de del el en es la las lo los me mi no o para pero por que se si su te tu un una y ya yo".split(" "),
+  ("a al con de del el en es la las lo los me mi no o para pero por que se si su te tu un una y ya yo " +
+    "sin mas muy como este esta esto eso esa ese son hay fue era entre sobre hasta desde nos les ni porque pues asi tan sus mis")
+    .split(" "),
 );
 
 export interface Candidato {
@@ -466,7 +496,10 @@ export function raicesDe(texto: string): Set<string> {
 export function candidatos(f: FonologiaSena, lexico: LexRef[], raices: Set<string>, n = 3): Candidato[] {
   const cmPuntaje = new Map(f.cm.map((c) => [c.id, c.puntaje]));
   const out = lexico.map((e) => {
-    const palabras = [e.gloss, e.spanish, ...e.synonyms].flatMap((w) => normaliza(w).split(" ")).filter((w) => w.length > 2);
+    // palabras vacías fuera también de la glosa: «SIN-VERGÜENZA» no es «sin embargo»
+    const palabras = [e.gloss, e.spanish, ...e.synonyms]
+      .flatMap((w) => normaliza(w).split(" "))
+      .filter((w) => w.length > 2 && !PALABRAS_VACIAS.has(w));
     const enOracion = palabras.some((w) => raices.has(raiz(w)));
     const s =
       PESOS.cm * (e.cm !== null ? (cmPuntaje.get(e.cm) ?? 0) : 0) +

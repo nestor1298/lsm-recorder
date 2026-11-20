@@ -36,7 +36,19 @@ Cada **enunciado** une:
 - Los títulos de los episodios traen nombres reales de las personas
   invitadas: el índice (`episodes.json`) no los copia.
 - Los rótulos del programa («NOMBRE / CONDUCTORA») dan el **rol**; el
-  nombre se descarta al leerlo.
+  nombre se descarta al leerlo. Los rótulos de tema («ESTAMOS HABLANDO
+  DE… / tema», que a veces nombran a la persona invitada) no cuentan como
+  rol, y al rol se le quita el lugar o la empresa del final («… EN
+  TLAJOMULCO»): con el seudónimo, eso bastaría para reconocerla.
+- **Nombres en los subtítulos.** El programa presenta a sus invitadas por
+  nombre («Su nombre es … y esta es su seña»). En `oracion.texto` cada
+  nombre de persona se cambia por `[NOMBRE]` (`src/lib/corpus/anonimizar.ts`):
+  nombres de pila y apellidos frecuentes, lo que sigue a «me llamo / su
+  nombre es», vocativos al inicio («Omar, …») y cualquier palabra con
+  mayúscula a media oración que no sea un lugar o institución conocidos.
+  Se prefiere tapar de más (a veces cae un lugar poco común). La oración se
+  revisa entera, así que un nombre partido entre dos tarjetas también se
+  tapa.
 - De la cara se guardan solo los **gestos** (52 blendshapes) y el ángulo de
   la cabeza, nunca la malla de puntos.
 - La caracterización de cada persona es **lingüística** (mano dominante,
@@ -105,6 +117,7 @@ Cada **enunciado** une:
 python3 -I scripts/voces/fetch.py                           # índice y videos (1080p + audio)
 .venv-voces/bin/python -I scripts/voces/subtitulos.py       # subtítulos y rótulos (OCR de Apple Vision)
 .venv-lexicon/bin/python -I scripts/voces/personas.py       # tomas, caras y seudónimos
+# (--temas en subtitulos.py y --roles en personas.py rehacen solo esa parte desde la caché)
 .venv-lexicon/bin/python -I scripts/voces/extraer.py --shard 0/3   # pose, manos y gestos (×3 en paralelo)
 node scripts/voces/run-build.mjs                            # corpus.jsonl, participantes, stats
 ```
@@ -128,7 +141,11 @@ Entornos: `.venv-voces` (Python 3.12: `ocrmac`, `opencv-python-headless`,
    solapamiento dentro de cada toma, y grupos por parecido de cara en todo el
    corpus (coseno > 0.40; grupos con menos de 20 s en pantalla se
    descartan). El rol es la línea de abajo del rótulo que estaba en pantalla
-   cuando la persona salía **sola** en cuadro.
+   cuando la persona salía **sola** en cuadro (en tomas de dos, el rótulo
+   propio cuenta solo para la invitada). Quien sale en 3 episodios o más
+   lleva su rol más común en todos. La condición auditiva se anota solo si
+   el rótulo la dice de la persona misma: «MAESTRA SORDA» sí, «HISTORIADOR
+   DE LA COMUNIDAD SORDA» o «TEATRO SORDO» no; «INTÉRPRETE» manda.
 3. **Pose y manos** (`extraer.py`). MediaPipe a 12 cuadros/s: hasta 3
    cuerpos, 3 caras y, por cada muñeca levantada, la mano en un recorte
    ampliado (en tomas abiertas la mano mide ~70 px). Cada cuerpo se liga a
@@ -136,21 +153,47 @@ Entornos: `.venv-voces` (Python 3.12: `ocrmac`, `opencv-python-headless`,
 4. **Corpus** (`build.ts`, funciones puras en `src/lib/corpus/voces.ts`):
    - actividad de señado por persona (velocidad de las manos levantadas);
    - **desfase** del episodio: el corrimiento (−3 a +3 s) que más
-     actividad junta dentro de las oraciones;
+     actividad junta dentro de las oraciones, solo si junta al menos 5 % más
+     que dejarlo en 0. En una plática casi siempre alguien seña y la curva
+     sale casi plana: en los 18 episodios quedó en 0;
    - cada tarjeta del subtítulo va a quien más seña en su tramo; si cambia
      de persona dentro de una oración, la oración se parte;
    - **señas**: cortes en los mínimos de velocidad de la mano dominante;
    - **fonología** con `aggregate()` del léxico (CM y OR solo con manos con
-     profundidad; el zigzag se refina como en el léxico; la otra mano cuenta
-     solo si se mueve o sube al espacio de señado);
-   - **glosas** contra las 1,595 señas de LSM medidas del léxico.
+     profundidad; el zigzag se refina como en el léxico). La otra mano cuenta
+     (`dos_manos`) si está arriba —a menos de 0.45 anchos de hombro bajo los
+     hombros— en la mitad del tramo o más, o pegada a la dominante (a menos
+     de 0.3) como base. Sentados, la mano que descansa queda frente al
+     vientre o en el regazo. Umbrales vistos a ojo en tres muestras de 12
+     señas en primer plano; en la última, 10–11 de 12 bien (falla con manos
+     entrelazadas en reposo);
+   - **glosas** contra las señas de LSM medidas del léxico; las palabras
+     vacías no cuentan ni en la oración ni en la glosa («SIN-VERGÜENZA» no
+     es «sin embargo»).
+
+### Números (versión 1.0)
+
+| | |
+|---|---|
+| Episodios | 18 (≈ 7 h 23 min) |
+| Oraciones del subtítulo | 2,805 |
+| Enunciados (oraciones partidas por quien seña) | 3,176 |
+| … con señante | 3,137 |
+| Señas segmentadas | 14,826 |
+| … con glosa | 5,065 (todas apoyadas en una palabra de la oración) |
+| Personas con seudónimo | 20 (2 conductoras en los 18 episodios; 1 invitada por episodio) |
+| Nombres tapados en el texto | ver `stats.json` |
 
 ## Lo que falta validar
 
 - Glosas y corte en señas: revisión por personas Sordas.
-- El desfase es uno por episodio; si quien interpreta cambia de ritmo, el
-  tramo puede correrse.
+- El desfase es uno por episodio y salió 0 en todos (no hubo señal clara);
+  si la voz va detrás de las manos, el tramo señado puede quedar corrido.
+- `dos_manos` todavía sobrestima un poco (manos entrelazadas en reposo).
+- El OCR deja algo de basura en unas pocas oraciones (texto del set, el
+  logo del programa).
 - Las tomas abiertas dan manos pequeñas: la CM es menos fiable ahí
   (`toma_primer_plano` lo indica).
 - Los seudónimos dependen del parecido de cara: conviene revisar que cada
-  grupo sea una sola persona (se hizo a ojo en los primeros 6 episodios).
+  grupo sea una sola persona (se hizo a ojo en los primeros 6 episodios; con
+  los 18, las dos conductoras salen en todos y cada invitada en el suyo).
