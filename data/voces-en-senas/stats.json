@@ -1,0 +1,33 @@
+{
+ "generado": "2026-11-20T12:05:56.236Z",
+ "schema": "lsm-corpus/1.0",
+ "lexico_senas": 1611,
+ "episodios": 18,
+ "oraciones": 2805,
+ "enunciados": 3176,
+ "con_senante": 3137,
+ "senas": 14826,
+ "con_glosa": 5065,
+ "glosa_en_oracion": 5065,
+ "desfases": {
+  "1rdZ7DUF-gg": 0,
+  "3PCo6u8ty78": 0,
+  "3zC6rwinwUI": 0,
+  "BiyZfPowQBE": 0,
+  "HEXUZOYAVk8": 0,
+  "KSS0Qks5VnE": 0,
+  "LlJDhA8dg6k": 0,
+  "TyxmWUC3q-Q": 0,
+  "ZFYLCxfr-WU": 0,
+  "ZJAKkeh8KI0": 0,
+  "_zymVDlBtQs": 0,
+  "bl9uutZWYi0": 0,
+  "eBAfUNPAglI": 0,
+  "hciNCU5DsKo": 0,
+  "l6x9M76fCoY": 0,
+  "tVnbX4Ongw8": 0,
+  "wfU9z8ioGtU": 0,
+  "wqqMPIaT1yo": 0
+ },
+ "nombres_tapados": 406
+}

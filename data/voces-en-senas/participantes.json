@@ -1,0 +1,1733 @@
+{
+ "nota": "Seudónimos asignados por parecido de cara, calculado en el equipo; no se guardan rostros, nombres ni vectores. El rol sale de los rótulos del programa.",
+ "participantes": [
+  {
+   "id": "P01",
+   "seudonimo": "Ahuehuete",
+   "episodios": {
+    "wqqMPIaT1yo": {
+     "en_pantalla_s": 818.5,
+     "rol": "CONDUCTORA"
+    },
+    "eBAfUNPAglI": {
+     "en_pantalla_s": 548,
+     "rol": "CONDUCTORA"
+    },
+    "hciNCU5DsKo": {
+     "en_pantalla_s": 974,
+     "rol": "CONDUCTORA"
+    },
+    "_zymVDlBtQs": {
+     "en_pantalla_s": 825.5,
+     "rol": "CONDUCTORA"
+    },
+    "bl9uutZWYi0": {
+     "en_pantalla_s": 1086,
+     "rol": "CONDUCTORA"
+    },
+    "ZJAKkeh8KI0": {
+     "en_pantalla_s": 965,
+     "rol": "CONDUCTORA"
+    },
+    "HEXUZOYAVk8": {
+     "en_pantalla_s": 761.5,
+     "rol": "CONDUCTORA"
+    },
+    "1rdZ7DUF-gg": {
+     "en_pantalla_s": 592.5,
+     "rol": "CONDUCTORA"
+    },
+    "ZFYLCxfr-WU": {
+     "en_pantalla_s": 815.5,
+     "rol": "CONDUCTORA"
+    },
+    "tVnbX4Ongw8": {
+     "en_pantalla_s": 1082,
+     "rol": "CONDUCTORA"
+    },
+    "3zC6rwinwUI": {
+     "en_pantalla_s": 927,
+     "rol": "CONDUCTORA"
+    },
+    "KSS0Qks5VnE": {
+     "en_pantalla_s": 1086,
+     "rol": "CONDUCTORA"
+    },
+    "wfU9z8ioGtU": {
+     "en_pantalla_s": 975.1,
+     "rol": "CONDUCTORA"
+    },
+    "TyxmWUC3q-Q": {
+     "en_pantalla_s": 758.5,
+     "rol": "CONDUCTORA"
+    },
+    "3PCo6u8ty78": {
+     "en_pantalla_s": 788.1,
+     "rol": "CONDUCTORA"
+    },
+    "BiyZfPowQBE": {
+     "en_pantalla_s": 752.5,
+     "rol": "CONDUCTORA"
+    },
+    "LlJDhA8dg6k": {
+     "en_pantalla_s": 708,
+     "rol": "CONDUCTORA"
+    },
+    "l6x9M76fCoY": {
+     "en_pantalla_s": 890.5,
+     "rol": "CONDUCTORA"
+    }
+   },
+   "en_pantalla_s": 15364.3,
+   "rol": "CONDUCTORA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 906,
+    "minutos_senando": 105.3,
+    "senas": 4181,
+    "senas_por_segundo": 0.66,
+    "dos_manos": 0.567,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.84,
+     "alto": 1.45,
+     "centro": {
+      "x": 0.48,
+      "y": -0.21
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Um",
+      "n": 954
+     },
+     {
+      "clave": "Me",
+      "n": 952
+     },
+     {
+      "clave": "Co",
+      "n": 626
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 513
+     },
+     {
+      "clave": "1",
+      "n": 486
+     },
+     {
+      "clave": "9",
+      "n": 435
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 1859
+     },
+     {
+      "clave": "QUIETA",
+      "n": 817
+     },
+     {
+      "clave": "ARC",
+      "n": 684
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.029,
+     "cejas_p90": 0.666,
+     "cabeza_movimiento_grados": {
+      "giro": 16.63,
+      "cabeceo": 9.61
+     }
+    },
+    "en_primer_plano": 0.502
+   }
+  },
+  {
+   "id": "P02",
+   "seudonimo": "Biznaga",
+   "episodios": {
+    "wqqMPIaT1yo": {
+     "en_pantalla_s": 1123.5,
+     "rol": "INVITADO"
+    }
+   },
+   "en_pantalla_s": 1123.5,
+   "rol": "INVITADO",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 97,
+    "minutos_senando": 9.93,
+    "senas": 379,
+    "senas_por_segundo": 0.64,
+    "dos_manos": 0.485,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.66,
+     "alto": 1.48,
+     "centro": {
+      "x": 0.14,
+      "y": -0.4
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Pe",
+      "n": 139
+     },
+     {
+      "clave": "Me",
+      "n": 86
+     },
+     {
+      "clave": "Car",
+      "n": 41
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 51
+     },
+     {
+      "clave": "9",
+      "n": 39
+     },
+     {
+      "clave": "64",
+      "n": 31
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 159
+     },
+     {
+      "clave": "ARC",
+      "n": 71
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 64
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.068,
+     "cejas_p90": 0.714,
+     "cabeza_movimiento_grados": {
+      "giro": 18.46,
+      "cabeceo": 10.08
+     }
+    },
+    "en_primer_plano": 0.38
+   }
+  },
+  {
+   "id": "P03",
+   "seudonimo": "Cempasúchil",
+   "episodios": {
+    "wqqMPIaT1yo": {
+     "en_pantalla_s": 839,
+     "rol": "CONDUCTORA"
+    },
+    "eBAfUNPAglI": {
+     "en_pantalla_s": 469,
+     "rol": "CONDUCTORA"
+    },
+    "hciNCU5DsKo": {
+     "en_pantalla_s": 784.5,
+     "rol": "CONDUCTORA"
+    },
+    "_zymVDlBtQs": {
+     "en_pantalla_s": 759.5,
+     "rol": "CONDUCTORA"
+    },
+    "bl9uutZWYi0": {
+     "en_pantalla_s": 1118,
+     "rol": "CONDUCTORA"
+    },
+    "ZJAKkeh8KI0": {
+     "en_pantalla_s": 699.5,
+     "rol": "CONDUCTORA"
+    },
+    "HEXUZOYAVk8": {
+     "en_pantalla_s": 626.5,
+     "rol": "CONDUCTORA"
+    },
+    "1rdZ7DUF-gg": {
+     "en_pantalla_s": 370.5,
+     "rol": "CONDUCTORA"
+    },
+    "ZFYLCxfr-WU": {
+     "en_pantalla_s": 607.5,
+     "rol": "CONDUCTORA"
+    },
+    "tVnbX4Ongw8": {
+     "en_pantalla_s": 811,
+     "rol": "CONDUCTORA"
+    },
+    "3zC6rwinwUI": {
+     "en_pantalla_s": 794,
+     "rol": "CONDUCTORA"
+    },
+    "KSS0Qks5VnE": {
+     "en_pantalla_s": 905.2,
+     "rol": "CONDUCTORA"
+    },
+    "wfU9z8ioGtU": {
+     "en_pantalla_s": 1022,
+     "rol": "CONDUCTORA"
+    },
+    "TyxmWUC3q-Q": {
+     "en_pantalla_s": 564.5,
+     "rol": "CONDUCTORA"
+    },
+    "3PCo6u8ty78": {
+     "en_pantalla_s": 500.5,
+     "rol": "CONDUCTORA"
+    },
+    "BiyZfPowQBE": {
+     "en_pantalla_s": 537,
+     "rol": "CONDUCTORA"
+    },
+    "LlJDhA8dg6k": {
+     "en_pantalla_s": 643,
+     "rol": "CONDUCTORA"
+    },
+    "l6x9M76fCoY": {
+     "en_pantalla_s": 690,
+     "rol": "CONDUCTORA"
+    }
+   },
+   "en_pantalla_s": 12748.8,
+   "rol": "CONDUCTORA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 472,
+    "minutos_senando": 41.64,
+    "senas": 1649,
+    "senas_por_segundo": 0.66,
+    "dos_manos": 0.532,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.65,
+     "alto": 1.49,
+     "centro": {
+      "x": -0.76,
+      "y": -0.33
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 673
+     },
+     {
+      "clave": "Car",
+      "n": 493
+     },
+     {
+      "clave": "Pe",
+      "n": 198
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 239
+     },
+     {
+      "clave": "6",
+      "n": 213
+     },
+     {
+      "clave": "9",
+      "n": 149
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 625
+     },
+     {
+      "clave": "QUIETA",
+      "n": 328
+     },
+     {
+      "clave": "ARC",
+      "n": 307
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.085,
+     "cejas_p90": 0.454,
+     "cabeza_movimiento_grados": {
+      "giro": 12.75,
+      "cabeceo": 8.23
+     }
+    },
+    "en_primer_plano": 0.376
+   }
+  },
+  {
+   "id": "P04",
+   "seudonimo": "Colibrí",
+   "episodios": {
+    "eBAfUNPAglI": {
+     "en_pantalla_s": 1190.5,
+     "rol": "INVITADA"
+    }
+   },
+   "en_pantalla_s": 1190.5,
+   "rol": "INVITADA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 122,
+    "minutos_senando": 16.82,
+    "senas": 662,
+    "senas_por_segundo": 0.66,
+    "dos_manos": 0.807,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.3,
+     "alto": 1.09,
+     "centro": {
+      "x": -0.13,
+      "y": -0.12
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Pe",
+      "n": 307
+     },
+     {
+      "clave": "Me",
+      "n": 127
+     },
+     {
+      "clave": "Ve",
+      "n": 99
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 106
+     },
+     {
+      "clave": "9",
+      "n": 100
+     },
+     {
+      "clave": "1",
+      "n": 71
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 263
+     },
+     {
+      "clave": "ARC",
+      "n": 142
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 91
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.13,
+     "cejas_p90": 0.6,
+     "cabeza_movimiento_grados": {
+      "giro": 13.91,
+      "cabeceo": 10.85
+     }
+    },
+    "en_primer_plano": 0.356
+   }
+  },
+  {
+   "id": "P05",
+   "seudonimo": "Copal",
+   "episodios": {
+    "hciNCU5DsKo": {
+     "en_pantalla_s": 1173.5,
+     "rol": "INVITADO"
+    }
+   },
+   "en_pantalla_s": 1174.6,
+   "rol": "INVITADO",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 97,
+    "minutos_senando": 14.05,
+    "senas": 602,
+    "senas_por_segundo": 0.71,
+    "dos_manos": 0.535,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.21,
+     "alto": 0.95,
+     "centro": {
+      "x": -0.05,
+      "y": -0.21
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 276
+     },
+     {
+      "clave": "Pe",
+      "n": 137
+     },
+     {
+      "clave": "Co",
+      "n": 92
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 68
+     },
+     {
+      "clave": "54",
+      "n": 62
+     },
+     {
+      "clave": "1",
+      "n": 58
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 361
+     },
+     {
+      "clave": "ARC",
+      "n": 96
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 87
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.036,
+     "cejas_p90": 0.613,
+     "cabeza_movimiento_grados": {
+      "giro": 16.41,
+      "cabeceo": 9.55
+     }
+    },
+    "en_primer_plano": 0.356
+   }
+  },
+  {
+   "id": "P06",
+   "seudonimo": "Jacaranda",
+   "episodios": {
+    "_zymVDlBtQs": {
+     "en_pantalla_s": 1301.5,
+     "rol": "INVITADO"
+    }
+   },
+   "en_pantalla_s": 1301.5,
+   "rol": "INVITADO",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 116,
+    "minutos_senando": 16.17,
+    "senas": 621,
+    "senas_por_segundo": 0.64,
+    "dos_manos": 0.417,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 2.6,
+     "alto": 1.12,
+     "centro": {
+      "x": 0.19,
+      "y": -0.27
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Pe",
+      "n": 177
+     },
+     {
+      "clave": "Me",
+      "n": 175
+     },
+     {
+      "clave": "Co",
+      "n": 76
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 89
+     },
+     {
+      "clave": "11",
+      "n": 75
+     },
+     {
+      "clave": "9",
+      "n": 66
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 262
+     },
+     {
+      "clave": "ARC",
+      "n": 123
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 111
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.31,
+     "cejas_p90": 0.808,
+     "cabeza_movimiento_grados": {
+      "giro": 14.5,
+      "cabeceo": 6.84
+     }
+    },
+    "en_primer_plano": 0.328
+   }
+  },
+  {
+   "id": "P07",
+   "seudonimo": "Maguey",
+   "episodios": {
+    "bl9uutZWYi0": {
+     "en_pantalla_s": 1421.5,
+     "rol": "INVITADO"
+    }
+   },
+   "en_pantalla_s": 1421.5,
+   "rol": "INVITADO",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 135,
+    "minutos_senando": 13.04,
+    "senas": 546,
+    "senas_por_segundo": 0.7,
+    "dos_manos": 0.485,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.43,
+     "alto": 1.46,
+     "centro": {
+      "x": 0.06,
+      "y": -0.25
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Co",
+      "n": 201
+     },
+     {
+      "clave": "Me",
+      "n": 122
+     },
+     {
+      "clave": "Pe",
+      "n": 76
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 99
+     },
+     {
+      "clave": "6",
+      "n": 51
+     },
+     {
+      "clave": "9",
+      "n": 51
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 267
+     },
+     {
+      "clave": "ARC",
+      "n": 91
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 66
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.292,
+     "cejas_p90": 0.62,
+     "cabeza_movimiento_grados": {
+      "giro": 18.68,
+      "cabeceo": 8.48
+     }
+    },
+    "en_primer_plano": 0.111
+   }
+  },
+  {
+   "id": "P08",
+   "seudonimo": "Mezquite",
+   "episodios": {
+    "ZJAKkeh8KI0": {
+     "en_pantalla_s": 1292,
+     "rol": "ACTOR PROFESIONAL DE TEATRO SORDO"
+    }
+   },
+   "en_pantalla_s": 1292,
+   "rol": "ACTOR PROFESIONAL DE TEATRO SORDO",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 111,
+    "minutos_senando": 14.48,
+    "senas": 625,
+    "senas_por_segundo": 0.72,
+    "dos_manos": 0.594,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.31,
+     "alto": 1.25,
+     "centro": {
+      "x": -0.09,
+      "y": -0.21
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 186
+     },
+     {
+      "clave": "Pe",
+      "n": 171
+     },
+     {
+      "clave": "Co",
+      "n": 168
+     }
+    ],
+    "formas": [
+     {
+      "clave": "9",
+      "n": 69
+     },
+     {
+      "clave": "6",
+      "n": 67
+     },
+     {
+      "clave": "1",
+      "n": 64
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 294
+     },
+     {
+      "clave": "ARC",
+      "n": 111
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 90
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.183,
+     "cejas_p90": 0.606,
+     "cabeza_movimiento_grados": {
+      "giro": 19.32,
+      "cabeceo": 9.57
+     }
+    },
+    "en_primer_plano": 0.37
+   }
+  },
+  {
+   "id": "P09",
+   "seudonimo": "Nopal",
+   "episodios": {
+    "ZJAKkeh8KI0": {
+     "en_pantalla_s": 30.5,
+     "rol": null
+    }
+   },
+   "en_pantalla_s": 30.5,
+   "rol": null,
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": null
+  },
+  {
+   "id": "P10",
+   "seudonimo": "Ocelote",
+   "episodios": {
+    "HEXUZOYAVk8": {
+     "en_pantalla_s": 959.5,
+     "rol": null
+    }
+   },
+   "en_pantalla_s": 960.4,
+   "rol": null,
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 50,
+    "minutos_senando": 10.47,
+    "senas": 393,
+    "senas_por_segundo": 0.63,
+    "dos_manos": 0.557,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.17,
+     "alto": 1.32,
+     "centro": {
+      "x": 0.06,
+      "y": -0.04
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 167
+     },
+     {
+      "clave": "Co",
+      "n": 94
+     },
+     {
+      "clave": "Os",
+      "n": 40
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 57
+     },
+     {
+      "clave": "6",
+      "n": 46
+     },
+     {
+      "clave": "9",
+      "n": 44
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 176
+     },
+     {
+      "clave": "ARC",
+      "n": 87
+     },
+     {
+      "clave": "QUIETA",
+      "n": 60
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.107,
+     "cejas_p90": 0.426,
+     "cabeza_movimiento_grados": {
+      "giro": 18.67,
+      "cabeceo": 7.22
+     }
+    },
+    "en_primer_plano": 0.345
+   }
+  },
+  {
+   "id": "P11",
+   "seudonimo": "Pitaya",
+   "episodios": {
+    "1rdZ7DUF-gg": {
+     "en_pantalla_s": 946.5,
+     "rol": "ADOLESCENTE SORDA"
+    }
+   },
+   "en_pantalla_s": 947.3,
+   "rol": "ADOLESCENTE SORDA",
+   "condicion": "sorda",
+   "condicion_fuente": "rótulo del programa",
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 111,
+    "minutos_senando": 12.27,
+    "senas": 485,
+    "senas_por_segundo": 0.66,
+    "dos_manos": 0.633,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.21,
+     "alto": 1.53,
+     "centro": {
+      "x": 0.05,
+      "y": -0.08
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Co",
+      "n": 147
+     },
+     {
+      "clave": "Me",
+      "n": 144
+     },
+     {
+      "clave": "Pe",
+      "n": 82
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 72
+     },
+     {
+      "clave": "9",
+      "n": 69
+     },
+     {
+      "clave": "54",
+      "n": 64
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 261
+     },
+     {
+      "clave": "ARC",
+      "n": 86
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 61
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.151,
+     "cejas_p90": 0.581,
+     "cabeza_movimiento_grados": {
+      "giro": 9.46,
+      "cabeceo": 7.25
+     }
+    },
+    "en_primer_plano": 0.48
+   }
+  },
+  {
+   "id": "P12",
+   "seudonimo": "Quetzal",
+   "episodios": {
+    "ZFYLCxfr-WU": {
+     "en_pantalla_s": 951,
+     "rol": "BASQUETBOLISTA"
+    }
+   },
+   "en_pantalla_s": 951.8,
+   "rol": "BASQUETBOLISTA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 102,
+    "minutos_senando": 9.1,
+    "senas": 380,
+    "senas_por_segundo": 0.7,
+    "dos_manos": 0.276,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.67,
+     "alto": 1.46,
+     "centro": {
+      "x": -0.09,
+      "y": -0.25
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 127
+     },
+     {
+      "clave": "Pe",
+      "n": 83
+     },
+     {
+      "clave": "Co",
+      "n": 59
+     }
+    ],
+    "formas": [
+     {
+      "clave": "9",
+      "n": 47
+     },
+     {
+      "clave": "6",
+      "n": 46
+     },
+     {
+      "clave": "1",
+      "n": 38
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 155
+     },
+     {
+      "clave": "ARC",
+      "n": 89
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 66
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.155,
+     "cejas_p90": 0.539,
+     "cabeza_movimiento_grados": {
+      "giro": 24.01,
+      "cabeceo": 10.02
+     }
+    },
+    "en_primer_plano": 0.303
+   }
+  },
+  {
+   "id": "P13",
+   "seudonimo": "Tule",
+   "episodios": {
+    "3zC6rwinwUI": {
+     "en_pantalla_s": 951,
+     "rol": "INTÉRPRETE DE PERSONA SORDOCIEGA"
+    }
+   },
+   "en_pantalla_s": 951.9,
+   "rol": "INTÉRPRETE DE PERSONA SORDOCIEGA",
+   "condicion": "intérprete",
+   "condicion_fuente": "rótulo del programa",
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 80,
+    "minutos_senando": 10.96,
+    "senas": 451,
+    "senas_por_segundo": 0.69,
+    "dos_manos": 0.41,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.43,
+     "alto": 1.65,
+     "centro": {
+      "x": -0.28,
+      "y": -0.08
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 164
+     },
+     {
+      "clave": "Co",
+      "n": 101
+     },
+     {
+      "clave": "Pe",
+      "n": 54
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 100
+     },
+     {
+      "clave": "6",
+      "n": 42
+     },
+     {
+      "clave": "9",
+      "n": 35
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 187
+     },
+     {
+      "clave": "ARC",
+      "n": 110
+     },
+     {
+      "clave": "QUIETA",
+      "n": 62
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.309,
+     "cejas_p90": 0.655,
+     "cabeza_movimiento_grados": {
+      "giro": 19.29,
+      "cabeceo": 8.09
+     }
+    },
+    "en_primer_plano": 0.294
+   }
+  },
+  {
+   "id": "P14",
+   "seudonimo": "Xoconostle",
+   "episodios": {
+    "KSS0Qks5VnE": {
+     "en_pantalla_s": 1462.2,
+     "rol": "OPERADOR DE PRODUCCIÓN"
+    }
+   },
+   "en_pantalla_s": 1463.4,
+   "rol": "OPERADOR DE PRODUCCIÓN",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 129,
+    "minutos_senando": 13.01,
+    "senas": 517,
+    "senas_por_segundo": 0.66,
+    "dos_manos": 0.793,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.62,
+     "alto": 1.07,
+     "centro": {
+      "x": -0.03,
+      "y": -0.15
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 216
+     },
+     {
+      "clave": "Um",
+      "n": 82
+     },
+     {
+      "clave": "Pe",
+      "n": 78
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 58
+     },
+     {
+      "clave": "6",
+      "n": 55
+     },
+     {
+      "clave": "9",
+      "n": 55
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 257
+     },
+     {
+      "clave": "ARC",
+      "n": 79
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 63
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.136,
+     "cejas_p90": 0.734,
+     "cabeza_movimiento_grados": {
+      "giro": 35.8,
+      "cabeceo": 11.38
+     }
+    },
+    "en_primer_plano": 0.002
+   }
+  },
+  {
+   "id": "P15",
+   "seudonimo": "Zenzontle",
+   "episodios": {
+    "wfU9z8ioGtU": {
+     "en_pantalla_s": 1481.6,
+     "rol": "INTÉRPRETE DE LENGUA DE SEÑAS"
+    }
+   },
+   "en_pantalla_s": 1482.9,
+   "rol": "INTÉRPRETE DE LENGUA DE SEÑAS",
+   "condicion": "intérprete",
+   "condicion_fuente": "rótulo del programa",
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 120,
+    "minutos_senando": 17.04,
+    "senas": 752,
+    "senas_por_segundo": 0.74,
+    "dos_manos": 0.322,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.54,
+     "alto": 1.55,
+     "centro": {
+      "x": -0.01,
+      "y": -0.07
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 242
+     },
+     {
+      "clave": "Co",
+      "n": 228
+     },
+     {
+      "clave": "Um",
+      "n": 93
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 92
+     },
+     {
+      "clave": "9",
+      "n": 83
+     },
+     {
+      "clave": "54",
+      "n": 67
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 304
+     },
+     {
+      "clave": "ARC",
+      "n": 171
+     },
+     {
+      "clave": "QUIETA",
+      "n": 109
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0,
+     "cejas_p90": 0,
+     "cabeza_movimiento_grados": {
+      "giro": 0,
+      "cabeceo": 0
+     }
+    },
+    "en_primer_plano": 0
+   }
+  },
+  {
+   "id": "P16",
+   "seudonimo": "Ceiba",
+   "episodios": {
+    "TyxmWUC3q-Q": {
+     "en_pantalla_s": 979.5,
+     "rol": "LIC. EN EDUCACIÓN INCLUSIVA"
+    }
+   },
+   "en_pantalla_s": 980.4,
+   "rol": "LIC. EN EDUCACIÓN INCLUSIVA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 97,
+    "minutos_senando": 12.43,
+    "senas": 546,
+    "senas_por_segundo": 0.73,
+    "dos_manos": 0.538,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.75,
+     "alto": 1.75,
+     "centro": {
+      "x": -0.09,
+      "y": -0.11
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 176
+     },
+     {
+      "clave": "Co",
+      "n": 113
+     },
+     {
+      "clave": "Os",
+      "n": 58
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 89
+     },
+     {
+      "clave": "6",
+      "n": 57
+     },
+     {
+      "clave": "20",
+      "n": 56
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 238
+     },
+     {
+      "clave": "ARC",
+      "n": 139
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 78
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.367,
+     "cejas_p90": 0.403,
+     "cabeza_movimiento_grados": {
+      "giro": 14.93,
+      "cabeceo": 8.16
+     }
+    },
+    "en_primer_plano": 0.257
+   }
+  },
+  {
+   "id": "P17",
+   "seudonimo": "Huizache",
+   "episodios": {
+    "3PCo6u8ty78": {
+     "en_pantalla_s": 1064.5,
+     "rol": "HISTORIADOR DE LA COMUNIDAD SORDA"
+    }
+   },
+   "en_pantalla_s": 1065.5,
+   "rol": "HISTORIADOR DE LA COMUNIDAD SORDA",
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 89,
+    "minutos_senando": 12.15,
+    "senas": 503,
+    "senas_por_segundo": 0.69,
+    "dos_manos": 0.543,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.79,
+     "alto": 1.2,
+     "centro": {
+      "x": -0.31,
+      "y": -0.07
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 214
+     },
+     {
+      "clave": "Co",
+      "n": 89
+     },
+     {
+      "clave": "Pe",
+      "n": 65
+     }
+    ],
+    "formas": [
+     {
+      "clave": "6",
+      "n": 65
+     },
+     {
+      "clave": "9",
+      "n": 46
+     },
+     {
+      "clave": "1",
+      "n": 43
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 215
+     },
+     {
+      "clave": "ARC",
+      "n": 97
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 67
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.02,
+     "cejas_p90": 0.474,
+     "cabeza_movimiento_grados": {
+      "giro": 20.44,
+      "cabeceo": 7.42
+     }
+    },
+    "en_primer_plano": 0.563
+   }
+  },
+  {
+   "id": "P18",
+   "seudonimo": "Tejón",
+   "episodios": {
+    "BiyZfPowQBE": {
+     "en_pantalla_s": 997.5,
+     "rol": null
+    }
+   },
+   "en_pantalla_s": 998.4,
+   "rol": null,
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 98,
+    "minutos_senando": 12.54,
+    "senas": 521,
+    "senas_por_segundo": 0.69,
+    "dos_manos": 0.731,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.27,
+     "alto": 1.26,
+     "centro": {
+      "x": -0.03,
+      "y": -0.11
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Me",
+      "n": 199
+     },
+     {
+      "clave": "Co",
+      "n": 96
+     },
+     {
+      "clave": "Pe",
+      "n": 88
+     }
+    ],
+    "formas": [
+     {
+      "clave": "1",
+      "n": 82
+     },
+     {
+      "clave": "6",
+      "n": 54
+     },
+     {
+      "clave": "54",
+      "n": 53
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 234
+     },
+     {
+      "clave": "ARC",
+      "n": 118
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 78
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.155,
+     "cejas_p90": 0.754,
+     "cabeza_movimiento_grados": {
+      "giro": 15.89,
+      "cabeceo": 8.31
+     }
+    },
+    "en_primer_plano": 0.45
+   }
+  },
+  {
+   "id": "P19",
+   "seudonimo": "Ajolote",
+   "episodios": {
+    "LlJDhA8dg6k": {
+     "en_pantalla_s": 1036,
+     "rol": "USAER MAESTRA SORDA"
+    }
+   },
+   "en_pantalla_s": 1036.9,
+   "rol": "USAER MAESTRA SORDA",
+   "condicion": "sorda",
+   "condicion_fuente": "rótulo del programa",
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 90,
+    "minutos_senando": 12.71,
+    "senas": 538,
+    "senas_por_segundo": 0.71,
+    "dos_manos": 0.452,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.75,
+     "alto": 1.31,
+     "centro": {
+      "x": 0.24,
+      "y": -0.25
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Um",
+      "n": 159
+     },
+     {
+      "clave": "Me",
+      "n": 119
+     },
+     {
+      "clave": "Co",
+      "n": 95
+     }
+    ],
+    "formas": [
+     {
+      "clave": "9",
+      "n": 75
+     },
+     {
+      "clave": "1",
+      "n": 63
+     },
+     {
+      "clave": "54",
+      "n": 56
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 220
+     },
+     {
+      "clave": "ARC",
+      "n": 118
+     },
+     {
+      "clave": "QUIETA",
+      "n": 93
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.379,
+     "cejas_p90": 0.62,
+     "cabeza_movimiento_grados": {
+      "giro": 22.15,
+      "cabeceo": 8.27
+     }
+    },
+    "en_primer_plano": 0.309
+   }
+  },
+  {
+   "id": "P20",
+   "seudonimo": "Guaje",
+   "episodios": {
+    "l6x9M76fCoY": {
+     "en_pantalla_s": 982.5,
+     "rol": null
+    }
+   },
+   "en_pantalla_s": 983.4,
+   "rol": null,
+   "condicion": null,
+   "condicion_fuente": null,
+   "caracterizacion": {
+    "fuente": "automática (visión por computadora); sin rasgos físicos ni demográficos",
+    "mano_dominante": "derecha",
+    "enunciados": 115,
+    "minutos_senando": 10.78,
+    "senas": 475,
+    "senas_por_segundo": 0.73,
+    "dos_manos": 0.324,
+    "espacio_de_senado": {
+     "unidades": "anchos de hombro; origen entre los hombros, y hacia arriba",
+     "ancho": 1.38,
+     "alto": 1.37,
+     "centro": {
+      "x": 0.22,
+      "y": -0.34
+     }
+    },
+    "lugares": [
+     {
+      "clave": "Pe",
+      "n": 171
+     },
+     {
+      "clave": "Um",
+      "n": 125
+     },
+     {
+      "clave": "Me",
+      "n": 79
+     }
+    ],
+    "formas": [
+     {
+      "clave": "9",
+      "n": 79
+     },
+     {
+      "clave": "6",
+      "n": 51
+     },
+     {
+      "clave": "1",
+      "n": 44
+     }
+    ],
+    "contornos": [
+     {
+      "clave": "STRAIGHT",
+      "n": 238
+     },
+     {
+      "clave": "ARC",
+      "n": 109
+     },
+     {
+      "clave": "CIRCLE",
+      "n": 56
+     }
+    ],
+    "cara": {
+     "boca_abierta_p90": 0.089,
+     "cejas_p90": 0.481,
+     "cabeza_movimiento_grados": {
+      "giro": 15.3,
+      "cabeceo": 6.23
+     }
+    },
+    "en_primer_plano": 0.298
+   }
+  }
+ ]
+}
