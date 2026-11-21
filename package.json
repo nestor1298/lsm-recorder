@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/wikisigns/publish-tracks.mjs",
+    "predev": "node scripts/wikisigns/publish-tracks.mjs && node scripts/voces/publish.mjs",
     "dev": "next dev",
-    "prebuild": "node scripts/wikisigns/publish-tracks.mjs",
+    "prebuild": "node scripts/wikisigns/publish-tracks.mjs && node scripts/voces/publish.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
