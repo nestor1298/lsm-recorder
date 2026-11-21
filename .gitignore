@@ -56,6 +56,8 @@ __pycache__/
 
 # léxico publicado para /lexico (scripts/wikisigns/publish-tracks.mjs)
 /public/lexico/
+# detalle del corpus para /corpus (scripts/voces/publish.mjs)
+/public/corpus/
 
 # corpus VOCES EN SEÑAS: videos, cuadros y caché locales (derechos reservados)
 /data/voces-en-senas/_videos/
