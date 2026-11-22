@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   episodiosNumerados,
+  esInterprete,
   filasDe,
   filtraEnunciados,
   FILTROS_CORPUS,
@@ -71,6 +72,7 @@ describe("filasDe y filtraEnunciados", () => {
       registro("a-1", "aaa", 3, "¿Cómo estás?", null, null, []),
     ],
     eps,
+    new Set(["P02"]),
   );
 
   it("ordena por episodio y tiempo, y cuenta señas y glosas", () => {
@@ -89,6 +91,21 @@ describe("filasDe y filtraEnunciados", () => {
     expect(filtraEnunciados(filas, { ...FILTROS_CORPUS, persona: "P02" }).map((f) => f.id)).toEqual(["a-2"]);
     expect(filtraEnunciados(filas, { ...FILTROS_CORPUS, episodio: 1 }).map((f) => f.id)).toEqual(["a-1", "a-2"]);
     expect(filtraEnunciados(filas, { ...FILTROS_CORPUS, soloConGlosa: true }).map((f) => f.id)).toEqual(["a-2", "b-1"]);
+  });
+
+  it("marca como interpretados los enunciados de intérpretes", () => {
+    expect(filas.map((f) => f.d)).toEqual([null, "interpretada", "propia"]);
+    expect(filtraEnunciados(filas, { ...FILTROS_CORPUS, direccion: "interpretada" }).map((f) => f.id)).toEqual(["a-2"]);
+    expect(filtraEnunciados(filas, { ...FILTROS_CORPUS, direccion: "propia" }).map((f) => f.id)).toEqual(["b-1"]);
+  });
+});
+
+describe("esInterprete", () => {
+  it("lee la condición o el rol del rótulo", () => {
+    expect(esInterprete({ rol: "INTÉRPRETE DE PERSONA SORDOCIEGA", condicion: null })).toBe(true);
+    expect(esInterprete({ rol: null, condicion: "intérprete" })).toBe(true);
+    expect(esInterprete({ rol: "CONDUCTORA", condicion: null })).toBe(false);
+    expect(esInterprete({ rol: "USAER MAESTRA SORDA", condicion: "sorda" })).toBe(false);
   });
 });
 
