@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ExplorarCorpus from "@/components/corpus/ExplorarCorpus";
+import { CONTACTO_SIGNALAB } from "@/lib/acuerdo";
 import { corpusPagina } from "@/lib/corpus/catalog";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function CorpusPage() {
   const horas = Math.floor(c.duracion_s / 3600);
   const minutos = Math.round((c.duracion_s % 3600) / 60);
   const conSeudonimo = c.personas.filter((p) => p.c).length;
+  const interpretados = c.filas.filter((f) => f.d === "interpretada").length;
 
   return (
     <article className="space-y-10 sm:space-y-12">
@@ -49,8 +51,9 @@ export default function CorpusPage() {
           oración escrita, quién la seña, sus señas con su descripción fonológica y una transliteración en glosas.
         </p>
         <p className="mt-3 max-w-2xl rounded-lg bg-gold-tint px-3 py-2 text-sm text-gold-deep">
-          Todo es automático y aproximado: el subtítulo es una traducción al español, el corte en señas sale de las pausas de la
-          mano y la glosa es la seña del{" "}
+          Todo es automático y aproximado. El subtítulo es el español del programa: traduce la seña cuando la persona seña sus
+          propias palabras, pero cuando seña un intérprete ({mil(interpretados)} enunciados) puede ser el original que se
+          interpretó. El corte en señas sale de las pausas de la mano y la glosa es la seña del{" "}
           <Link href="/lexico" className="underline">
             léxico
           </Link>{" "}
@@ -86,6 +89,13 @@ export default function CorpusPage() {
               ({mil(s.nombres_tapados)} en total).
             </li>
             <li>No se infieren rasgos físicos ni demográficos.</li>
+            <li>
+              Si sales en el programa y prefieres no estar en el corpus, escribe a{" "}
+              <a href={`mailto:${CONTACTO_SIGNALAB}`} className="font-medium text-ink underline underline-offset-2 hover:text-accent-deep">
+                {CONTACTO_SIGNALAB}
+              </a>{" "}
+              y dinos en qué episodio apareces: quitamos tus enunciados y tu seudónimo en la siguiente versión.
+            </li>
           </ul>
         </div>
       </section>

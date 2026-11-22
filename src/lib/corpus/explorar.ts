@@ -79,6 +79,20 @@ export interface EpisodioFila {
   duracion_s: number;
 }
 
+/**
+ * Cómo llega la seña: «propia» si la persona seña sus palabras (el
+ * subtítulo traduce la seña) o «interpretada» si seña un intérprete (la
+ * seña traduce lo que dijo otra persona y el subtítulo puede ser el
+ * original). Sale del rol del señante, no del video.
+ */
+export type Direccion = "propia" | "interpretada";
+
+export const DIRECCION_ES: Record<Direccion, string> = { propia: "Seña propia", interpretada: "Interpretación" };
+
+/** ¿El rótulo de la persona dice que es intérprete? */
+export const esInterprete = (p: Pick<ParticipanteCorpus, "rol" | "condicion">) =>
+  p.condicion === "intérprete" || /INT[ÉE]RPRETE/i.test(p.rol ?? "");
+
 /** Fila de la lista: lo justo para buscar, filtrar y pintar */
 export interface FilaEnunciado {
   id: string;
@@ -96,6 +110,8 @@ export interface FilaEnunciado {
   glosas: number;
   /** parte del tramo en primer plano, 0–1 */
   pp: number | null;
+  /** null si no se supo quién seña */
+  d: Direccion | null;
 }
 
 export interface PersonaFila {
@@ -116,7 +132,8 @@ export function episodiosNumerados(eps: EpisodioIndice[]): EpisodioFila[] {
     .map((e, k) => ({ id: e.youtube_id, n: k + 1, fecha: fecha(e.upload_date), duracion_s: e.duration_s }));
 }
 
-export function filasDe(registros: RegistroCorpus[], eps: EpisodioFila[]): FilaEnunciado[] {
+/** `interpretes`: ids de las personas cuyo rótulo dice que interpretan */
+export function filasDe(registros: RegistroCorpus[], eps: EpisodioFila[], interpretes: ReadonlySet<string> = new Set()): FilaEnunciado[] {
   const num = new Map(eps.map((e) => [e.id, e.n]));
   return registros
     .map((r) => ({
@@ -131,6 +148,7 @@ export function filasDe(registros: RegistroCorpus[], eps: EpisodioFila[]): FilaE
       senas: r.senas.length,
       glosas: r.senas.filter((s) => s.glosa).length,
       pp: r.toma_primer_plano ?? null,
+      d: r.senante ? (interpretes.has(r.senante.id) ? ("interpretada" as const) : ("propia" as const)) : null,
     }))
     .sort((a, b) => a.n - b.n || a.t0 - b.t0);
 }
@@ -155,9 +173,11 @@ export interface FiltrosCorpus {
   /** número de episodio, o 0 para todos */
   episodio: number;
   soloConGlosa: boolean;
+  /** "" para todas */
+  direccion: Direccion | "";
 }
 
-export const FILTROS_CORPUS: FiltrosCorpus = { q: "", persona: "", episodio: 0, soloConGlosa: false };
+export const FILTROS_CORPUS: FiltrosCorpus = { q: "", persona: "", episodio: 0, soloConGlosa: false, direccion: "" };
 
 /**
  * Filtra las filas. La búsqueda va sin acentos ni mayúsculas, y cada
@@ -170,6 +190,7 @@ export function filtraEnunciados(filas: FilaEnunciado[], f: FiltrosCorpus): Fila
     if (f.persona && r.p !== f.persona) return false;
     if (f.episodio && r.n !== f.episodio) return false;
     if (f.soloConGlosa && r.glosas === 0) return false;
+    if (f.direccion && r.d !== f.direccion) return false;
     if (palabras.length) {
       const hay = `${normaliza(r.texto)} ${normaliza(r.tr.replace(/-/g, " "))}`;
       if (!palabras.every((w) => hay.includes(w))) return false;

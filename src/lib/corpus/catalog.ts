@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   episodiosNumerados,
+  esInterprete,
   filasDe,
   personasDe,
   type EpisodioFila,
@@ -49,12 +50,14 @@ export function corpusPagina(): CorpusPagina {
     .map((l) => JSON.parse(l) as RegistroCorpus);
   const idx = lee<{ program: string; channel: string; playlist: string; episodes: EpisodioIndice[] }>("episodes.json");
   const episodios = episodiosNumerados(idx.episodes);
+  const participantes = lee<{ participantes: ParticipanteCorpus[] }>("participantes.json").participantes;
+  const interpretes = new Set(participantes.filter(esInterprete).map((p) => p.id));
   return {
     programa: { nombre: idx.program, canal: idx.channel, lista: idx.playlist },
     stats: lee<EstadisticasCorpus>("stats.json"),
     duracion_s: idx.episodes.reduce((s, e) => s + e.duration_s, 0),
     episodios,
-    personas: personasDe(lee<{ participantes: ParticipanteCorpus[] }>("participantes.json").participantes),
-    filas: filasDe(registros, episodios),
+    personas: personasDe(participantes),
+    filas: filasDe(registros, episodios, interpretes),
   };
 }

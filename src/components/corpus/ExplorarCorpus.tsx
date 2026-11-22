@@ -14,6 +14,7 @@ import { MiniHand } from "@/components/learn/MiniHand";
 import { PictoMV, PictoUB } from "@/components/lexico/ficha/Pictogramas";
 import { CONTACT_ES, CONTOUR_ES, FINGER_ES, PALM_ES, RELATION_ES, ubName } from "@/lib/anotar_labels";
 import {
+  DIRECCION_ES,
   FILTROS_CORPUS,
   filtraEnunciados,
   idDeGlosa,
@@ -280,6 +281,7 @@ function Enunciado({ r, persona }: { r: FilaEnunciado; persona: PersonaFila | un
         ) : (
           <span className="text-gray-400">Sin señante</span>
         )}
+        {r.d === "interpretada" && <span className="rounded bg-gold-tint px-1.5 py-0.5 text-gold-deep">interpretación</span>}
         {r.pp !== null && r.pp < 0.5 && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">toma abierta</span>}
       </div>
       <p className="mt-1.5 text-[17px] leading-snug text-ink">{r.texto}</p>
@@ -322,6 +324,11 @@ export default function ExplorarCorpus({
   const resultado = useMemo(() => filtraEnunciados(filas, fDiferido), [filas, fDiferido]);
   const porId = useMemo(() => new Map(personas.map((p) => [p.id, p])), [personas]);
   const conEnunciados = personas.filter((p) => p.c);
+  const cuenta = useMemo(() => {
+    const c = { propia: 0, interpretada: 0 };
+    for (const r of filas) if (r.d) c[r.d]++;
+    return c;
+  }, [filas]);
   const cambia = (p: Partial<FiltrosCorpus>) => {
     setF((prev) => ({ ...prev, ...p }));
     setVisibles(PAGINA);
@@ -353,7 +360,9 @@ export default function ExplorarCorpus({
         </ul>
         {personas.length > conEnunciados.length && (
           <p className="mt-3 text-sm text-gray-500">
-            Otras {personas.length - conEnunciados.length} personas salen en pantalla sin que se les asigne ningún enunciado.
+            {personas.length - conEnunciados.length === 1
+              ? "Otra persona sale en pantalla sin que se le asigne ningún enunciado."
+              : `Otras ${personas.length - conEnunciados.length} personas salen en pantalla sin que se les asigne ningún enunciado.`}
           </p>
         )}
       </section>
@@ -366,7 +375,10 @@ export default function ExplorarCorpus({
           <p className="max-w-2xl text-[15px] leading-relaxed text-gray-600">
             Cada enunciado es la oración del subtítulo (en español), quién la seña y la transliteración: las glosas en mayúsculas
             son señas del léxico que se parecen y cuya palabra está en la oración; entre corchetes va la descripción{" "}
-            <span className="font-mono text-[13px]">[CM·lugar·movimiento·2M]</span> cuando no hubo glosa.
+            <span className="font-mono text-[13px]">[CM·lugar·movimiento·2M]</span> cuando no hubo glosa. Los marcados como{" "}
+            <span className="rounded bg-gold-tint px-1 text-gold-deep">interpretación</span> los seña alguien cuyo rótulo dice
+            intérprete: casi siempre la seña traduce lo que dijo otra persona, así que no es LSM espontánea y el subtítulo puede
+            ser el original. La marca sale del rol, no de cada momento: a veces el intérprete habla por sí mismo.
           </p>
         </div>
 
@@ -381,7 +393,7 @@ export default function ExplorarCorpus({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-accent"
             />
           </label>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-center">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto] lg:items-center">
             <label className="block text-sm">
               <span className="mb-1 block text-xs font-medium overline-label text-gray-500">Persona</span>
               <select
@@ -410,6 +422,18 @@ export default function ExplorarCorpus({
                     Episodio {e.n} · {e.fecha}
                   </option>
                 ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs font-medium overline-label text-gray-500">Cómo se seña</span>
+              <select
+                value={f.direccion}
+                onChange={(e) => cambia({ direccion: e.target.value as FiltrosCorpus["direccion"] })}
+                className="w-full rounded-lg border border-gray-300 bg-paper px-2 py-1.5 text-sm"
+              >
+                <option value="">Todo</option>
+                <option value="propia">{DIRECCION_ES.propia} ({mil(cuenta.propia)})</option>
+                <option value="interpretada">{DIRECCION_ES.interpretada} ({mil(cuenta.interpretada)})</option>
               </select>
             </label>
             <label className="inline-flex items-center gap-2 text-sm text-gray-700 lg:mt-5">
