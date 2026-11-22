@@ -26,6 +26,7 @@ import {
   type SenaCorpus,
 } from "@/lib/corpus/explorar";
 import type { ContourMovement, FingerPointing, NonDominantRelation, PalmFacing } from "@/lib/types";
+import Transliteracion4D from "./Transliteracion4D";
 
 const PAGINA = 40;
 const cmPorId = new Map(CM_INVENTORY.map((c) => [c.cm_id, c]));
@@ -135,14 +136,24 @@ function Persona({ p, activa, onClick }: { p: PersonaFila; activa: boolean; onCl
 
 // ── Una seña del enunciado ─────────────────────────────────────
 
-function Sena({ s }: { s: SenaCorpus }) {
+function Sena({ s, activa, onElige }: { s: SenaCorpus; activa: boolean; onElige: () => void }) {
   const f = s.fonologia;
   const cm = f.cm[0] ? cmPorId.get(f.cm[0].id) : undefined;
   const otras = f.cm.slice(1).filter((c) => c.puntaje >= (f.cm[0]?.puntaje ?? 1) - 0.05);
   const lexId = idDeGlosa(s);
   return (
-    <li className="w-56 shrink-0 snap-start rounded-xl border border-gray-200 bg-paper p-3">
-      <div className="flex items-baseline justify-between text-xs text-gray-400">
+    <li
+      className={`w-56 shrink-0 snap-start rounded-xl border bg-paper p-3 transition-colors ${activa ? "border-ink ring-1 ring-ink" : "border-gray-200"}`}
+    >
+      <div className="flex items-baseline justify-between gap-2 text-xs text-gray-400">
+        <button
+          type="button"
+          onClick={onElige}
+          aria-pressed={activa}
+          className={`rounded-full px-2 py-0.5 font-medium transition-colors ${activa ? "bg-ink text-white" : "bg-gray-100 text-gray-600 hover:bg-accent-tint hover:text-accent-deep"}`}
+        >
+          {activa ? "■ en 4D" : "▶ en 4D"}
+        </button>
         <span className="font-mono">seña {s.i}</span>
         <span className="tabular-nums">
           {minSeg(s.t0)} · {(s.t1 - s.t0).toFixed(1)} s
@@ -236,6 +247,7 @@ function Sena({ s }: { s: SenaCorpus }) {
 
 function Senas({ fila }: { fila: FilaEnunciado }) {
   const [estado, setEstado] = useState<{ senas: SenaCorpus[] | null; error: boolean }>({ senas: null, error: false });
+  const [elegida, setElegida] = useState<number | null>(null);
   useEffect(() => {
     let vivo = true;
     detalleDe(fila.e)
@@ -255,11 +267,14 @@ function Senas({ fila }: { fila: FilaEnunciado }) {
     );
   if (estado.senas.length === 0) return <p className="py-3 text-sm text-gray-500">En este tramo no se cortó ninguna seña.</p>;
   return (
-    <ol className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2" aria-label="Señas del enunciado">
-      {estado.senas.map((s) => (
-        <Sena key={s.i} s={s} />
-      ))}
-    </ol>
+    <div className="space-y-3">
+      <Transliteracion4D id={fila.id} senas={estado.senas} elegida={elegida} onElige={setElegida} />
+      <ol className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2" aria-label="Señas del enunciado">
+        {estado.senas.map((s, k) => (
+          <Sena key={s.i} s={s} activa={elegida === k} onElige={() => setElegida(elegida === k ? null : k)} />
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -293,7 +308,7 @@ function Enunciado({ r, persona }: { r: FilaEnunciado; persona: PersonaFila | un
           aria-expanded={abierto}
           className="mt-2 text-sm font-medium text-gray-600 hover:text-accent-deep"
         >
-          {abierto ? (r.senas === 1 ? "Ocultar la seña" : "Ocultar las señas") : r.senas === 1 ? "Ver la seña" : `Ver las ${r.senas} señas`}
+          {abierto ? (r.senas === 1 ? "Ocultar la seña" : "Ocultar las señas") : r.senas === 1 ? "Ver la seña en 4D" : `Ver las ${r.senas} señas en 4D`}
           {r.glosas > 0 && <span className="text-gray-400"> · {r.glosas} con glosa</span>}
         </button>
       )}
